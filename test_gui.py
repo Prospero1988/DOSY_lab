@@ -389,6 +389,36 @@ class InterfaceTests(unittest.TestCase):
             height = np.ptp(window.reference_view.viewRange()[1])
             wheel(window.projection)
             self.assertLess(np.ptp(window.reference_view.viewRange()[1]), height)
+            image = window.images[0]
+            peak = window.peak_intensity
+            image.setImage(np.array([[-peak, 0., .02*peak, peak]], dtype=np.float32), autoLevels=False)
+            window.floor.setValue(0)
+            image.render()
+            weak_alpha = image.qimage.pixelColor(2,0).alpha()
+            self.assertEqual(image.qimage.pixelColor(3,0).name(), '#fb923c')
+            window.gain.setValue(20)
+            image.render()
+            self.assertEqual(window.gain_label.text(), '10×')
+            self.assertEqual(image.qimage.pixelColor(0,0).alpha(), 0)
+            self.assertEqual(image.qimage.pixelColor(1,0).alpha(), 0)
+            self.assertGreater(image.qimage.pixelColor(2,0).alpha(), weak_alpha)
+            window.floor.setValue(3)
+            image.render()
+            self.assertEqual(image.qimage.pixelColor(2,0).alpha(), 0)
+            with patch.object(QtWidgets.QColorDialog, 'getColor',
+                              side_effect=[QtGui.QColor('#22c55e'), QtGui.QColor('#a78bfa')]):
+                window.map_color_action.trigger()
+                window.trace_color_action.trigger()
+            image.render()
+            self.assertEqual(image.qimage.pixelColor(3,0).name(), '#22c55e')
+            self.assertEqual(window.trace.opts['pen'].color().name(), '#a78bfa')
+            window.grid_action.trigger()
+            for chart in (window.plot, window.projection):
+                self.assertFalse(chart.getAxis('bottom').grid)
+                self.assertFalse(chart.getAxis('left').grid)
+            self.assertEqual(w.settings.value('dosy_map/color'), '#22c55e')
+            self.assertEqual(w.settings.value('dosy_map/trace_color'), '#a78bfa')
+            self.assertFalse(w.settings.value('dosy_map/grid', type=bool))
             window.rois.item(1).setCheckState(QtCore.Qt.CheckState.Unchecked)
             self.assertEqual(len(window.images), 1)
             with tempfile.TemporaryDirectory() as directory:

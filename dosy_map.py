@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from d_statistics import finite
 from spectrum_view import SpectrumBox
@@ -82,8 +82,11 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.excluded = set()
         self.images = []
         self.stale = True
-        self.levels = 0.
+        self.peak_intensity = 0.
         self.full_range = None
+        self.settings = parent.settings
+        self.map_color = self.saved_color('dosy_map/color', '#fb923c')
+        self.trace_color = self.saved_color('dosy_map/trace_color', '#67e8f9')
 
         root = QtWidgets.QWidget()
         self.setCentralWidget(root)
@@ -107,12 +110,33 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         reset.clicked.connect(self.reset_view)
         toolbar.addWidget(reset)
         toolbar.addStretch()
-        self.floor = self.spin_box(toolbar, 'Podłoga', 0, 99, 2,
-                                  'Próg w % maksymalnej bezwzględnej intensywności mapy. Rolka nad mapą zmienia próg.')
-        self.floor.valueChanged.connect(self.update_floor)
+        toolbar.addWidget(QtWidgets.QLabel('Wzmocnienie 2D'))
+        self.gain = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+        self.gain.setRange(0, 40)
+        self.gain.setFixedWidth(100)
+        self.gain.setToolTip('Wzmocnij jasność mapy od 1× do 100×. Próg podłogi pozostaje niezależny.')
+        self.gain.valueChanged.connect(self.update_intensity)
+        toolbar.addWidget(self.gain)
+        self.gain_label = QtWidgets.QLabel('1×')
+        self.gain_label.setMinimumWidth(39)
+        toolbar.addWidget(self.gain_label)
+        self.floor = self.spin_box(toolbar, 'Podłoga', 0, 99, 0,
+                                  'Próg w % najsilniejszej dodatniej intensywności przed wzmocnieniem. Rolka zmienia próg.')
+        self.floor.valueChanged.connect(self.update_intensity)
         self.width = self.spin_box(toolbar, 'Szerokość pasma D', .2, 15, 3,
                                   'Szerokość FWHM w % maksymalnego D widocznych ROI. Ustawienie graficzne.')
         self.width.valueChanged.connect(self.render_map)
+        view_button = QtWidgets.QToolButton()
+        view_button.setText('Widok')
+        view_button.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)
+        appearance_menu = QtWidgets.QMenu(view_button)
+        self.map_color_action = appearance_menu.addAction('Kolor mapy 2D…')
+        self.trace_color_action = appearance_menu.addAction('Kolor widma 1D…')
+        self.grid_action = appearance_menu.addAction('Pokaż siatkę')
+        self.grid_action.setCheckable(True)
+        self.grid_action.setChecked(self.settings.value('dosy_map/grid', True, type=bool))
+        view_button.setMenu(appearance_menu)
+        toolbar.addWidget(view_button)
         self.save_button = QtWidgets.QPushButton('Zapisz widok PNG')
         self.save_button.setEnabled(False)
         self.save_button.clicked.connect(self.choose_save)
@@ -139,7 +163,6 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         for plot in (self.projection, self.plot):
             plot.invertX(True)
             plot.getAxis('left').setWidth(110)
-            plot.showGrid(x=True, y=True, alpha=.17)
             plot.viewport().installEventFilter(self)
         self.map_view.setLimits(yMin=0)
         self.projection.setXLink(self.plot)
@@ -155,7 +178,12 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             plot.addItem(guide, ignoreBounds=True)
             guide.setZValue(10)
             guide.hide()
-        self.trace = self.projection.plot(pen=pg.mkPen('#67e8f9'))
+        self.trace = self.projection.plot(pen=pg.mkPen(self.trace_color))
+        self.map_color_action.triggered.connect(lambda: self.choose_color(map_color=True))
+        self.trace_color_action.triggered.connect(lambda: self.choose_color(map_color=False))
+        self.grid_action.toggled.connect(self.set_grid)
+        self.set_grid(self.grid_action.isChecked())
+        self.update_map_color()
         self.rois = QtWidgets.QListWidget()
         self.rois.setMinimumWidth(195)
         self.rois.setToolTip('Odznacz ROI, aby wyłączyć je tylko z mapy.')
@@ -261,12 +289,12 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         ppm = self.dataset.ppm
         layer = self.dataset.options['reference_layer'] + 1
         bands, overlaps = roi_bands(ppm, self.reference, self.results, self.excluded)
-        bands = [band for band in bands if np.any(band.intensity)]
-        self.levels = max((np.max(np.abs(band.intensity)) for band in bands), default=0.)
+        bands = [band for band in bands if np.any(band.intensity > 0)]
+        self.peak_intensity = max((np.max(band.intensity) for band in bands), default=0.)
         self.save_button.setEnabled(bool(bands) and not self.stale)
         if not bands:
             self.full_range = ((ppm[0], ppm[-1]), (0., 1.))
-            self.note.setText('Brak sygnałów do wyświetlenia. Dodaj całki z dodatnim D lub sprawdź wybór ROI i ich nakładanie.')
+            self.note.setText('Brak dodatnich sygnałów do wyświetlenia. Sprawdź dopasowania D, fazę i wybór ROI.')
             return
         maximum = max(band.diffusion for band in bands) / self.D_SCALE
         fwhm = self.width.value() * maximum / 100
@@ -277,7 +305,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         for band in bands:
             center = band.diffusion / self.D_SCALE
             image = pg.ImageItem(axisOrder='row-major')
-            image.setImage((kernel[:, None] * band.intensity).astype(np.float32), levels=(-self.levels, self.levels))
+            image.setImage((kernel[:, None] * band.intensity).astype(np.float32), autoLevels=False)
+            image.setLookupTable(self.lookup_table)
             image.setRect(QtCore.QRectF(band.ppm[0]-ppm_step/2, center+offset[0]-d_step/2,
                                        len(band.ppm)*ppm_step, len(offset)*d_step))
             self.plot.addItem(image)
@@ -293,19 +322,50 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         )
         self.note.setText(
             f'Widmo 1D: warstwa {layer} (referencja). Mapa: kształt widma w ROI przy jego D. '
-            'Szerokość w D jest ustawieniem graficznym. Turkus oznacza dodatnie, a pomarańcz ujemne intensywności.'
+            'Kolor pokazuje dodatnie intensywności. Szerokość w D jest ustawieniem graficznym.'
             + (' Wspólne punkty nakładających się ROI są pominięte.' if overlaps else ''))
-        self.update_floor()
+        self.update_intensity()
 
-    def update_floor(self):
-        values = np.linspace(-1., 1., 257)
-        floor = self.floor.value() / 100
-        intensity = np.clip((np.abs(values)-floor)/(1-floor), 0., 1.)
-        colors = np.empty((len(values), 4), dtype=np.uint8)
-        colors[:, :3] = np.where(values[:, None] >= 0, (103, 232, 249), (251, 146, 60))
-        colors[:, 3] = np.round(255 * np.sqrt(intensity)).astype(np.uint8)
+    def update_intensity(self):
+        gain = 10 ** (self.gain.value() / 20)
+        self.gain_label.setText(f'{gain:.3g}×')
+        threshold = self.peak_intensity * self.floor.value() / 100
+        saturation = threshold + (self.peak_intensity - threshold) / gain
         for image in self.images:
-            image.setLookupTable(colors)
+            image.setLevels((threshold, saturation))
+
+    def saved_color(self, key, default):
+        color = QtGui.QColor(self.settings.value(key, default, type=str))
+        return color if color.isValid() else QtGui.QColor(default)
+
+    def choose_color(self, *, map_color):
+        current = self.map_color if map_color else self.trace_color
+        target = 'mapy 2D' if map_color else 'widma 1D'
+        color = QtWidgets.QColorDialog.getColor(current, self, f'Kolor {target}')
+        if not color.isValid():
+            return
+        if map_color:
+            self.map_color = color
+            self.settings.setValue('dosy_map/color', color.name())
+            self.update_map_color()
+        else:
+            self.trace_color = color
+            self.settings.setValue('dosy_map/trace_color', color.name())
+            self.trace.setPen(pg.mkPen(color))
+
+    def update_map_color(self):
+        # ImageItem clips values below the lower level to the transparent first entry.
+        colors = np.empty((256, 4), dtype=np.uint8)
+        colors[:, :3] = self.map_color.getRgb()[:3]
+        colors[:, 3] = np.round(255 * np.sqrt(np.linspace(0., 1., len(colors)))).astype(np.uint8)
+        self.lookup_table = colors
+        for image in self.images:
+            image.setLookupTable(self.lookup_table)
+
+    def set_grid(self, visible):
+        for plot in (self.projection, self.plot):
+            plot.showGrid(x=visible, y=visible, alpha=.17)
+        self.settings.setValue('dosy_map/grid', visible)
 
     def reset_view(self):
         if self.full_range is None:
