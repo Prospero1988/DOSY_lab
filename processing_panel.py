@@ -40,9 +40,14 @@ class ProcessingPanel(QtWidgets.QDockWidget):
         form=QtWidgets.QFormLayout();layout.addLayout(form)
         degree=QtWidgets.QSpinBox();degree.setRange(1,5);degree.valueChanged.connect(self.emit_change)
         self.controls['baseline_degree']=degree;form.addRow('Rząd 1–5',degree)
-        for key,title in [('baseline_per_layer','Osobny wielomian każdej warstwy (wspólna maska)'),
+        for key,title in [('baseline_per_layer','Osobny wielomian dla każdej warstwy'),
                           ('baseline_preview','Pokaż dopasowaną bazę'),('baseline_enabled','Zatwierdź odejmowanie bazy')]:
-            b=QtWidgets.QCheckBox(title);b.toggled.connect(self.emit_change);self.controls[key]=b;layout.addWidget(b)
+            b=QtWidgets.QCheckBox(title)
+            if key=='baseline_enabled':b.toggled.connect(self.update_baseline_mode)
+            b.toggled.connect(self.emit_change);self.controls[key]=b;layout.addWidget(b)
+        per_layer=self.controls['baseline_per_layer']
+        per_layer.setChecked(True)
+        per_layer.setToolTip('Przełącza sposób podglądu. Zatwierdzona korekcja zawsze odejmuje osobną bazę od każdej warstwy.')
         self.base_list=QtWidgets.QListWidget();self.base_list.setMaximumHeight(95);layout.addWidget(self.base_list)
         row=QtWidgets.QHBoxLayout();layout.addLayout(row)
         for text,fn in [('Zaznacz bazę',lambda:self.mode_requested.emit('baseline')),('Usuń obszar',self.remove_region),('Cofnij korekcję',self.undo_baseline)]:
@@ -64,7 +69,8 @@ class ProcessingPanel(QtWidgets.QDockWidget):
             elif isinstance(control,QtWidgets.QCheckBox):control.setChecked(options[key])
             elif isinstance(control,QtWidgets.QComboBox):control.setCurrentIndex(control.findData(options[key]))
             else:control.setValue(options[key])
-        self.regions=deepcopy(options['baseline_regions']);self.refresh_regions();self._setting=False
+        self.regions=deepcopy(options['baseline_regions']);self.refresh_regions()
+        self.update_baseline_mode(self.controls['baseline_enabled'].isChecked());self._setting=False
 
     def options(self):
         o={}
@@ -74,6 +80,13 @@ class ProcessingPanel(QtWidgets.QDockWidget):
             else:o[k]=c.value()-(1 if k=='reference_layer' else 0)
         o['baseline_regions']=deepcopy(self.regions)
         return o
+
+    def update_baseline_mode(self, enabled):
+        per_layer=self.controls['baseline_per_layer']
+        if enabled:
+            with QtCore.QSignalBlocker(per_layer):
+                per_layer.setChecked(True)
+        per_layer.setEnabled(not enabled)
 
     def refresh_regions(self):
         self.base_list.clear()
@@ -94,6 +107,7 @@ class ProcessingPanel(QtWidgets.QDockWidget):
         self.regions.clear()
         with QtCore.QSignalBlocker(self.controls['baseline_enabled']):
             self.controls['baseline_enabled'].setChecked(False)
+        self.update_baseline_mode(False)
         self.refresh_regions()
         self.changed.emit()
 

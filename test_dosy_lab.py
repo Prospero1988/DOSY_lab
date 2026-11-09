@@ -267,20 +267,50 @@ class ProcessingTests(unittest.TestCase):
         x=np.linspace(2,8,2001);base=.3+.2*(x-5)+.05*(x-5)**5
         signal=np.exp(-((x-5)/.03)**2)*10;y=np.stack([base+signal,2*base+signal])
         regions=[[2,4.7],[5.3,8]]
-        z,info=baseline_fit(x,y,regions,5,per_layer=True)
+        z,info=baseline_fit(x,y,regions,5)
         np.testing.assert_allclose(z,[base,2*base],atol=1e-10)
         self.assertLess(info['condition'],1e4)
         r=synthetic();o=default_options(r);original=process_fids(r,o)
-        o.update(baseline_enabled=True,baseline_per_layer=True,baseline_regions=[[3.68,3.9],[5.1,5.3]],baseline_degree=2)
+        o.update(baseline_enabled=True,baseline_regions=[[3.68,3.9],[5.1,5.3]],baseline_degree=2)
         corrected=process_fids(r,o);self.assertFalse(np.array_equal(corrected.spectrum,original.spectrum))
         o['baseline_enabled']=False;undo=process_fids(r,o);np.testing.assert_array_equal(undo.spectrum,original.spectrum)
         o['baseline_enabled']=True
         with self.assertRaisesRegex(ValueError,'przecina'):process_fids(r,o,[[3.8,3.9]])
 
+    def test_linear_baseline_is_independent_in_each_layer_and_preserves_decay(self):
+        raw=synthetic(nlayers=4)
+        x=process_fids(raw).ppm
+        decay=np.exp(-raw.b*3.86e-10)
+        peaks=decay[:,None]*np.exp(-((x-4.5)/.02)**2)
+        backgrounds=np.array([-5.,-2.,1.,4.])[:,None]+np.array([-.3,.1,.5,.9])[:,None]*(x-4.5)
+        fid=np.fft.ifft(np.fft.ifftshift(peaks+backgrounds,axes=1),axis=1)
+        raw=RawData(fid,raw.gradients,raw.b,raw.metadata)
+        options=default_options(raw)
+        self.assertEqual(options['baseline_degree'],1)
+        self.assertTrue(options['baseline_per_layer'])
+        # Applying subtraction uses each layer's baseline, even with a legacy shared preview.
+        options.update(baseline_enabled=True,baseline_per_layer=False,
+                       baseline_regions=[[3.7,4.1],[4.9,5.3]],reference_layer=2)
+        bounds=[4.4,4.6]
+        dataset=process_fids(raw,options,[bounds])
+        self.assertTrue(dataset.options['baseline_per_layer'])
+        np.testing.assert_allclose(dataset.baseline,backgrounds,atol=1e-12)
+        np.testing.assert_allclose(dataset.spectrum.real,peaks,atol=1e-12)
+        areas=integrate(dataset,bounds)['corrected_integral']
+        np.testing.assert_allclose(areas/areas[0],decay,atol=1e-12)
+        self.assertAlmostEqual(fit_decay(dataset.b,areas)['D_m2_s']/3.86e-10,1,places=7)
+
     def test_processing_profile_roundtrip(self):
         with tempfile.TemporaryDirectory() as d:
             o=default_options(synthetic());o['phase1_deg']=7200;p=Path(d)/'profile.json';save_profile(p,o)
             self.assertEqual(load_profile(p),o)
+            saved=json.loads(p.read_text(encoding='utf-8'))
+            saved['options'].update(baseline_per_layer=False,baseline_degree=2)
+            p.write_text(json.dumps(saved),encoding='utf-8')
+            self.assertEqual(load_profile(p),dict(o,baseline_per_layer=False,baseline_degree=2))
+            saved['options']['baseline_enabled']=True
+            p.write_text(json.dumps(saved),encoding='utf-8')
+            self.assertEqual(load_profile(p),dict(o,baseline_enabled=True,baseline_degree=2))
 
 
 class DosyMapTests(unittest.TestCase):

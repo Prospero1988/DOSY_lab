@@ -15,14 +15,16 @@ def default_options(raw):
     return dict(lb_Hz=0.,gaussian_FWHM_Hz=0.,zero_fill_factor=1,
                 phase0_deg=0.,phase1_deg=0.,pivot_ppm=raw.metadata['offset_ppm'],
                 ppm_shift=0.,reference_layer=reference_layer(raw),crop_filter=True,filter_delay_samples=0.,
-                baseline_enabled=False,baseline_preview=True,baseline_degree=2,
-                baseline_per_layer=False,baseline_regions=[])
+                baseline_enabled=False,baseline_preview=True,baseline_degree=1,
+                baseline_per_layer=True,baseline_regions=[])
 
 
 def validate_options(options,nlayers=None):
     o=deepcopy(options)
     # Older projects already contain their full manual phase ramp.
     o.setdefault('filter_delay_samples',0.)
+    o.setdefault('baseline_degree',1)
+    o.setdefault('baseline_per_layer',True)
     for k in ('lb_Hz','gaussian_FWHM_Hz','phase0_deg','phase1_deg','pivot_ppm','ppm_shift','filter_delay_samples'):
         if not np.isfinite(float(o[k])):raise ValueError('Nieprawidłowy parametr '+k)
         o[k]=float(o[k])
@@ -34,6 +36,8 @@ def validate_options(options,nlayers=None):
     if not isinstance(ref,int) or ref<0 or (nlayers is not None and ref>=nlayers):raise ValueError('Nieprawidłowa warstwa referencyjna.')
     for key in ('crop_filter','baseline_enabled','baseline_preview','baseline_per_layer'):
         if not isinstance(o[key],bool):raise ValueError('Nieprawidłowa flaga '+key)
+    if o['baseline_enabled']:
+        o['baseline_per_layer']=True
     for region in o['baseline_regions']:
         if len(region)!=2 or not np.isfinite(region).all() or region[0]==region[1]:raise ValueError('Nieprawidłowy obszar bazy.')
     return o
@@ -59,7 +63,7 @@ class Dataset:
     def name(self):return self.metadata['source_name']
 
 
-def baseline_fit(ppm,real,regions,degree,reference=0,per_layer=False):
+def baseline_fit(ppm,real,regions,degree,reference=0,per_layer=True):
     mask=np.zeros(len(ppm),bool)
     for lo,hi in regions:
         lo,hi=sorted((lo,hi));mask|=(ppm>=lo)&(ppm<=hi)

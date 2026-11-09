@@ -268,11 +268,25 @@ class InterfaceTests(unittest.TestCase):
 
     def test_baseline_preview_apply_and_undo(self):
         w=self.w;w.add_roi([3.60,3.68],group='Sacharoza');settle(w);original=w.dataset.spectrum.copy()
+        self.assertEqual(w.processing.controls['baseline_degree'].value(),1)
+        per_layer=w.processing.controls['baseline_per_layer']
+        self.assertTrue(per_layer.isChecked())
         w.processing.add_region([2.65,2.95]);w.processing.add_region([5.65,6.1]);settle(w)
         self.assertIsNotNone(w.dataset.diagnostics['baseline']);np.testing.assert_array_equal(w.dataset.spectrum,original)
+        w.overlay_layers.setText('1,3');w.overlay.setChecked(True)
+        previews=[curve.getData()[1] for curve in w.spectrum.listDataItems()
+                  if curve.opts['pen'].color().name()=='#fbbf24']
+        np.testing.assert_allclose(previews,w.dataset.baseline[[0,2]])
+        per_layer.setChecked(False);settle(w)
+        np.testing.assert_array_equal(w.dataset.baseline[0],w.dataset.baseline[2])
         w.processing.controls['baseline_enabled'].setChecked(True);settle(w)
+        self.assertTrue(per_layer.isChecked())
+        self.assertFalse(per_layer.isEnabled())
+        self.assertFalse(np.array_equal(w.dataset.baseline[0],w.dataset.baseline[2]))
         self.assertFalse(np.array_equal(w.dataset.spectrum,original))
-        w.processing.undo_baseline();settle(w);np.testing.assert_array_equal(w.dataset.spectrum,original)
+        w.processing.undo_baseline();settle(w)
+        self.assertTrue(per_layer.isEnabled())
+        np.testing.assert_array_equal(w.dataset.spectrum,original)
 
     def test_statistics_groups_selection_and_diagnostics_never_refit(self):
         w=self.w;w.add_roi([3.60,3.68],name='H1',group='A');w.add_roi([5.26,5.33],name='H2',group='B');settle(w)

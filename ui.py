@@ -338,10 +338,9 @@ class Window(QtWidgets.QMainWindow):
             color = COLORS[k % len(COLORS)] if k else self.appearance.color
             self.spectrum.plot(d.ppm,d.spectrum[i].real,pen=self.appearance.pen(color))
             if self.imaginary.isChecked():self.spectrum.plot(d.ppm,d.spectrum[i].imag,pen=self.appearance.pen(color,QtCore.Qt.PenStyle.DotLine))
-        i=max(0,self.layer.currentIndex())
-        if self.processing.regions and d.options['baseline_preview'] and d.diagnostics['baseline']:
-            self.spectrum.plot(d.ppm,d.baseline[i],pen=pg.mkPen('#fbbf24',width=2,style=QtCore.Qt.PenStyle.DashLine))
-            if d.options['baseline_enabled']:self.spectrum.plot(d.ppm,d.phased[i].real,pen=self.appearance.pen('#64748b',QtCore.Qt.PenStyle.DotLine))
+            if self.processing.regions and d.options['baseline_preview'] and d.diagnostics['baseline']:
+                self.spectrum.plot(d.ppm,d.baseline[i],pen=pg.mkPen('#fbbf24',width=2,style=QtCore.Qt.PenStyle.DashLine))
+                if d.options['baseline_enabled']:self.spectrum.plot(d.ppm,d.phased[i].real,pen=self.appearance.pen('#64748b',QtCore.Qt.PenStyle.DotLine))
         for e in self.entries:
             movable = self.view.mode=='modify'
             color = QtGui.QColor(e['color'])

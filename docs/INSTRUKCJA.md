@@ -72,7 +72,7 @@ Jeśli metadane JDF są odpowiednie, DOSY Lab osobno szacuje opóźnienie filtra
 
 **Zaznacz bazę** pozwala wskazać obszary, w których sygnał powinien odpowiadać lokalnemu tłu. Wybierz kilka przedziałów bez pików, najlepiej po obu stronach sygnałów całkowanych. Niebieskie pasma oznaczają dane użyte do dopasowania wielomianu, a żółta linia pokazuje podgląd bazy.
 
-W **Processing** ustaw rząd wielomianu od 1 do 5. Domyślnie program wyznacza wspólną bazę z warstwy referencyjnej. Opcja osobnego wielomianu pozwala dopasować tło każdej warstwy na tych samych zakresach ppm. **Zatwierdź odejmowanie bazy** stosuje podglądaną korekcję do całek. Upewnij się, że niebieskie pasma nie zachodzą na ROI. Poza skrajnymi wskazanymi obszarami wielomian jest ekstrapolowany, więc warto obejrzeć tam jego podgląd.
+W **Processing** domyślny rząd to 1, czyli linia prosta. Możesz ustawić rząd od 1 do 5. Domyślnie zaznaczony **Osobny wielomian dla każdej warstwy** pokazuje podgląd baz dopasowanych na tych samych zakresach ppm. Przed zatwierdzeniem możesz przełączyć podgląd na bazę referencyjną. **Zatwierdź odejmowanie bazy** zawsze odejmuje od każdej warstwy jej własną bazę przed całkowaniem. Dotyczy to także wczytanych projektów z aktywną korekcją. Upewnij się, że niebieskie pasma nie zachodzą na ROI. Poza skrajnymi wskazanymi obszarami wielomian jest ekstrapolowany, więc warto obejrzeć tam jego podgląd.
 
 Aby skasować jeden przedział, zaznacz go w liście panelu **Processing** i kliknij **Usuń obszar**. **Cofnij korekcję** wyłącza odejmowanie i zachowuje maskę. **Wyczyść bazę** nad widmem usuwa wszystkie obszary i wyłącza odejmowanie.
 
