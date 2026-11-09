@@ -66,7 +66,7 @@ Plik można też wybrać w aplikacji przez **Otwórz DOSY**. Dla szybkiej próby
 ## Format danych i zakres obsługi
 
 - **Wejście** to surowy JEOL JDF z zespolonym FID w wymiarze bezpośrednim i kolejnymi warstwami w wymiarze gradientowym. Czytnik obsługuje układy `small_two_d` i `two_d`, liczby 32- i 64-bitowe oraz obie kolejności bajtów. Pojedynczy obsługiwany FID można oglądać jak widmo 1D.
-- **Automatyczne b** pochodzi z rozpoznanej osi **b** w JDF albo z modelu rozpoznanych fabrycznych wariantów JEOL ¹H BPP-STE-LED i BPP-DSTE-LED. Model sprawdza zapisany `st_coef`, jeśli jest dostępny. Dla pozostałych sekwencji można podać niezależnie wyznaczone **b** dla każdej warstwy.
+- **Automatyczne b** pochodzi z rozpoznanej osi **b** w JDF albo ze zweryfikowanego bloku kodowania JEOL ¹H BPP-STE-LED (także z presaturacją) lub BPP-DSTE-LED. Rozpoznanie opiera się na osadzonym przebiegu programu, jego parametrach i porównaniu z zapisanym `st_coef`, jeśli jest dostępny. Dla pozostałych sekwencji można podać niezależnie wyznaczone **b** dla każdej warstwy.
 - **Zakres aplikacji** obejmuje klasyczne DOSY 1D. Przetworzone JDF oraz eksperymenty 3D COSY-DOSY, COSY-iDOSY i HMQC-DOSY są poza tym zakresem.
 - **Wynik** zależy od prawidłowej kalibracji gradientów, poprawnego modelu **b**, jakości całek oraz adekwatności modelu zaniku. SE pojedynczego dopasowania i rozrzut **D** między sygnałami opisują różne wielkości.
 

@@ -65,6 +65,28 @@ def encode_fixture(fid, gradients, parameters, context, *, edge=4, little=True, 
     return header + params + axis + data + context
 
 
+def ste_fixture_context(gradients, name='synthetic_ste.jxp', *, presat=False):
+    """Minimal encoding metadata for generated fixtures."""
+    def rf(phase, duration='x_pulse'):
+        return f'{duration}, (OBS.GATE, OBS.PHS.phase_{phase}, OBS.ATN.x_atn);'
+    def gradient(sign=''):
+        return f'grad_1, (FGZ.GATE, FGZ.SHAPE.grad_shape, FGZ.AMP.{sign}grad_1_amp);'
+    def bipolar(start, middle, end):
+        return [rf(start), gradient(), 'tau;', rf(middle,'x_pulse * 2'), gradient('- '), 'tau;', rf(end)]
+    spoiler1 = 'grad_spoil, (FGZ.GATE, FGZ.SHAPE."SINE", FGZ.AMP.grad_spoil_amp1);'
+    spoiler2 = 'grad_spoil, (FGZ.GATE, FGZ.SHAPE."SINE", FGZ.AMP.grad_spoil_amp2);'
+    storage = ['large_t - grad_spoil - tau;', spoiler1, 'tau;'] if presat else [spoiler1, 'large_t - grad_spoil;']
+    gradient_list = ', '.join(f'{g:.12g}[T/m]' for g in gradients)
+    return '\n'.join([
+        f'experiment = "{name}";', 'grad_1 =? delta / 2;', 'grad_1_amp =? g;',
+        'delta_large =? diffusion_time;', 'large_t =? diffusion_time - 4 * x_pulse - delta - 2 * tau;',
+        'g => y_acq {' + gradient_list + '};', 'begin', *bipolar(1,6,2),
+        'when spoiler_gradients do', *storage, 'else do', 'large_t;', 'end when;',
+        *bipolar(3,7,4), 'when spoiler_gradients do', spoiler2, 't_e - grad_spoil;',
+        'else do', 't_e;', 'end when;', rf(5), 'acq(dead_time, delay, phase_acq);', 'end pulse;',
+    ])
+
+
 def demo_bytes():
     gradients = np.linspace(.05, .4, 16)
     sw = 3000.
@@ -85,9 +107,7 @@ def demo_bytes():
     params = dict(x_domain='Proton',x_sweep=sw,x_freq=600e6,x_offset=4.5,
                   delta=delta*1000,delta_large=100.,tau=2.,grad_shape='S_RECTANGLE',
                   st_coef=coefficient*1000,digital_filter='FALSE')
-    context = ('experiment = "bpp_ste_led_diffusion.jxp";\ngrad_1 =? delta / 2;\n'
-               'g => y_acq {'+', '.join(f'{g:.12g}[T/m]' for g in gradients)+'};\n'
-               'begin\nend pulse;')
+    context = ste_fixture_context(gradients)
     return encode_fixture(fid,gradients,params,context)
 
 

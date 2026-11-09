@@ -111,18 +111,58 @@ def _gradient_source(context,n):
     return np.array(values)
 
 
+def _encoding_family(context):
+    """Match verified STE/DSTE pulse trains independently of the program name."""
+    sections = re.split(r'(?im)^\s*begin\s*$', context, maxsplit=1)
+    if len(sections) != 2:
+        return None
+    declarations, pulse = (re.sub(r'\s+', '', section.lower()) for section in sections)
+    def defines(expression):
+        return re.search(r'\b'+re.escape(expression)+r'(?=[,;])', declarations) is not None
+    if not all(map(defines, ('grad_1=?delta/2', 'grad_1_amp=?g', 'delta_large=?diffusion_time'))):
+        return None
+
+    def rf(phase, duration='x_pulse'):
+        return f'{duration},(obs.gate,obs.phs.phase_{phase},obs.atn.x_atn);'
+    def bipolar(phases, tau, repeats=1):
+        start, refocus, end = phases
+        gradient = f'grad_1,(fgz.gate,fgz.shape.grad_shape,fgz.amp.{{}}grad_1_amp);{tau};'
+        return rf(start) + gradient.format('')*repeats + rf(refocus,'x_pulse*2') + gradient.format('-')*repeats + rf(end)
+    spoiler = 'grad_spoil,(fgz.gate,fgz.shape."sine",fgz.amp.grad_spoil_amp{});'
+    def storage(delay, index=1):
+        return 'whenspoiler_gradientsdo' + spoiler.format(index) + delay + '-grad_spoil;elsedo' + delay + ';endwhen;'
+    # Irradiation switches only are allowed between the otherwise exact gradient/RF blocks.
+    pulse = re.sub(r'when(irr|tri)_mode/="off"do(?:on\(\1\.gate,\1\.phs\.0,\1\.atn\.\1_attenuator\);|off\1\.gate;)endwhen;', '', pulse)
+    _, first, body = pulse.partition(rf(1))
+    if not first:
+        return None
+    body = (first+body).split('acq(dead_time,delay,phase_acq);', 1)
+    if len(body) != 2:
+        return None
+    ste_start = bipolar((1,6,2),'tau')
+    ste_end = bipolar((3,7,4),'tau') + storage('t_e',2) + rf(5)
+    presat_storage = 'whenspoiler_gradientsdolarge_t-grad_spoil-tau;' + spoiler.format(1) + 'tau;elsedolarge_t;endwhen;'
+    if defines('large_t=?diffusion_time-4*x_pulse-delta-2*tau'):
+        if body[0] in (ste_start + storage('large_t') + ste_end, ste_start + presat_storage + ste_end):
+            return 'BPP-STE-LED'
+    if defines('large_t=?diffusion_time/2-4*x_pulse-delta-2*tau_1'):
+        dste = (bipolar((1,2,3),'tau_1') + storage('large_t') + bipolar((4,5,6),'tau_2',2)
+                + storage('large_t-tau_1+tau_2') + bipolar((7,8,9),'tau_1') + storage('t_e',2) + rf(10))
+        if body[0] == dste:
+            return 'BPP-DSTE-LED'
+    return None
+
+
 def factory_b(params,context,g):
     identity=re.search(r'\bexperiment\s*=\s*"([^"]+)"',context,re.I)
     name=Path(identity[1].replace('\\','/')).name.lower() if identity else ''
-    families={'bpp_ste_led_diffusion.jxp':'BPP-STE-LED','bpp_dste_led_diffusion.jxp':'BPP-DSTE-LED'}
-    family=families.get(name)
-    info={'sequence':family or name or 'Nierozpoznana','kind':'unavailable',
-          'description':'Brak zweryfikowanego modelu b. Wprowadź własną listę b.', 'calibrated':False}
+    family=_encoding_family(context)
+    info={'sequence':family or name or 'Nierozpoznana','pulse_program':name or None,'kind':'unavailable',
+          'description':'Nierozpoznany blok kodowania gradientowego. Wprowadź własną listę b.', 'calibrated':False}
     if family is None:return None,info
     try:
         if params.get('x_domain',{}).get('value')!='Proton':raise ValueError('Model zweryfikowano dla kodowania ¹H.')
         if not np.isfinite(g).all() or (g<0).any():raise ValueError('Brak wiarygodnej listy gradientów kodujących.')
-        if not re.search(r'grad_1\s*=\?\s*delta\s*/\s*2',context,re.I):raise ValueError('Niepotwierdzona konwencja δ/2.')
         shape=params['grad_shape']['value']
         constants={'SQUARE':(1,1/3),'SINE':(4/np.pi**2,5/16),
                    'SQUARE_SINE':(.25,1/3-5/(16*np.pi**2)),
@@ -222,7 +262,8 @@ def read_jdf(path):
         if axis_kind=='b_s_m2':b=validate_b(axis,ng)
     inferred,model=factory_b(params,context,g)
     if b is None:b=inferred
-    else:model={'kind':'stored_axis','description':'Jawna lista b z osi JDF [s/m²]','sequence':model['sequence'],'calibrated':False}
+    else:model={'kind':'stored_axis','description':'Jawna lista b z osi JDF [s/m²]','sequence':model['sequence'],
+                'pulse_program':model['pulse_program'],'calibrated':False}
     sw=number(params,'x_sweep',13);freq=number(params,'x_freq',13);off=number(params,'x_offset',26)
     if min(sw,freq)<=0:raise ValueError('Nieprawidłowa częstotliwość lub szerokość widma.')
     # Report encoding and spoilers separately; never use spoiler amplitudes as g.
@@ -233,7 +274,8 @@ def read_jdf(path):
             role='encoding' if re.search(r'FGZ\.AMP\.\s*-?\s*grad_1_amp',line,re.I) else 'other_or_spoiler'
             events.append({'instruction':line.strip(),'role':role})
     meta={'source_name':path.name,'source_path':str(path),'source_sha256':digest,'parameters':params,
-          'sequence':model['sequence'],'b_source':model,'gradient_axis_source':axis_kind or 'source_or_missing',
+          'sequence':model['sequence'],'pulse_program':model['pulse_program'],
+          'b_source':model,'gradient_axis_source':axis_kind or 'source_or_missing',
           'gradient_events':events,'x_sweep_Hz':sw,'x_frequency_Hz':freq,'offset_ppm':off,
           'x_sweep_clipped_Hz':number(params,'x_sweep_clipped',13) if 'x_sweep_clipped' in params else sw,
           'digital_filter':params.get('digital_filter',{}).get('value')=='TRUE',

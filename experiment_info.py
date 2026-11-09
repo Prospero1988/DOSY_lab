@@ -82,7 +82,7 @@ class ExperimentInfo(QtWidgets.QDialog):
                     diffusion.append((label,f'{min(finite):.6g} – {max(finite):.6g} {unit}'))
         self.experiment.setHtml(
             section('Plik i sekwencja',[('Nazwa',dataset.name),('Ścieżka',meta['source_path']),
-                                       ('Sekwencja',meta['sequence'])])
+                                       ('Sekwencja',meta['sequence']),('Program JXP',meta.get('pulse_program') or '—')])
             + section('Akwizycja',acquisition) + section('Kodowanie dyfuzji',diffusion))
         o = dataset.options
         delay = o['filter_delay_samples']

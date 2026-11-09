@@ -1,4 +1,5 @@
 """Actual Qt widgets, worker updates, groups, point masks and PNG/SVG export."""
+from dataclasses import replace
 import os
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from pathlib import Path
@@ -393,6 +394,18 @@ class InterfaceTests(unittest.TestCase):
             for name in ['DOSY_results.xlsx','integrals_and_fits.csv','spectrum.png','spectrum.svg','decays.svg','Raport.md']:
                 self.assertTrue((folder/name).exists(),name)
                 self.assertGreater((folder/name).stat().st_size,50)
+
+    def test_unverified_b_still_shows_measured_points(self):
+        w=self.w
+        w.raw=replace(w.raw,b=None)
+        w.add_roi([3.60,3.68])
+        settle(w)
+        self.assertFalse(w.results[0]['fit']['ok'])
+        scatter=next(item for item in w.decay.plotItem.items if isinstance(item,pg.ScatterPlotItem))
+        self.assertEqual(len(scatter.points()),len(w.raw.fid))
+        np.testing.assert_allclose(scatter.getData()[0],w.raw.gradients)
+        self.assertIn('brak zweryfikowanego b',w.decay.getAxis('bottom').labelText)
+        self.assertIn('b=brak',w.point_tooltip('S1',0))
 
     def test_dosy_map_navigation_coordinates_floor_and_export(self):
         w = self.w

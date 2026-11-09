@@ -570,15 +570,22 @@ class Window(QtWidgets.QMainWindow):
         if d is None:self._updating=False;return
         normalized=self.normalized.isChecked();self.decay.setLabel('left','I / pierwsza całka' if normalized else 'Całka [j.u.·ppm]')
         self.residual.setLabel('left','Reszta / Iref' if normalized else 'Reszta')
+        if d.b is not None:
+            x=d.b/1e9;x_label='b / 10⁹ [s/m²]'
+        elif np.isfinite(d.gradients).all():
+            x=d.gradients;x_label='g [T/m] · brak zweryfikowanego b'
+        else:
+            x=np.arange(1,len(d.raw.fid)+1);x_label='Warstwa akwizycji · brak zweryfikowanego b'
+        for plot in (self.decay,self.residual):plot.setLabel('bottom',x_label)
         self.residual.addItem(pg.InfiniteLine(0,angle=0,pen=pg.mkPen('#64748b')))
         for entry in self.results:
             if not self.all_decays.isChecked() and entry['id']!=self.active_id:continue
             result=entry.get('result') or {};fit=entry.get('fit') or {};y=result.get('corrected_integral')
-            if y is None or d.b is None:continue
+            if y is None:continue
             factor=float(y[0]) if normalized and y[0]!=0 else 1.
             mask=np.asarray(fit.get('fit_mask',entry['fit_mask']),bool);color=entry['color']
             for state,symbol in ((True,'o'),(False,'x')):
-                spots=[dict(pos=(d.b[i]/1e9,y[i]/factor),data=(entry['id'],i)) for i in range(len(y)) if mask[i]==state]
+                spots=[dict(pos=(x[i],y[i]/factor),data=(entry['id'],i)) for i in range(len(y)) if mask[i]==state]
                 scatter=pg.ScatterPlotItem(spots=spots,symbol=symbol,size=8,brush=pg.mkBrush(color),pen=pg.mkPen(color),hoverable=True,
                     tip=lambda x,y,data:self.point_tooltip(*data),useCache=False)
                 scatter.sigClicked.connect(self.decay_point_clicked);self.decay.addItem(scatter)
@@ -606,7 +613,10 @@ class Window(QtWidgets.QMainWindow):
                 previous=active.get('previous_D');change=f' · poprzednio {previous/1e-10:.4f}' if previous is not None and previous!=fit['D_m2_s'] else ''
                 info+=f"D={fit['D_m2_s']/1e-10:.5f} ×10⁻¹⁰ m²/s{change}\nSE={number(fit.get('D_standard_error_m2_s'))} m²/s · CI95={fit.get('D_CI95_m2_s')} · R²={fit.get('R2')}\n"
                 info+=' '.join(fit.get('warnings',[]))
-            else:info+=fit.get('message','Brak poprawnego fitu.')
+            else:
+                info+=fit.get('message','Brak poprawnego fitu.')
+                if d.b is None:
+                    info+='\n'+d.metadata['b_source']['description']
             self.fit_info.setText(info)
         self._updating=False
 
@@ -627,7 +637,8 @@ class Window(QtWidgets.QMainWindow):
         e=next((e for e in self.results if e['id']==sid),None)
         if e is None:return ''
         f=e.get('fit') or {};y=e.get('result',{}).get('corrected_integral',[])
-        return f"{sid}, warstwa {index+1}\ng={self.raw.gradients[index]:.6g} T/m · b={self.raw.b[index]:.6g} s/m²\nI={y[index]:.6g} · przewidywanie={number(f.get('prediction',[None]*len(y))[index])}\nreszta={number(f.get('residuals',[None]*len(y))[index])}"
+        b=number(self.raw.b[index])+' s/m²' if self.raw.b is not None else 'brak'
+        return f"{sid}, warstwa {index+1}\ng={number(self.raw.gradients[index])} T/m · b={b}\nI={y[index]:.6g} · przewidywanie={number(f.get('prediction',[None]*len(y))[index])}\nreszta={number(f.get('residuals',[None]*len(y))[index])}"
     def decay_point_clicked(self,item,points,event):
         if not points:return
         sid,index=points[0].data();self.active_id=sid;self.render_roi_table();self.render_diagnostics();self.point_table.setCurrentCell(index,0);self.statusBar().showMessage(self.point_tooltip(sid,index))

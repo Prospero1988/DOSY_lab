@@ -9,7 +9,7 @@ from core import (default_options,process_fids,signed_integrals,integrate,fit_de
 from d_statistics import build_snapshot,descriptive_statistics,summarize,diagnostic_points,export_statistics,import_statistics
 from dosy_map import roi_bands
 from exports import export_bundle,save_project,read_project
-from examples.generate_demo import demo_bytes, encode_fixture
+from examples.generate_demo import demo_bytes, encode_fixture, ste_fixture_context
 
 ROOT=Path(__file__).parent
 DATA=ROOT/'data/DOSY_sacharoza'
@@ -28,15 +28,17 @@ def synthetic(nlayers=16,npoints=2048):
              b_source={'kind':'manual','description':'known synthetic b'},parameters={}))
 
 
-def fake_jdf(edge=4,little=True,dtype_code=0,sequence='bpp_ste_led_diffusion.jxp',shape='S_RECTANGLE'):
+def fake_jdf(edge=4,little=True,dtype_code=0,*,supported=True):
     """Encode a predictable FID with a padded final tile and known metadata units."""
     nx,ng=3*edge,2*edge;real=np.arange(nx*ng).reshape(ng,nx)+1.;imag=real*.2
     g=np.linspace(.05,.4,ng)
     values=dict(x_domain='Proton',x_sweep=1000.,x_freq=600e6,x_offset=4.5,delta=2.,delta_large=100.,
-                tau=2.,tau_1=2.,tau_2=2.,grad_shape=shape)
-    coef=.81*(.1-(2 if 'dste' in sequence else 1)*((6344*np.pi**2-207)/(19440*np.pi**2))*.002-(.002 if 'dste' in sequence else .001))
+                tau=2.,grad_shape='S_RECTANGLE')
+    coef=.81*(.1-((6344*np.pi**2-207)/(19440*np.pi**2))*.002-.001)
     values['st_coef']=coef*1000
-    context=('experiment = "'+sequence+'";\ngrad_1 =? delta / 2;\ng => y_acq {'+', '.join(f'{v:.12g}[T/m]' for v in g)+'};\nbegin\nend pulse;')
+    context=ste_fixture_context(g,'bpp_ste_led_diffusion.jxp')
+    if not supported:
+        context=context.replace('FGZ.AMP.- grad_1_amp','FGZ.AMP.grad_1_amp',1)
     fid=(real-1j*imag)[:,:nx-1]
     blob=encode_fixture(fid,g,values,context,edge=edge,little=little,dtype_code=dtype_code)
     return blob,fid,g
@@ -66,7 +68,7 @@ class ReaderTests(unittest.TestCase):
 
     def test_unknown_sequence_needs_manual_b_and_does_not_guess(self):
         with tempfile.TemporaryDirectory() as d:
-            p=Path(d)/'unknown.jdf';blob,_,_=fake_jdf(sequence='unknown_diffusion.jxp');p.write_bytes(blob)
+            p=Path(d)/'unknown.jdf';blob,_,_=fake_jdf(supported=False);p.write_bytes(blob)
             r=read_jdf(p);self.assertIsNone(r.b)
             self.assertFalse(fit_decay(r.b,np.ones(len(r.fid)))['ok'])
             new=manual_b(r,np.linspace(0,3e9,len(r.fid)),'independent experiment table')
@@ -86,6 +88,9 @@ class ReaderTests(unittest.TestCase):
         for path,family in ((STE,'BPP-STE-LED'),(DSTE,'BPP-DSTE-LED')):
             original=hashlib.sha256(path.read_bytes()).hexdigest();r=read_jdf(path)
             self.assertEqual(r.fid.shape,(16,9567));self.assertEqual(r.metadata['sequence'],family)
+            renamed=r.metadata['context'].replace(r.metadata['pulse_program'],'renamed.jxp',1)
+            b,info=factory_b(r.metadata['parameters'],renamed,r.gradients)
+            np.testing.assert_array_equal(b,r.b);self.assertEqual(info['pulse_program'],'renamed.jxp')
             self.assertEqual(len(r.b),16);self.assertAlmostEqual(r.gradients[0],.05);self.assertAlmostEqual(r.gradients[-1],.4)
             self.assertTrue(all(np.diff(r.b)>0));self.assertGreater(r.metadata['x_frequency_Hz'],600e6)
             blob=path.read_bytes();ds=struct.unpack_from('>I',blob,1284)[0];nx=9568;edge=4
@@ -102,6 +107,39 @@ class ReaderTests(unittest.TestCase):
             r=read_jdf(path)
         p=deepcopy(r.metadata['parameters']);p['st_coef']['value']*=2
         b,info=factory_b(p,r.metadata['context'],r.gradients)
+        self.assertIsNone(b);self.assertIn('st_coef',info['description'])
+
+    def test_presat_requires_matching_encoding_and_coefficient(self):
+        raw=synthetic(nlayers=4)
+        params=dict(x_domain='Proton',x_sweep=1000.,x_freq=600e6,x_offset=4.5,
+                    delta=2.5,delta_large=100.,tau=2.,grad_shape='SQUARE',
+                    st_coef=98.166675)
+        context=ste_fixture_context(raw.gradients,'dosy_presat.jxp',presat=True)
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'presat.jdf'
+            path.write_bytes(encode_fixture(raw.fid,raw.gradients,params,context))
+            read=read_jdf(path)
+            np.testing.assert_allclose(read.b,(GAMMA_H*raw.gradients*.0025)**2*.098166675)
+            self.assertEqual(read.metadata['b_source']['pulse_program'],'dosy_presat.jxp')
+            dataset=process_fids(read)
+            project=Path(directory)/'old.json'
+            save_project(project,dataset,[])
+            payload=json.loads(project.read_text(encoding='utf-8'))
+            payload.update(b=None,b_source={'kind':'unavailable'})
+            project.write_text(json.dumps(payload),encoding='utf-8')
+            reopened,opts,_=read_project(project)
+            np.testing.assert_array_equal(reopened.b,read.b)
+            self.assertEqual(opts,dataset.options)
+        parameters=read.metadata['parameters']
+        renamed=context.replace('dosy_presat.jxp','custom_buffer.jxp')
+        b,info=factory_b(parameters,renamed,raw.gradients)
+        np.testing.assert_array_equal(b,read.b);self.assertEqual(info['pulse_program'],'custom_buffer.jxp')
+        for changed in (context.replace('FGZ.AMP.- grad_1_amp','FGZ.AMP.grad_1_amp',1),
+                        context.replace('large_t - grad_spoil - tau','large_t - grad_spoil')):
+            b,info=factory_b(parameters,changed,raw.gradients)
+            self.assertIsNone(b);self.assertIn('blok kodowania',info['description'].lower())
+        wrong=deepcopy(parameters);wrong['st_coef']['value']*=1.01
+        b,info=factory_b(wrong,context,raw.gradients)
         self.assertIsNone(b);self.assertIn('st_coef',info['description'])
 
 

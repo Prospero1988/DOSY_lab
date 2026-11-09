@@ -99,7 +99,7 @@ W syntetycznym przykładzie możesz utworzyć dwie grupy i sprawdzić, jak dzia�
 
 **Lista b** przypisuje każdej warstwie wartość **b** w **s/m²**. Kolumna **g**, jeśli jest dostępna, pokazuje gradient w **T/m**. Dwie warstwy z takim samym **b** nadal stanowią dwa odrębne punkty pomiarowe.
 
-1. Sprawdź, czy program rozpoznał gotową oś **b** lub zweryfikował model fabryczny. Dla protonowych BPP-STE-LED i BPP-DSTE-LED porównuje zapisany `st_coef` z modelem opartym o timingi, kiedy współczynnik jest obecny. Obsługiwane nazwy kształtów w tym modelu to `SQUARE`, `SINE`, `SQUARE_SINE`, `TRAPEZOID` i `S_RECTANGLE`. Każdy ma osobne współczynniki.
+1. Sprawdź, czy program rozpoznał gotową oś **b** lub zweryfikował model fabryczny. Dla protonowych BPP-STE-LED (w tym obsługiwanego wariantu z presaturacją) i BPP-DSTE-LED rozpoznaje przebieg kodowania w osadzonym JXP i porównuje zapisany `st_coef` z modelowymi wartościami, kiedy współczynnik jest obecny. Nazwa JXP jest widoczna w **Info**. Obsługiwane nazwy kształtów w tym modelu to `SQUARE`, `SINE`, `SQUARE_SINE`, `TRAPEZOID` i `S_RECTANGLE`. Każdy ma osobne współczynniki.
 2. Dla sekwencji spoza modelu podaj własne **b**, wyznaczone dla faktycznej sekwencji. Możesz użyć **Import CSV** z jedną kolumną albo pliku z kolumną `b`, `b_s_m2` lub `b_s_per_m2`. Poniżej minimalny przykład formatu. Liczby służą wyłącznie do pokazania zapisu.
 3. Wpisz dokładnie jedną skończoną, nieujemną wartość na każdą warstwę, w kolejności akwizycji. Zachowaj powtórzenia. Kliknij **Zastosuj jako ręczną listę** i opisz źródło wartości w polu uzasadnienia.
 
@@ -163,7 +163,7 @@ Pakiet eksportu może zawierać pełne dane pomiarowe i treść osadzonej sekwen
 
 | Objaw | Co sprawdzić |
 | --- | --- |
-| Widmo otwiera się bez wartości D | Otwórz **Listę b** i sprawdź źródło wartości, a w tabeli punktów liczbę różnych aktywnych **b**. |
+| Widmo otwiera się bez wartości D | Otwórz **Listę b** i sprawdź źródło wartości, a w tabeli punktów liczbę różnych aktywnych **b**. Gdy **b** jest nieznane, wykres nadal pokazuje całki względem gradientu albo numeru warstwy. |
 | Całka jest ujemna lub silnie zależy od granic | Sprawdź fazę absorpcyjną, bazę i możliwe nakładanie się pików. Porównaj kilka warstw tym samym processingiem. |
 | Linia bazowa faluje już przed korekcją wielomianową | Zacznij od metadanych i korekcji filtra cyfrowego w **Info** oraz **Processing**. Następnie sprawdź wspólne PH0 i PH1 na kilku pikach. |
 | Dopasowanie ma dobre R², ale **D** różni się między sygnałami | Sprawdź reszty, widma w ROI, kalibrację **b**, granice całek i przypisanie sygnałów do związków. |
