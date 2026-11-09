@@ -202,7 +202,7 @@
   "Gauss: FWHM [Hz]": "Gaussian FWHM [Hz]",
   "PH1 [° / całe SW]": "PH1 [° / full SW]",
   "Referencja: przesunięcie ppm": "Reference: ppm shift",
-  "Docelowa wartość": "Target value",
+  "Docelowa wartość referencji": "Target reference value",
   "Ustaw odniesienie z widma": "Reference from spectrum",
   "Kliknij sygnał na widmie, aby przypisać mu wpisaną wartość ppm.": "Click a signal on the spectrum to assign the entered ppm value.",
   "Wybrana wartość przekracza zakres przesunięcia ppm lub pivotu.": "The selected value is outside the ppm shift or pivot range.",

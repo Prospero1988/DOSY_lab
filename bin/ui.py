@@ -158,6 +158,12 @@ class Window(QtWidgets.QMainWindow):
         self.save_spectrum_button.setEnabled(False)
         vertical=QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical);layout.addWidget(vertical,1)
         self.view=SpectrumBox();self.spectrum=pg.PlotWidget(viewBox=self.view);vertical.addWidget(self.spectrum)
+        self.reference_guide = pg.InfiniteLine(angle=90, pen=pg.mkPen('#facc15', style=QtCore.Qt.PenStyle.DashLine))
+        self.reference_guide.setAcceptedMouseButtons(QtCore.Qt.MouseButton.NoButton)
+        self.reference_guide.setZValue(7)
+        self.reference_guide.hide()
+        self.view.addItem(self.reference_guide, ignoreBounds=True)
+        self.spectrum.viewport().installEventFilter(self)
         for mode, key in (('roi', 'I'), ('zoom', 'Z'), ('pan', 'P')):
             self.spectrum_shortcut(self.mode_buttons[mode], key, lambda mode=mode: self.set_mode(mode))
         self.spectrum_shortcut(full_range_button, 'F', self.spectrum.autoRange)
@@ -467,6 +473,7 @@ class Window(QtWidgets.QMainWindow):
         if self.view.mode==key:
             return
         if self.view.mode == 'reference':
+            self.reference_guide.hide()
             self.spectrum.viewport().unsetCursor()
             self.statusBar().clearMessage()
         self.view.hide_selection_preview()
@@ -511,6 +518,18 @@ class Window(QtWidgets.QMainWindow):
             entry['bounds'] = [value + delta for value in entry['bounds']]
         self.processing.set_options(options, len(self.raw.fid))
         self.request_calculation()
+
+    def eventFilter(self, watched, event):
+        if watched is self.spectrum.viewport() and self.view.mode == 'reference':
+            if event.type() == QtCore.QEvent.Type.MouseMove:
+                pos = self.spectrum.mapToScene(event.position().toPoint())
+                inside = self.view.sceneBoundingRect().contains(pos)
+                if inside:
+                    self.reference_guide.setValue(self.view.mapSceneToView(pos).x())
+                self.reference_guide.setVisible(inside)
+            elif event.type() in (QtCore.QEvent.Type.Leave, QtCore.QEvent.Type.Hide):
+                self.reference_guide.hide()
+        return super().eventFilter(watched, event)
 
     def mouse_moved(self,pos):
         if self.spectrum.sceneBoundingRect().contains(pos):self.coordinate.setText(f'{self.view.mapSceneToView(pos).x():.5f} ppm')

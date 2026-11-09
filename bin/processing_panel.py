@@ -36,7 +36,7 @@ class ProcessingPanel(QtWidgets.QDockWidget):
             ('pivot_ppm','Pivot [ppm]',-1000,1000,.001,6),('ppm_shift',tr('Referencja: przesunięcie ppm'),-100,100,.001,6),
             ('filter_delay_samples',tr('Opóźnienie filtra [próbki]'),0,250,.01,6)]:
             if key == 'ppm_shift':
-                form.addRow(tr('Docelowa wartość'), self.reference_target)
+                form.addRow(tr('Docelowa wartość referencji'), self.reference_target)
                 form.addRow('', self.reference_button)
             box=QtWidgets.QDoubleSpinBox();box.setRange(lo,hi);box.setSingleStep(step);box.setDecimals(dec)
             box.valueChanged.connect(self.emit_change);self.controls[key]=box;form.addRow(title,box)

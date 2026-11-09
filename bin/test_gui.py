@@ -352,15 +352,28 @@ class InterfaceTests(unittest.TestCase):
         y = np.mean(w.view.viewRange()[1])
         pos = w.spectrum.mapFromScene(w.view.mapViewToScene(QtCore.QPointF(3.89, y)))
         clicked = w.view.mapSceneToView(w.spectrum.mapToScene(pos)).x()
+        viewport = w.spectrum.viewport()
+        self.assertIn('Docelowa wartość referencji', [label.text() for label in panel.findChildren(QtWidgets.QLabel)])
+        self.assertFalse(w.reference_guide.isVisible())
 
         panel.reference_target.setValue(1.25)
         self.assertTrue(w.valid)
         panel.reference_button.click()
         self.assertEqual(w.view.mode, 'reference')
-        QtTest.QTest.mouseClick(w.spectrum.viewport(), QtCore.Qt.MouseButton.LeftButton, pos=pos)
+        for point in (pos + QtCore.QPoint(30, 0), pos):
+            QtTest.QTest.mouseMove(viewport, point, 35)
+            APP.processEvents()
+            self.assertTrue(w.reference_guide.isVisible())
+            ppm = w.view.mapSceneToView(w.spectrum.mapToScene(point)).x()
+            self.assertAlmostEqual(w.reference_guide.value(), ppm)
+        np.testing.assert_array_equal(w.view.viewRange()[0], x_range)
+        APP.sendEvent(viewport, QtCore.QEvent(QtCore.QEvent.Type.Leave))
+        self.assertFalse(w.reference_guide.isVisible())
+        QtTest.QTest.mouseClick(viewport, QtCore.Qt.MouseButton.LeftButton, pos=pos)
         settle(w)
         self.assertEqual(w.view.mode, 'zoom')
         self.assertFalse(panel.reference_button.isChecked())
+        self.assertFalse(w.reference_guide.isVisible())
         expected_shift = round(.25 + 1.25 - clicked, 6)
         self.assertEqual(panel.controls['ppm_shift'].value(), expected_shift)
         delta = expected_shift - .25
@@ -373,6 +386,7 @@ class InterfaceTests(unittest.TestCase):
         np.testing.assert_allclose(w.results[0]['result']['corrected_integral'], integrals, atol=1e-9)
         w.language_button.click()
         self.assertEqual(panel.reference_button.text(), 'Reference from spectrum')
+        self.assertIn('Target reference value', [label.text() for label in panel.findChildren(QtWidgets.QLabel)])
 
     def test_baseline_preview_apply_and_undo(self):
         w=self.w;w.add_roi([3.60,3.68],group='Sacharoza');settle(w);original=w.dataset.spectrum.copy()

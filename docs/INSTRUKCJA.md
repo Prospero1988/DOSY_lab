@@ -48,7 +48,7 @@ Press **I**, **Z**, **P** or **F** directly in the main window. While editing te
 | **Gaussian FWHM [Hz]** | Gaussian apodization with `exp(−(π · GB · t)² / (4 ln 2))`. Both windows can be combined. Set either parameter to zero to disable its window. |
 | **Zero filling** | Pad to 1×, 2×, 4× or 8× the acquired point count. This increases the density of the FFT grid. The acquisition determines physical resolution. |
 | **PH0, PH1 and Pivot** | Shared phase settings. |
-| **Target value / Reference from spectrum** | Assign a known ppm value to a point on the spectrum. See [Chemical shift reference](#chemical-shift-reference). |
+| **Target reference value / Reference from spectrum** | Assign a known ppm value to a point on the spectrum. See [Chemical shift reference](#chemical-shift-reference). |
 | **Reference: ppm shift** | Shows the offset applied to all layers. You can also enter an offset manually. Check the integral bounds after a manual edit. |
 | **Filter delay [samples]** | Set the separate phase ramp for digital filter delay. Zero disables the ramp. |
 | **Crop to the JDF filter passband** | Use the passband recorded in the JDF. Point counts and acquisition time help distinguish a full FID from already clipped data. |
@@ -58,8 +58,8 @@ Press **I**, **Z**, **P** or **F** directly in the main window. While editing te
 ### Chemical shift reference
 
 1. Zoom in on a signal with a known chemical shift so you can click its center precisely.
-2. Open **Processing** and enter its known shift in **Target value**, for example `0.000000 ppm`.
-3. Click **Reference from spectrum**, then left-click the center of the signal. To cancel before choosing a point, click **Reference from spectrum** again.
+2. Open **Processing** and enter its known shift in **Target reference value**, for example `0.000000 ppm`.
+3. Click **Reference from spectrum**, align the vertical guide with the center of the signal and left-click. To cancel before choosing a point, click **Reference from spectrum** again.
 4. Check **Reference: ppm shift** for the calculated offset. For example, with an existing offset of `+0.03 ppm`, clicking at `0.08 ppm` and assigning `0.00 ppm` produces an offset of `−0.05 ppm`.
 
 The correction shifts all layers, the phase pivot, integral bounds and baseline regions together. Save the project to keep the corrected axis and integral bounds.
