@@ -181,7 +181,8 @@ Pakiet eksportu może zawierać pełne dane pomiarowe i treść osadzonej sekwen
 3. Przeciągnij prostokąt w trybie **Zoom**. Zmiana zakresu ppm na mapie od razu zmienia zakres widma 1D nad nią. **Przesuwaj** włącza przesuwanie, a **Cały zakres** lub dwuklik przywraca widok wszystkich wyświetlanych sygnałów.
 4. Włącz **Punkt / prowadnice** i kliknij mapę. Linie pokazują pozycję ppm oraz współrzędną **D** kursora. Pionowa prowadnica pojawia się też na widmie 1D. Odczyt dotyczy miejsca kliknięcia, bez przyciągania do najbliższego piku.
 5. Rolka nad **1D** zmienia wysokość widma. Rolka nad **2D** zmienia **Podłogę**, czyli próg widoczności w procentach najsilniejszego sygnału. Aby uwidocznić słabsze sygnały, obniż podłogę i przesuń suwak **Wzmocnienie 2D**. Suwak rozjaśnia punkty powyżej progu, a najsilniejsze mogą osiągnąć maksymalną jasność.
-6. W menu **Widok** możesz osobno ustawić kolor mapy 2D i widma 1D oraz włączyć lub wyłączyć siatkę obu wykresów. **Zapisz widok PNG** zachowuje aktualny wygląd obu wykresów wraz z zoomem i prowadnicami.
+6. W menu **Widok** możesz osobno ustawić kolor mapy 2D i widma 1D. Przycisk **Siatka** włącza lub wyłącza siatkę obu wykresów.
+7. **Zapisz widok PNG** zachowuje aktualny zakres, intensywność, siatkę i prowadnice. Plik ma białe tło, czarne osie i opisy oraz granatowe widmo i sygnały. Eksport renderuje tę wersję w tle, z zachowaniem kolorystyki roboczej w aplikacji.
 
 Mapa umieszcza dodatnią intensywność sfazowanego widma referencyjnego w granicach każdej całki przy współczynniku **D** z jej zapisanego dopasowania. Domyślny kolor to pomarańczowy. Ujemna intensywność widma, np. fragment dyspersyjnej linii, nadal jest widoczna w widmie 1D. Wzmocnienie, podłoga i kolor mapy wpływają wyłącznie na podgląd. Jeśli wybrane całki się nakładają, ich wspólne punkty są pomijane. Wyłączenie jednej z nich przywraca wspólny fragment w drugiej.
 

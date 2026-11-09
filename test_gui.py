@@ -412,7 +412,7 @@ class InterfaceTests(unittest.TestCase):
             image.render()
             self.assertEqual(image.qimage.pixelColor(3,0).name(), '#22c55e')
             self.assertEqual(window.trace.opts['pen'].color().name(), '#a78bfa')
-            window.grid_action.trigger()
+            window.grid_button.click()
             for chart in (window.plot, window.projection):
                 self.assertFalse(chart.getAxis('bottom').grid)
                 self.assertFalse(chart.getAxis('left').grid)
@@ -424,7 +424,16 @@ class InterfaceTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as directory:
                 png = Path(directory)/'map.png'
                 self.assertTrue(window.save_view(png))
-                self.assertFalse(QtGui.QImage(str(png)).isNull())
+                saved = QtGui.QImage(str(png)).convertToFormat(QtGui.QImage.Format.Format_RGB888)
+                self.assertFalse(saved.isNull())
+                rows = np.frombuffer(saved.constBits(), dtype=np.uint8).reshape(saved.height(), saved.bytesPerLine())
+                pixels = rows[:, :3*saved.width()].reshape(saved.height(), saved.width(), 3)
+                self.assertGreater(np.mean(np.all(pixels == 255, axis=2)), .80)
+                self.assertTrue(np.any(np.all(pixels == 0, axis=2)))
+                for panel in (pixels[:window.projection.height()], pixels[window.projection.height()+7:]):
+                    self.assertTrue(np.any(np.all(panel == [20, 43, 92], axis=2)))
+                self.assertEqual(window.trace.opts['pen'].color().name(), '#a78bfa')
+                np.testing.assert_array_equal(window.images[0].lut[-1,:3], [34,197,94])
                 np.testing.assert_allclose(view.viewRange(), original)
 
     def test_calibration_rescales_cached_integrals_and_round_trips_project(self):

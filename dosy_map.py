@@ -132,11 +132,13 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         appearance_menu = QtWidgets.QMenu(view_button)
         self.map_color_action = appearance_menu.addAction('Kolor mapy 2D…')
         self.trace_color_action = appearance_menu.addAction('Kolor widma 1D…')
-        self.grid_action = appearance_menu.addAction('Pokaż siatkę')
-        self.grid_action.setCheckable(True)
-        self.grid_action.setChecked(self.settings.value('dosy_map/grid', True, type=bool))
         view_button.setMenu(appearance_menu)
         toolbar.addWidget(view_button)
+        self.grid_button = QtWidgets.QPushButton('Siatka')
+        self.grid_button.setCheckable(True)
+        self.grid_button.setChecked(self.settings.value('dosy_map/grid', True, type=bool))
+        self.grid_button.setToolTip('Pokaż lub ukryj siatkę na mapie i widmie 1D.')
+        toolbar.addWidget(self.grid_button)
         self.save_button = QtWidgets.QPushButton('Zapisz widok PNG')
         self.save_button.setEnabled(False)
         self.save_button.clicked.connect(self.choose_save)
@@ -181,8 +183,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.trace = self.projection.plot(pen=pg.mkPen(self.trace_color))
         self.map_color_action.triggered.connect(lambda: self.choose_color(map_color=True))
         self.trace_color_action.triggered.connect(lambda: self.choose_color(map_color=False))
-        self.grid_action.toggled.connect(self.set_grid)
-        self.set_grid(self.grid_action.isChecked())
+        self.grid_button.toggled.connect(self.set_grid)
+        self.set_grid(self.grid_button.isChecked())
         self.update_map_color()
         self.rois = QtWidgets.QListWidget()
         self.rois.setMinimumWidth(195)
@@ -353,12 +355,16 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             self.settings.setValue('dosy_map/trace_color', color.name())
             self.trace.setPen(pg.mkPen(color))
 
-    def update_map_color(self):
+    @staticmethod
+    def color_table(color):
         # ImageItem clips values below the lower level to the transparent first entry.
         colors = np.empty((256, 4), dtype=np.uint8)
-        colors[:, :3] = self.map_color.getRgb()[:3]
+        colors[:, :3] = color.getRgb()[:3]
         colors[:, 3] = np.round(255 * np.sqrt(np.linspace(0., 1., len(colors)))).astype(np.uint8)
-        self.lookup_table = colors
+        return colors
+
+    def update_map_color(self):
+        self.lookup_table = self.color_table(self.map_color)
         for image in self.images:
             image.setLookupTable(self.lookup_table)
 
@@ -385,4 +391,58 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.warning(self, 'Zapis widoku', 'Nie udało się zapisać pliku PNG.')
 
     def save_view(self, path):
-        return self.graphics.grab().save(str(path), 'PNG')
+        # Render a separate copy so export never changes the live plots or settings.
+        canvas = QtWidgets.QWidget()
+        canvas.setAttribute(QtCore.Qt.WidgetAttribute.WA_DontShowOnScreen)
+        canvas.setStyleSheet('background: white;')
+        layout = QtWidgets.QVBoxLayout(canvas)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(3)
+        try:
+            spectrum = self.export_plot(self.projection, layout)
+            map_plot = self.export_plot(self.plot, layout)
+            navy = QtGui.QColor('#142b5c')
+            spectrum.plot(*self.trace.getData(), pen=pg.mkPen(navy, width=1.3))
+            lookup = self.color_table(navy)
+            for image in self.images:
+                copy = pg.ImageItem(axisOrder='row-major')
+                copy.setImage(image.image, levels=image.getLevels(), lut=lookup)
+                copy.setTransform(image.transform())
+                map_plot.addItem(copy)
+            pen = pg.mkPen('k', style=QtCore.Qt.PenStyle.DashLine)
+            for plot, guide in ((spectrum, self.projection_guide), (map_plot, self.ppm_guide),
+                                (map_plot, self.diffusion_guide)):
+                if guide.isVisible():
+                    line = pg.InfiniteLine(pos=guide.value(), angle=guide.angle, pen=pen)
+                    line.setZValue(10)
+                    plot.addItem(line, ignoreBounds=True)
+            canvas.resize(self.graphics.width(), layout.sizeHint().height())
+            canvas.show()
+            for source, plot in ((self.projection, spectrum), (self.plot, map_plot)):
+                x_range, y_range = source.getViewBox().viewRange()
+                plot.setRange(xRange=x_range, yRange=y_range, padding=0)
+            return canvas.grab().save(str(path), 'PNG')
+        finally:
+            canvas.close()
+            canvas.deleteLater()
+
+    def export_plot(self, source, layout):
+        plot = pg.PlotWidget(background='w')
+        layout.addWidget(plot)
+        plot.setFixedHeight(source.height())
+        plot.invertX(True)
+        plot.hideButtons()
+        plot.getViewBox().setBorder('k')
+        for name in ('left', 'bottom'):
+            original = source.getAxis(name)
+            axis = plot.getAxis(name)
+            axis.setPen('k')
+            axis.setTickPen('k')
+            axis.setTextPen('k')
+            axis.setLabel(original.labelText, units=original.labelUnits, color='#000000')
+            axis.setStyle(showValues=original.style['showValues'])
+            axis.enableAutoSIPrefix(original.autoSIPrefix)
+        plot.getAxis('left').setWidth(source.getAxis('left').width())
+        grid = self.grid_button.isChecked()
+        plot.showGrid(x=grid, y=grid, alpha=.17)
+        return plot
