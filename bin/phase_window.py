@@ -1,4 +1,6 @@
 """Manual shared phasing: cached FFT preview, mouse gestures, explicit commit."""
+from i18n import tr
+
 from copy import deepcopy
 import numpy as np
 from PySide6 import QtCore, QtWidgets
@@ -13,7 +15,7 @@ class PhaseWindow(QtWidgets.QDialog):
 
     def __init__(self, dataset, parent=None, appearance=SpectrumAppearance()):
         super().__init__(parent)
-        self.setWindowTitle('DOSY Lab · Interaktywne fazowanie wszystkich warstw')
+        self.setWindowTitle(tr('DOSY Lab · Interaktywne fazowanie wszystkich warstw'))
         self.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
         self.resize(1350,850)
         if parent is not None:self.setStyleSheet(parent.styleSheet())
@@ -27,10 +29,10 @@ class PhaseWindow(QtWidgets.QDialog):
         self.last_drag_dy = 0.
         layout=QtWidgets.QVBoxLayout(self)
         help_label=QtWidgets.QLabel(
-            '<b>Lewy + góra/dół</b> — PH0 &nbsp;·&nbsp; <b>Prawy + góra/dół</b> — PH1 &nbsp;·&nbsp; '
+            tr('<b>Lewy + góra/dół</b> — PH0 &nbsp;·&nbsp; <b>Prawy + góra/dół</b> — PH1 &nbsp;·&nbsp; '
             '<b>Shift + przeciąganie</b> — precyzyjne dostrajanie<br>'
             '<b>Lewy klik</b> — pivot &nbsp;·&nbsp; <b>Środkowy + ruch</b> — przesuwanie &nbsp;·&nbsp; '
-            '<b>Rolka</b> — wysokość widma')
+            '<b>Rolka</b> — wysokość widma'))
         help_label.setWordWrap(True);layout.addWidget(help_label)
         row=QtWidgets.QHBoxLayout();layout.addLayout(row)
         self.controls={}
@@ -42,62 +44,62 @@ class PhaseWindow(QtWidgets.QDialog):
             control=QtWidgets.QDoubleSpinBox();control.setDecimals(decimals);control.setRange(low,high)
             control.setSingleStep(step);control.setValue(value);self.controls[key]=control
             control.valueChanged.connect(self.pivot_changed if key=='pivot_ppm' else self.refresh);row.addWidget(control)
-        row.addWidget(QtWidgets.QLabel('Podgląd:'))
+        row.addWidget(QtWidgets.QLabel(tr('Podgląd:')))
         self.layer=QtWidgets.QComboBox()
         for i in range(len(dataset.raw.fid)):
-            b='brak b' if dataset.b is None else f'b={dataset.b[i]:.3e}'
+            b=tr('brak b') if dataset.b is None else f'b={dataset.b[i]:.3e}'
             self.layer.addItem(f'{i+1}: {b}',i)
         self.layer.setCurrentIndex(self.initial['reference_layer']);self.layer.currentIndexChanged.connect(self.draw)
         row.addWidget(self.layer,1)
         row=QtWidgets.QHBoxLayout();layout.addLayout(row)
-        row.addWidget(QtWidgets.QLabel('Czułość PH0 [°/px]:'))
+        row.addWidget(QtWidgets.QLabel(tr('Czułość PH0 [°/px]:')))
         self.ph0_sensitivity=self.sensitivity(row,[.05,.1,.5,1,2],.5)
         row.addWidget(QtWidgets.QLabel('PH1 [°/px]:'))
         self.ph1_sensitivity=self.sensitivity(row,[.5,2,10,50,100],10)
-        self.imaginary=QtWidgets.QCheckBox('Pokaż Im');self.imaginary.toggled.connect(self.draw);row.addWidget(self.imaginary)
-        self.before=QtWidgets.QCheckBox('Pokaż fazę sprzed edycji');self.before.toggled.connect(self.draw);row.addWidget(self.before)
-        self.zoom_button=QtWidgets.QPushButton('Zoom zakresu');self.zoom_button.setCheckable(True)
-        self.zoom_button.setToolTip('Włącz, aby przeciągnięciem powiększyć zakres. Wyłącz, aby wrócić do gestów PH0/PH1.')
+        self.imaginary=QtWidgets.QCheckBox(tr('Pokaż Im'));self.imaginary.toggled.connect(self.draw);row.addWidget(self.imaginary)
+        self.before=QtWidgets.QCheckBox(tr('Pokaż fazę sprzed edycji'));self.before.toggled.connect(self.draw);row.addWidget(self.before)
+        self.zoom_button=QtWidgets.QPushButton(tr('Zoom zakresu'));self.zoom_button.setCheckable(True)
+        self.zoom_button.setToolTip(tr('Włącz, aby przeciągnięciem powiększyć zakres. Wyłącz, aby wrócić do gestów PH0/PH1.'))
         row.addWidget(self.zoom_button)
-        self.pan_button = QtWidgets.QPushButton('Przesuń widmo')
+        self.pan_button = QtWidgets.QPushButton(tr('Przesuń widmo'))
         self.pan_button.setCheckable(True)
-        self.pan_button.setToolTip('Przeciągnij widmo lewym przyciskiem w pionie lub poziomie. Wyłącz, aby wrócić do fazowania.')
+        self.pan_button.setToolTip(tr('Przeciągnij widmo lewym przyciskiem w pionie lub poziomie. Wyłącz, aby wrócić do fazowania.'))
         row.addWidget(self.pan_button)
         self.zoom_button.toggled.connect(lambda checked:self.set_navigation(self.pan_button,checked))
         self.pan_button.toggled.connect(lambda checked:self.set_navigation(self.zoom_button,checked))
         row.addStretch()
-        for text,callback in [('Cały zakres',lambda:self.plot.autoRange()),('Pełny ekran',self.toggle_fullscreen),('Reset PH0/PH1',self.reset_phase)]:
+        for text,callback in [(tr('Cały zakres'),lambda:self.plot.autoRange()),(tr('Pełny ekran'),self.toggle_fullscreen),('Reset PH0/PH1',self.reset_phase)]:
             button=QtWidgets.QPushButton(text);button.clicked.connect(callback);row.addWidget(button)
         self.view=PhaseBox();self.plot=pg.PlotWidget(viewBox=self.view);layout.addWidget(self.plot,1)
         self.view.bind_selection_feedback(self.plot)
         self.plot.invertX(True)
         self.appearance.apply_grid(self.plot)
-        self.plot.setLabel('bottom','¹H [ppm]');self.plot.setLabel('left','Widmo przed korekcją bazy',units='j.u.')
+        self.plot.setLabel('bottom','¹H [ppm]');self.plot.setLabel('left',tr('Widmo przed korekcją bazy'),units=tr('j.u.'))
         self.view.phase_dragged.connect(self.drag_phase);self.view.clicked.connect(self.set_pivot)
         self.phase_label=QtWidgets.QLabel();self.phase_label.setWordWrap(True);layout.addWidget(self.phase_label)
         # The raw FID is diagnostic only. Never guess a vendor delay from its maximum.
         corrected_delay=self.initial['filter_delay_samples']
         self.filter_note=QtWidgets.QLabel(
-            f'Korekcja filtra: {corrected_delay:.4f} próbki. PH0/PH1 dostrajają już skorygowane widmo. '
-            'Opóźnienie można zmienić w Processing. Poniżej: początek surowego FID referencji.'
+            tr(f'Korekcja filtra: {corrected_delay:.4f} próbki. PH0/PH1 dostrajają już skorygowane widmo. '
+            'Opóźnienie można zmienić w Processing. Poniżej: początek surowego FID referencji.')
             if corrected_delay else
-            'Początek surowego FID referencji. Jeśli potrzebna jest ręczna korekcja opóźnienia, każda próbka odpowiada rampie 360° / SW.')
+            tr('Początek surowego FID referencji. Jeśli potrzebna jest ręczna korekcja opóźnienia, każda próbka odpowiada rampie 360° / SW.'))
         self.filter_note.setWordWrap(True)
         self.filter_note.setStyleSheet('color:#fbbf24;');layout.addWidget(self.filter_note)
         self.fid_plot=pg.PlotWidget();self.fid_plot.setMaximumHeight(120);self.fid_plot.setMinimumHeight(90)
-        self.fid_plot.setLabel('bottom','Indeks próbki FID (od 0)');self.fid_plot.setLabel('left','|FID|')
+        self.fid_plot.setLabel('bottom',tr('Indeks próbki FID (od 0)'));self.fid_plot.setLabel('left','|FID|')
         n=min(100,dataset.raw.fid.shape[1]);ref=self.initial['reference_layer']
         self.fid_plot.plot(np.arange(n),abs(dataset.raw.fid[ref,:n]),pen='#fbbf24',symbol='o',symbolSize=3)
         layout.addWidget(self.fid_plot)
         row=QtWidgets.QHBoxLayout();layout.addLayout(row)
-        row.addWidget(QtWidgets.QLabel('Ręcznie: opóźnienie [próbki]'))
+        row.addWidget(QtWidgets.QLabel(tr('Ręcznie: opóźnienie [próbki]')))
         self.delay=QtWidgets.QDoubleSpinBox();self.delay.setRange(-250,250);self.delay.setDecimals(4);self.delay.setValue(0)
         row.addWidget(self.delay)
-        button=QtWidgets.QPushButton('Dodaj rampę 360° × opóźnienie');button.clicked.connect(self.add_delay);row.addWidget(button)
+        button=QtWidgets.QPushButton(tr('Dodaj rampę 360° × opóźnienie'));button.clicked.connect(self.add_delay);row.addWidget(button)
         self.delay.setEnabled(not corrected_delay);button.setEnabled(not corrected_delay)
         row.addStretch()
-        cancel=QtWidgets.QPushButton('Anuluj');cancel.clicked.connect(self.reject);row.addWidget(cancel)
-        self.apply_button=QtWidgets.QPushButton('Zastosuj wspólną fazę do wszystkich warstw')
+        cancel=QtWidgets.QPushButton(tr('Anuluj'));cancel.clicked.connect(self.reject);row.addWidget(cancel)
+        self.apply_button=QtWidgets.QPushButton(tr('Zastosuj wspólną fazę do wszystkich warstw'))
         self.apply_button.clicked.connect(self.commit);row.addWidget(self.apply_button)
         self.refresh();self.plot.autoRange()
 
@@ -117,8 +119,8 @@ class PhaseWindow(QtWidgets.QDialog):
         o=self.options()
         self.preview=self.unphased*np.exp(1j*phase_radians(self.dataset.ppm,self.dataset.metadata,o))[None,:]
         self.draw()
-        self.phase_label.setText(f"PH0={o['phase0_deg']:.3f}° · PH1={o['phase1_deg']:.3f}° / całe SW · pivot={o['pivot_ppm']:.6f} ppm. "
-            'Podgląd bez odejmowania bazy. Zmiany dotyczą wszystkich warstw. Ustawienia Delty nie są kopiowane.')
+        self.phase_label.setText(tr(f"PH0={o['phase0_deg']:.3f}° · PH1={o['phase1_deg']:.3f}° / całe SW · pivot={o['pivot_ppm']:.6f} ppm. "
+            'Podgląd bez odejmowania bazy. Zmiany dotyczą wszystkich warstw. Ustawienia Delty nie są kopiowane.'))
 
     def draw(self,*args):
         if self.preview is None:return

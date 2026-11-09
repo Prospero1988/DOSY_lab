@@ -1,4 +1,6 @@
 """Non-modal PySide6 window for descriptive D statistics and cached fit diagnostics."""
+from i18n import tr
+
 from copy import deepcopy
 from datetime import datetime
 import html
@@ -19,7 +21,7 @@ from d_statistics import (SCIENTIFIC_NOTE, diagnostic_points, export_statistics,
 class StatisticsWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent, QtCore.Qt.WindowType.Window)
-        self.setWindowTitle('DOSY Lab · Statystyka D'); self.resize(1460, 980)
+        self.setWindowTitle(tr('DOSY Lab · Statystyka D')); self.resize(1460, 980)
         if parent is not None: self.setStyleSheet(parent.styleSheet())
         self.experiments = {}; self.choices = {}; self.weighted_choices = {}
         self.live_id = None; self.current_id = None; self.active_roi = None
@@ -28,23 +30,23 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         root = QtWidgets.QWidget(); self.setCentralWidget(root)
         layout = QtWidgets.QVBoxLayout(root)
         row = QtWidgets.QHBoxLayout(); layout.addLayout(row)
-        row.addWidget(QtWidgets.QLabel('Eksperyment:'))
+        row.addWidget(QtWidgets.QLabel(tr('Eksperyment:')))
         self.experiment_combo = QtWidgets.QComboBox(); self.experiment_combo.setMinimumWidth(420)
         row.addWidget(self.experiment_combo, 1); self.experiment_combo.currentIndexChanged.connect(self.experiment_changed)
-        self.pin_button = self.button('Zachowaj kopię do porównania', self.pin_current, row)
-        self.button('Wczytaj zapis statystyki', self.choose_import, row)
-        self.source_label = QtWidgets.QLabel('Brak eksperymentu.'); self.source_label.setWordWrap(True); layout.addWidget(self.source_label)
-        note = QtWidgets.QLabel(SCIENTIFIC_NOTE); note.setWordWrap(True)
+        self.pin_button = self.button(tr('Zachowaj kopię do porównania'), self.pin_current, row)
+        self.button(tr('Wczytaj zapis statystyki'), self.choose_import, row)
+        self.source_label = QtWidgets.QLabel(tr('Brak eksperymentu.')); self.source_label.setWordWrap(True); layout.addWidget(self.source_label)
+        note = QtWidgets.QLabel(tr(SCIENTIFIC_NOTE)); note.setWordWrap(True)
         note.setStyleSheet('color:#fbbf24;background:#292415;padding:7px;border-radius:5px;'); layout.addWidget(note)
         row = QtWidgets.QHBoxLayout(); layout.addLayout(row)
-        self.weighted = QtWidgets.QCheckBox('Średnia ważona wg SE(D)')
+        self.weighted = QtWidgets.QCheckBox(tr('Średnia ważona wg SE(D)'))
         self.weighted.setToolTip(
-            'Każde D dostaje wagę 1/SE(D)², więc mniejsze SE daje większy wpływ na wynik. '
+            tr('Każde D dostaje wagę 1/SE(D)², więc mniejsze SE daje większy wpływ na wynik. '
             'Włącz, gdy SE poszczególnych dopasowań są wiarygodne i porównywalne. '
-            'Bieżące SE z reszt pomijają kalibrację g i korelację między ROI.')
+            'Bieżące SE z reszt pomijają kalibrację g i korelację między ROI.'))
         self.weighted.toggled.connect(self.weighting_changed); row.addWidget(self.weighted)
-        self.two_sd = QtWidgets.QCheckBox('Linie ±2 SD'); self.two_sd.toggled.connect(self.refresh_statistics); row.addWidget(self.two_sd)
-        self.show_residuals = QtWidgets.QCheckBox('Pokaż reszty'); self.show_residuals.setChecked(True)
+        self.two_sd = QtWidgets.QCheckBox(tr('Linie ±2 SD')); self.two_sd.toggled.connect(self.refresh_statistics); row.addWidget(self.two_sd)
+        self.show_residuals = QtWidgets.QCheckBox(tr('Pokaż reszty')); self.show_residuals.setChecked(True)
         self.show_residuals.toggled.connect(lambda checked: self.residual_plot.setVisible(checked)); row.addWidget(self.show_residuals)
         row.addStretch()
         self.summary_label = QtWidgets.QLabel('N = 0'); self.summary_label.setWordWrap(True)
@@ -53,9 +55,9 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         layout.addLayout(summary_row)
         summary_row.addWidget(self.summary_label,1)
         summary_row.addSpacing(18)
-        summary_row.addWidget(QtWidgets.QLabel('Związek'))
+        summary_row.addWidget(QtWidgets.QLabel(tr('Związek')))
         self.group_combo = QtWidgets.QComboBox()
-        self.group_combo.setToolTip('Wybierz grupę sygnałów, dla której liczone jest podsumowanie D.')
+        self.group_combo.setToolTip(tr('Wybierz grupę sygnałów, dla której liczone jest podsumowanie D.'))
         self.group_combo.currentIndexChanged.connect(self.group_changed)
         summary_row.addWidget(self.group_combo)
         summary_row.addStretch(1)
@@ -63,8 +65,8 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical); layout.addWidget(splitter, 1)
         upper = QtWidgets.QSplitter(); splitter.addWidget(upper)
         self.table = QtWidgets.QTableWidget(0, 8)
-        self.table.setHorizontalHeaderLabels(['Uwzględnij', 'ID', 'Grupa / związek', 'ppm', 'D [m²/s]', 'SE(D) [m²/s]', 'R²', 'QC'])
-        self.table.horizontalHeaderItem(5).setToolTip('Błąd standardowy oszacowania D z dopasowania zaniku.')
+        self.table.setHorizontalHeaderLabels([tr('Uwzględnij'), 'ID', tr('Grupa / związek'), 'ppm', 'D [m²/s]', 'SE(D) [m²/s]', 'R²', 'QC'])
+        self.table.horizontalHeaderItem(5).setToolTip(tr('Błąd standardowy oszacowania D z dopasowania zaniku.'))
         self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -78,7 +80,7 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         plot_tools = QtWidgets.QHBoxLayout()
         plot_tools.addStretch()
         overview_layout.addLayout(plot_tools)
-        self.d_fullscreen = self.button('Pełny ekran D', lambda:self.d_plot.fullscreen_controller.open(), plot_tools)
+        self.d_fullscreen = self.button(tr('Pełny ekran D'), lambda:self.d_plot.fullscreen_controller.open(), plot_tools)
         self.d_plot = pg.PlotWidget(); self.d_plot.showGrid(x=True, y=True, alpha=.2)
         self.d_plot.getAxis('left').enableAutoSIPrefix(False)
         overview_layout.addWidget(self.d_plot,1)
@@ -87,50 +89,50 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         self.d_grid = self.grid_button(plot_tools, self.d_plot)
         self.tabs = QtWidgets.QTabWidget(); splitter.addWidget(self.tabs)
         detail = QtWidgets.QWidget(); detail_layout = QtWidgets.QVBoxLayout(detail)
-        self.roi_info = QtWidgets.QLabel('Wybierz wiersz lub punkt D, aby zobaczyć zapisany zanik.')
+        self.roi_info = QtWidgets.QLabel(tr('Wybierz wiersz lub punkt D, aby zobaczyć zapisany zanik.'))
         self.roi_info.setTextFormat(QtCore.Qt.TextFormat.PlainText); self.roi_info.setWordWrap(True); detail_layout.addWidget(self.roi_info)
-        self.point_info = QtWidgets.QLabel('Kliknij lub najedź na punkt eksperymentalny.'); self.point_info.setWordWrap(True)
+        self.point_info = QtWidgets.QLabel(tr('Kliknij lub najedź na punkt eksperymentalny.')); self.point_info.setWordWrap(True)
         self.point_info.setTextFormat(QtCore.Qt.TextFormat.PlainText); detail_layout.addWidget(self.point_info)
         plot_tools = QtWidgets.QHBoxLayout()
         plot_tools.addStretch()
         detail_layout.addLayout(plot_tools)
-        self.decay_fullscreen = self.button('Pełny ekran zaniku', lambda:self.decay_plot.fullscreen_controller.open(), plot_tools)
-        self.residual_fullscreen = self.button('Pełny ekran reszt', lambda:self.residual_plot.fullscreen_controller.open(), plot_tools)
+        self.decay_fullscreen = self.button(tr('Pełny ekran zaniku'), lambda:self.decay_plot.fullscreen_controller.open(), plot_tools)
+        self.residual_fullscreen = self.button(tr('Pełny ekran reszt'), lambda:self.residual_plot.fullscreen_controller.open(), plot_tools)
         self.show_residuals.toggled.connect(self.residual_fullscreen.setEnabled)
         self.decay_plot = pg.PlotWidget(); self.decay_plot.showGrid(x=True, y=True, alpha=.2)
-        self.decay_plot.setLabel('left', 'Całka', units='j.u.·ppm'); self.decay_plot.setLabel('bottom', 'b / 10⁹ [s/m²]')
+        self.decay_plot.setLabel('left', tr('Całka'), units=tr('j.u.·ppm')); self.decay_plot.setLabel('bottom', 'b / 10⁹ [s/m²]')
         detail_layout.addWidget(self.decay_plot, 3)
         self.residual_plot = pg.PlotWidget(); self.residual_plot.showGrid(x=True, y=True, alpha=.2)
-        self.residual_plot.setLabel('left', 'I − przewidywanie'); self.residual_plot.setLabel('bottom', 'b / 10⁹ [s/m²]')
+        self.residual_plot.setLabel('left', tr('I − przewidywanie')); self.residual_plot.setLabel('bottom', 'b / 10⁹ [s/m²]')
         self.residual_plot.setXLink(self.decay_plot); detail_layout.addWidget(self.residual_plot, 1)
         self.detail_grid = self.grid_button(plot_tools, self.decay_plot, self.residual_plot)
-        self.tabs.addTab(detail, 'Zanik wybranego ROI')
+        self.tabs.addTab(detail, tr('Zanik wybranego ROI'))
         self.comparison = QtWidgets.QTableWidget(0, 7)
-        self.comparison.setHorizontalHeaderLabels(['Eksperyment (oddzielne grupy)', 'N', 'Średnia D [m²/s]', 'Mediana D [m²/s]', 'SD [m²/s]', 'CV [%]', 'SEM opisowe [m²/s]'])
+        self.comparison.setHorizontalHeaderLabels([tr('Eksperyment (oddzielne grupy)'), 'N', tr('Średnia D [m²/s]'), tr('Mediana D [m²/s]'), 'SD [m²/s]', 'CV [%]', tr('SEM opisowe [m²/s]')])
         self.comparison.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
         self.comparison.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         self.comparison.horizontalHeader().setStretchLastSection(True)
         self.comparison.cellDoubleClicked.connect(self.comparison_selected)
-        self.tabs.addTab(self.comparison, 'Porównanie eksperymentów — bez łączenia ROI')
+        self.tabs.addTab(self.comparison, tr('Porównanie eksperymentów — bez łączenia ROI'))
         splitter.setSizes([320, 390])
         row = QtWidgets.QHBoxLayout(); layout.addLayout(row)
-        self.csv_button = self.button('Eksport CSV + zapis statystyki', self.choose_csv_export, row)
-        row.addStretch(); row.addWidget(QtWidgets.QLabel('Eksportowany wykres:'))
-        self.export_kind = QtWidgets.QComboBox(); self.export_kind.addItems(['Zbiorczy D', 'Zanik ROI', 'Reszty ROI']); row.addWidget(self.export_kind)
+        self.csv_button = self.button(tr('Eksport CSV + zapis statystyki'), self.choose_csv_export, row)
+        row.addStretch(); row.addWidget(QtWidgets.QLabel(tr('Eksportowany wykres:')))
+        self.export_kind = QtWidgets.QComboBox(); self.export_kind.addItems([tr('Zbiorczy D'), tr('Zanik ROI'), tr('Reszty ROI')]); row.addWidget(self.export_kind)
         self.png_button = self.button('PNG', lambda: self.choose_plot_export('png'), row)
         self.svg_button = self.button('SVG', lambda: self.choose_plot_export('svg'), row)
-        self.statusBar().showMessage('Zaznaczenie do statystyki nie zmienia ROI, punktów ani dopasowań w głównym oknie.')
+        self.statusBar().showMessage(tr('Zaznaczenie do statystyki nie zmienia ROI, punktów ani dopasowań w głównym oknie.'))
         self.refresh_statistics()
         overview_context = lambda:html.escape(self.summary_label.text()).replace('\n','<br>')
         detail_context = lambda:html.escape(self.roi_info.text()+'\n'+self.point_info.text()).replace('\n','<br>')
         for plot,title,context,reset in (
-            (self.d_plot,'Statystyka D',overview_context,self.reset_overview),
-            (self.decay_plot,'Zanik wybranego ROI',detail_context,self.reset_diagnostics),
-            (self.residual_plot,'Reszty wybranego ROI',detail_context,self.reset_diagnostics),
+            (self.d_plot,tr('Statystyka D'),overview_context,self.reset_overview),
+            (self.decay_plot,tr('Zanik wybranego ROI'),detail_context,self.reset_diagnostics),
+            (self.residual_plot,tr('Reszty wybranego ROI'),detail_context,self.reset_diagnostics),
         ):
             view = plot.getViewBox()
             view.setMouseMode(pg.ViewBox.RectMode)
-            view.mouse_help = 'Przeciągnij prostokąt, aby powiększyć obszar. Dwuklik przywraca cały zakres.'
+            view.mouse_help = tr('Przeciągnij prostokąt, aby powiększyć obszar. Dwuklik przywraca cały zakres.')
             enable_fullscreen(plot,title,context,reset_view=reset)
 
     def reset_overview(self):
@@ -149,12 +151,12 @@ class StatisticsWindow(QtWidgets.QMainWindow):
 
     @staticmethod
     def grid_button(row, *plots):
-        button = QtWidgets.QPushButton('Wyłącz siatkę')
+        button = QtWidgets.QPushButton(tr('Wyłącz siatkę'))
         button.setCheckable(True)
         def toggle(hidden):
             for plot in plots:
                 plot.showGrid(x=not hidden, y=not hidden, alpha=.2)
-            button.setText('Włącz siatkę' if hidden else 'Wyłącz siatkę')
+            button.setText(tr('Włącz siatkę') if hidden else tr('Wyłącz siatkę'))
         button.toggled.connect(toggle)
         row.addWidget(button)
         return button
@@ -176,7 +178,7 @@ class StatisticsWindow(QtWidgets.QMainWindow):
     def rebuild_experiment_combo(self):
         self.experiment_combo.blockSignals(True); self.experiment_combo.clear()
         for key, exp in self.experiments.items():
-            self.experiment_combo.addItem(('Bieżący · ' if key == self.live_id else '')+exp['label'], key)
+            self.experiment_combo.addItem((tr('Bieżący · ') if key == self.live_id else '')+exp['label'], key)
         index = self.experiment_combo.findData(self.current_id)
         self.experiment_combo.setCurrentIndex(index); self.experiment_combo.blockSignals(False)
 
@@ -189,7 +191,7 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         if exp is None: return
         self.group_combo.blockSignals(True);self.group_combo.clear()
         available=groups(exp)
-        self.group_combo.addItem('Wybierz grupę / przypisz ROI','')
+        self.group_combo.addItem(tr('Wybierz grupę / przypisz ROI'),'')
         for group in available:self.group_combo.addItem(group,group)
         selected=exp.get('statistics_group',available[0] if len(available)==1 else '')
         self.group_combo.setCurrentIndex(max(0,self.group_combo.findData(selected)))
@@ -204,16 +206,16 @@ class StatisticsWindow(QtWidgets.QMainWindow):
             check = QtWidgets.QTableWidgetItem(); check.setData(QtCore.Qt.ItemDataRole.UserRole, sid)
             check.setFlags(QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsUserCheckable | (QtCore.Qt.ItemFlag.ItemIsEnabled if record['eligible'] else QtCore.Qt.ItemFlag.NoItemFlags))
             check.setCheckState(QtCore.Qt.CheckState.Checked if record['eligible'] and self.choices[self.current_id].get(sid, True) else QtCore.Qt.CheckState.Unchecked)
-            check.setToolTip('Udział w statystyce; nie usuwa sygnału.' if record['eligible'] else record['qc_detail'])
+            check.setToolTip(tr('Udział w statystyce; nie usuwa sygnału.') if record['eligible'] else tr(record['qc_detail']))
             self.table.setItem(row, 0, check)
             vals = [sid, record.get('group',''), self.ppm(record['ppm']), number(record['D']), number(record['SE']),
-                    f"{record['R2']:.5f}" if record['R2'] is not None else '—', record['qc']]
+                    f"{record['R2']:.5f}" if record['R2'] is not None else '—', tr(record['qc'])]
             for col, value in enumerate(vals, 1):
-                item = QtWidgets.QTableWidgetItem(value); item.setToolTip(record['qc_detail'])
+                item = QtWidgets.QTableWidgetItem(value); item.setToolTip(tr(record['qc_detail']))
                 if col == 1 and record['name'] != sid:
-                    item.setToolTip(f"{record['name']}\n{record['qc_detail']}")
+                    item.setToolTip(f"{record['name']}\n{tr(record['qc_detail'])}")
                 self.table.setItem(row, col, item)
-        self.source_label.setText(f"{exp['source_name']} · {exp.get('experiment',{}).get('sequence','DOSY')} · SHA256: {exp.get('source_sha256') or 'brak'} · oddzielna seria wyników")
+        self.source_label.setText(tr(f"{exp['source_name']} · {exp.get('experiment',{}).get('sequence','DOSY')} · SHA256: {exp.get('source_sha256') or 'brak'} · oddzielna seria wyników"))
         self._updating = False
         if self.active_roi not in self.records_by_id: self.active_roi = next(iter(self.records_by_id), None)
         self.refresh_statistics()
@@ -236,7 +238,7 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         exp = self.current
         self.d_plot.clear(); self.d_positions = {}; self.highlight = None
         if exp is None:
-            self.summary_label.setText('N = 0 · Brak wyników. Otwórz dane i zaznacz ROI w głównym oknie.')
+            self.summary_label.setText(tr('N = 0 · Brak wyników. Otwórz dane i zaznacz ROI w głównym oknie.'))
             self.csv_button.setEnabled(False); return
         self.csv_button.setEnabled(True)
         records = included_records(exp, self.choices[self.current_id])
@@ -244,20 +246,20 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         self.summary = summarize(exp, self.choices[self.current_id], self.weighted.isChecked())
         s = self.summary
         cv = f"{s['CV_percent']:.3f}%" if s['CV_percent'] is not None else '—'
-        self.summary_label.setText(f"N = {s['N']}    Średnia: {number(s['mean'])}    Mediana: {number(s['median'])}    SD (ddof=1): {number(s['SD'])} m²/s\n"
-                                   f"CV: {cv}    SEM opisowe: {number(s['SEM'])}    Min: {number(s['minimum'])}    Max: {number(s['maximum'])} m²/s")
-        self.weighted_label.setText((f"Średnia ważona: {number(s['weighted_mean'])} m²/s. " if self.weighted.isChecked() else '')+s['weighted_status'])
+        self.summary_label.setText(tr(f"N = {s['N']}    Średnia: {number(s['mean'])}    Mediana: {number(s['median'])}    SD (ddof=1): {number(s['SD'])} m²/s\n"
+                                   f"CV: {cv}    SEM opisowe: {number(s['SEM'])}    Min: {number(s['minimum'])}    Max: {number(s['maximum'])} m²/s"))
+        self.weighted_label.setText((tr(f"Średnia ważona: {number(s['weighted_mean'])} m²/s. ") if self.weighted.isChecked() else '')+tr(s['weighted_status']))
         values = [abs(r['D']) for r in records]
         values += [r['SE'] for r in records if finite(r['SE']) is not None and r['SE'] >= 0]
         largest = max(values, default=0)
         exponent = max(-300, min(300, math.floor(math.log10(largest)))) if largest else -10
         self.scale = 10.**exponent
-        self.d_plot.setLabel('left', f'D / 10^{exponent} [m²/s]'); self.d_plot.setLabel('bottom', 'ID sygnału')
-        legend='● uwzględnione · słupki ±SE(D) · linia średniej · pasmo ±1 SD'
-        if not records: legend='Brak zaznaczonych sygnałów w wybranej grupie.'
-        if s['SD'] is None: legend+='<br>SD i SEM wymagają co najmniej dwóch sygnałów'
-        if self.two_sd.isChecked(): legend+='<br>Przerywane: ±2 SD'
-        if s['weighted_mean'] is not None: legend+=' · linia kropkowana: średnia ważona'
+        self.d_plot.setLabel('left', f'D / 10^{exponent} [m²/s]'); self.d_plot.setLabel('bottom', tr('ID sygnału'))
+        legend=tr('● uwzględnione · słupki ±SE(D) · linia średniej · pasmo ±1 SD')
+        if not records: legend=tr('Brak zaznaczonych sygnałów w wybranej grupie.')
+        if s['SD'] is None: legend+=tr('<br>SD i SEM wymagają co najmniej dwóch sygnałów')
+        if self.two_sd.isChecked(): legend+=tr('<br>Przerywane: ±2 SD')
+        if s['weighted_mean'] is not None: legend+=tr(' · linia kropkowana: średnia ważona')
         self.d_plot.setTitle(html.escape(exp['label'])+'<br><span style="font-size:9pt">'+legend+'</span>')
         # PlotItem defaults to a fixed 30 px title row, even for a multiline legend.
         title = self.d_plot.plotItem.titleLabel
@@ -299,7 +301,7 @@ class StatisticsWindow(QtWidgets.QMainWindow):
 
     def d_tooltip(self, x, y, data):
         r = self.records_by_id.get(data)
-        return f"{data} · D={number(r['D'])} m²/s · SE={number(r['SE'])}\n{r['qc']}: {r['qc_detail']}" if r else str(data)
+        return f"{data} · D={number(r['D'])} m²/s · SE={number(r['SE'])}\n{tr(r['qc'])}: {tr(r['qc_detail'])}" if r else str(data)
 
     def scatter_clicked(self, item, points, event):
         if len(points): self.select_roi(points[0].data())
@@ -326,26 +328,26 @@ class StatisticsWindow(QtWidgets.QMainWindow):
     def refresh_diagnostic(self):
         self.decay_plot.clear(); self.residual_plot.clear(); self.point_rows = []
         self.residual_plot.addItem(pg.InfiniteLine(0, angle=0, pen=pg.mkPen('#64748b')))
-        self.point_info.setText('Kliknij lub najedź na punkt: g, b, całka, przewidywanie, reszta i S/N, jeśli dostępne.')
+        self.point_info.setText(tr('Kliknij lub najedź na punkt: g, b, całka, przewidywanie, reszta i S/N, jeśli dostępne.'))
         record = self.records_by_id.get(self.active_roi)
         if record is None:
-            self.roi_info.setText('Brak sygnałów. Wybierz ROI w głównym programie.'); return
+            self.roi_info.setText(tr('Brak sygnałów. Wybierz ROI w głównym programie.')); return
         fit, result = record['fit'], record['result']
         self.point_rows, warning = diagnostic_points(self.current, record)
-        bg = 'Wielomianowa korekcja bazy' if result.get('baseline_applied') else 'Bez korekcji bazy'
-        model = fit.get('model', 'brak modelu')
+        bg = tr('Wielomianowa korekcja bazy') if result.get('baseline_applied') else tr('Bez korekcji bazy')
+        model = fit.get('model', tr('brak modelu'))
         r2 = f"{record['R2']:.5f}" if record['R2'] is not None else '—'
-        info = (f"{record['id']} · {record['name']} · {self.ppm(record['ppm'])} ppm · grupa: {record.get('group') or 'nieprzypisana'}\n"
+        info = (f"{record['id']} · {record['name']} · {self.ppm(record['ppm'])} ppm · grupa: {record.get('group') or tr('nieprzypisana')}\n"
                 f"D {number(record['D'])} m²/s · SE(D) {number(record['SE'])} m²/s · R² {r2} · {model}\n{bg}")
-        if record['qc'] != 'OK': info += '\n'+record['qc_detail']
+        if record['qc'] != 'OK': info += '\n'+tr(record['qc_detail'])
         if self.point_rows:
             used=sum(p['fit_included'] is True for p in self.point_rows)
             excluded=sum(p['fit_included'] is False for p in self.point_rows)
             unknown=sum(p['fit_included'] is None for p in self.point_rows)
-            info+=f'\nPunkty: {used} w dopasowaniu · {excluded} poza fitem · {unknown} o nieustalonym statusie.'
-        if warning: info += '\n'+warning
-        self.roi_info.setText(info)
-        self.decay_plot.setTitle(html.escape(record['id'])+' · rzeczywiste I(b) i zapisany model · × poza fitem · □ status nieznany')
+            info+=tr(f'\nPunkty: {used} w dopasowaniu · {excluded} poza fitem · {unknown} o nieustalonym statusie.')
+        if warning: info += '\n'+tr(warning)
+        self.roi_info.setText(tr(info))
+        self.decay_plot.setTitle(html.escape(record['id'])+tr(' · rzeczywiste I(b) i zapisany model · × poza fitem · □ status nieznany'))
         self.measurement_scatters = []
         for status, symbol, color in [(True,'o',record['color']),(False,'x','#fb923c'),(None,'s','#94a3b8')]:
             spots = [{'pos': (r['b']/1e9, r['integral']), 'data': r['index']} for r in self.point_rows
@@ -374,10 +376,10 @@ class StatisticsWindow(QtWidgets.QMainWindow):
 
     def point_description(self, index):
         r = next((r for r in self.point_rows if r['index'] == index), None)
-        if r is None: return 'Brak danych punktu.'
-        state = 'w dopasowaniu' if r['fit_included'] else ('poza fitem' if r['fit_included'] is False else 'udział w fit nieustalony')
-        return (f"Punkt {index+1} · {state} · g={number(r['g'])} T/m · b={number(r['b'])} s/m²\n"
-                f"Całka={number(r['integral'])} · przewidywanie={number(r['prediction'])} · reszta={number(r['residual'])} · S/N={number(r['snr']) if r['snr'] is not None else 'nie oszacowano'}")
+        if r is None: return tr('Brak danych punktu.')
+        state = tr('w dopasowaniu') if r['fit_included'] else (tr('poza fitem') if r['fit_included'] is False else tr('udział w fit nieustalony'))
+        return (tr(f"Punkt {index+1} · {state} · g={number(r['g'])} T/m · b={number(r['b'])} s/m²\n"
+                f"Całka={number(r['integral'])} · przewidywanie={number(r['prediction'])} · reszta={number(r['residual'])} · S/N={number(r['snr']) if r['snr'] is not None else tr('nie oszacowano')}"))
 
     def measurement_clicked(self, item, points, event):
         if len(points): self.show_point(points[0].data())
@@ -415,10 +417,10 @@ class StatisticsWindow(QtWidgets.QMainWindow):
 
     def pin_current(self):
         if self.current is None: return
-        key = uuid.uuid4().hex; exp = deepcopy(self.current); exp['id'] = key; exp['label'] += f' · kopia {len(self.experiments)+1}'
+        key = uuid.uuid4().hex; exp = deepcopy(self.current); exp['id'] = key; exp['label'] += tr(f' · kopia {len(self.experiments)+1}')
         self.experiments[key] = exp; self.choices[key] = dict(self.choices[self.current_id]); self.weighted_choices[key] = self.weighted.isChecked()
         self.rebuild_experiment_combo(); self.refresh_comparison()
-        self.statusBar().showMessage('Zachowano niezależną kopię. Kolejne fity w głównym oknie jej nie zmienią.')
+        self.statusBar().showMessage(tr('Zachowano niezależną kopię. Kolejne fity w głównym oknie jej nie zmienią.'))
 
     def load_snapshot(self, path):
         exp, choices = import_statistics(path); key = exp['id']
@@ -426,23 +428,23 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         self.current_id = key; self.active_roi = None; self.rebuild_experiment_combo(); self.refresh_current()
 
     def choose_import(self):
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Wczytaj statistics_snapshot.json z DOSY Lab', '', 'Zapis statystyki (*.json)')
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, tr('Wczytaj statistics_snapshot.json z DOSY Lab'), '', tr('Zapis statystyki (*.json)'))
         if path:
             try: self.load_snapshot(path)
-            except Exception as e: QtWidgets.QMessageBox.warning(self, 'Odczyt statystyki', str(e))
+            except Exception as e: QtWidgets.QMessageBox.warning(self, tr('Odczyt statystyki'), str(e))
 
     def export_csv(self, directory):
-        if self.current is None: raise ValueError('Brak eksperymentu.')
+        if self.current is None: raise ValueError(tr('Brak eksperymentu.'))
         return export_statistics(directory, self.current, self.choices[self.current_id], self.weighted.isChecked(),
                                  [(exp, self.choices[key]) for key, exp in self.experiments.items()], self.active_roi)
 
     def choose_csv_export(self):
-        parent = QtWidgets.QFileDialog.getExistingDirectory(self, 'Wybierz folder na eksport Statystyki D')
+        parent = QtWidgets.QFileDialog.getExistingDirectory(self, tr('Wybierz folder na eksport Statystyki D'))
         if parent:
             try:
                 folder = Path(parent)/datetime.now().strftime('statystyka_D_%Y%m%d_%H%M%S_%f')
-                self.export_csv(folder); self.statusBar().showMessage(f'Zapisano CSV i kopię wyników: {folder}')
-            except Exception as e: QtWidgets.QMessageBox.warning(self, 'Eksport statystyki', str(e))
+                self.export_csv(folder); self.statusBar().showMessage(tr(f'Zapisano CSV i kopię wyników: {folder}'))
+            except Exception as e: QtWidgets.QMessageBox.warning(self, tr('Eksport statystyki'), str(e))
 
     def export_plot(self, path, kind=None):
         kind = self.export_kind.currentIndex() if kind is None else kind
@@ -450,10 +452,10 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         save_light_plot(plot, path, bottom_ticks=self.d_ticks() if kind == 0 else None)
 
     def choose_plot_export(self, suffix):
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Zapisz wykres', f'statystyka_D.{suffix}', f'Wykres (*.{suffix})')
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, tr('Zapisz wykres'), f'statystyka_D.{suffix}', tr(f'Wykres (*.{suffix})'))
         if path:
             try:
                 target = Path(path)
                 if not target.suffix: target = target.with_suffix('.'+suffix)
-                self.export_plot(target); self.statusBar().showMessage(f'Zapisano wykres: {target}')
-            except Exception as e: QtWidgets.QMessageBox.warning(self, 'Eksport wykresu', str(e))
+                self.export_plot(target); self.statusBar().showMessage(tr(f'Zapisano wykres: {target}'))
+            except Exception as e: QtWidgets.QMessageBox.warning(self, tr('Eksport wykresu'), str(e))

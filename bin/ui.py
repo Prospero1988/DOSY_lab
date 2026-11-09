@@ -21,6 +21,8 @@ from spectrum_view import SpectrumBox
 from phase_window import PhaseWindow
 from spectrum_settings import SpectrumAppearance, SpectrumSettingsDialog
 from experiment_info import ExperimentInfo
+from i18n import retranslate, set_language, tr
+from version import VERSION
 
 STYLE='''QMainWindow,QWidget {background:#101827;color:#dbe4ef;font-size:12px;}
 QPushButton {background:#26364e;border:1px solid #40516d;padding:7px;border-radius:5px;}
@@ -73,8 +75,11 @@ class Job(QtCore.QThread):
 
 class Window(QtWidgets.QMainWindow):
     def __init__(self, settings=None):
-        super().__init__();self.setWindowTitle('DOSY Lab — klasyczne 1D DOSY');self.resize(1560,1000);self.setStyleSheet(STYLE)
+        super().__init__();self.resize(1560,1000);self.setStyleSheet(STYLE)
         self.settings = settings if settings is not None else QtCore.QSettings('DOSY Lab', 'DOSY Lab')
+        self.language = 'en' if self.settings.value('language') == 'en' else 'pl'
+        set_language(self.language)
+        self.setWindowTitle(f"{tr('DOSY Lab — klasyczne 1D DOSY')} · {VERSION}")
         self.appearance = SpectrumAppearance.load(self.settings)
         self.raw=None;self.dataset=None;self.entries=[];self.results=[];self.active_id=None
         self.integral_scale = 1.
@@ -88,67 +93,73 @@ class Window(QtWidgets.QMainWindow):
         self.timer=QtCore.QTimer(self);self.timer.setSingleShot(True);self.timer.timeout.connect(self.start_calculation)
         root=QtWidgets.QWidget();self.setCentralWidget(root);layout=QtWidgets.QVBoxLayout(root)
         top=QtWidgets.QHBoxLayout();layout.addLayout(top)
-        self.open_button = self.button('Otwórz DOSY', self.choose_file, top, 'Otwórz pomiar DOSY z pliku JEOL JDF.')
-        self.button('Wczytaj projekt…', self.choose_project, top, 'Przywróć zapisaną analizę wraz z ustawieniami, integracjami i kalibracją całek. Projekt odwołuje się do pliku JDF.')
-        self.button('Zapisz projekt', self.save_project, top, 'Zapisz ustawienia analizy, integracje i kalibrację całek w pliku projektu JSON.')
-        self.info_button = self.button('Info', self.show_info, top, 'Pokaż parametry eksperymentu zapisane w JDF i aktualne ustawienia widma.')
+        self.open_button = self.button(tr('Otwórz DOSY'), self.choose_file, top, tr('Otwórz pomiar DOSY z pliku JEOL JDF.'))
+        self.button(tr('Wczytaj projekt…'), self.choose_project, top, tr('Przywróć zapisaną analizę wraz z ustawieniami, integracjami i kalibracją całek. Projekt odwołuje się do pliku JDF.'))
+        self.button(tr('Zapisz projekt'), self.save_project, top, tr('Zapisz ustawienia analizy, integracje i kalibrację całek w pliku projektu JSON.'))
+        self.info_button = self.button('Info', self.show_info, top, tr('Pokaż parametry eksperymentu zapisane w JDF i aktualne ustawienia widma.'))
+        self.language_button=QtWidgets.QPushButton('PL / ENG')
+        self.language_button.setToolTip(tr('Przełącz język interfejsu między polskim i angielskim.'))
+        self.language_button.setCheckable(True)
+        self.language_button.setChecked(self.language=='en')
+        self.language_button.toggled.connect(self.switch_language)
+        top.addWidget(self.language_button)
         top.addStretch()
-        self.button('Lista b', self.edit_b, top, 'Sprawdź lub zmień wartości b przypisane warstwom gradientowym.')
-        self.button('Statystyka D', self.show_statistics, top, 'Porównaj współczynniki dyfuzji w obrębie grup związków.')
-        self.export_button = self.button('Eksport Statystyki D', self.choose_export, top, 'Zapisz pakiet wyników, statystyki, tabele i wykresy.')
+        self.button(tr('Lista b'), self.edit_b, top, tr('Sprawdź lub zmień wartości b przypisane warstwom gradientowym.'))
+        self.button(tr('Statystyka D'), self.show_statistics, top, tr('Porównaj współczynniki dyfuzji w obrębie grup związków.'))
+        self.export_button = self.button(tr('Eksport Statystyki D'), self.choose_export, top, tr('Zapisz pakiet wyników, statystyki, tabele i wykresy.'))
         self.export_button.setEnabled(False)
         row=QtWidgets.QHBoxLayout();layout.addLayout(row)
-        row.addWidget(QtWidgets.QLabel('Warstwa:'));self.layer=QtWidgets.QComboBox();row.addWidget(self.layer,1)
-        self.layer.setToolTip('Wybierz warstwę gradientową wyświetlaną na widmie i w kolumnie Całka.')
+        row.addWidget(QtWidgets.QLabel(tr('Warstwa:')));self.layer=QtWidgets.QComboBox();row.addWidget(self.layer,1)
+        self.layer.setToolTip(tr('Wybierz warstwę gradientową wyświetlaną na widmie i w kolumnie Całka.'))
         self.layer.currentIndexChanged.connect(self.refresh_displayed_layer)
-        self.button('Pokaż referencję',lambda:self.layer.setCurrentIndex(int(self.processing.options()['reference_layer'])),row,
-                    'Pokaż warstwę referencyjną ustawioną w panelu Processing.')
-        self.overlay=QtWidgets.QCheckBox('Nałóż warstwy:');row.addWidget(self.overlay);self.overlay.toggled.connect(self.refresh_displayed_layer)
-        self.overlay.setToolTip('Porównaj kilka warstw na jednym widmie.')
+        self.button(tr('Pokaż referencję'),lambda:self.layer.setCurrentIndex(int(self.processing.options()['reference_layer'])),row,
+                    tr('Pokaż warstwę referencyjną ustawioną w panelu Processing.'))
+        self.overlay=QtWidgets.QCheckBox(tr('Nałóż warstwy:'));row.addWidget(self.overlay);self.overlay.toggled.connect(self.refresh_displayed_layer)
+        self.overlay.setToolTip(tr('Porównaj kilka warstw na jednym widmie.'))
         self.overlay_layers=QtWidgets.QLineEdit('1,8,16');self.overlay_layers.setMaximumWidth(110);row.addWidget(self.overlay_layers)
-        self.overlay_layers.setToolTip('Wpisz numery warstw oddzielone przecinkami. Pierwsza warstwa wyznacza całki pokazane przy widmie.')
+        self.overlay_layers.setToolTip(tr('Wpisz numery warstw oddzielone przecinkami. Pierwsza warstwa wyznacza całki pokazane przy widmie.'))
         self.overlay_layers.editingFinished.connect(self.refresh_displayed_layer)
-        self.imaginary=QtWidgets.QCheckBox('Pokaż Im');row.addWidget(self.imaginary);self.imaginary.toggled.connect(self.render_spectrum)
-        self.imaginary.setToolTip('Pokaż część urojoną widma obok części rzeczywistej.')
+        self.imaginary=QtWidgets.QCheckBox(tr('Pokaż Im'));row.addWidget(self.imaginary);self.imaginary.toggled.connect(self.render_spectrum)
+        self.imaginary.setToolTip(tr('Pokaż część urojoną widma obok części rzeczywistej.'))
         self.coordinate=QtWidgets.QLabel('ppm —');row.addWidget(self.coordinate)
         spectrum_tools = QtWidgets.QHBoxLayout()
         layout.addLayout(spectrum_tools)
         self.mode_buttons = {}
-        self.roi_button = self.tool_button('roi','Integracja myszą',spectrum_tools,
-                                           'Przeciągnij po widmie, aby zaznaczyć granice nowej całki.')
-        self.button('Dodaj całkę ręcznie', self.add_numeric_roi, spectrum_tools, 'Wpisz dolną i górną granicę całkowania w ppm.')
-        self.button('Usuń całkę', self.delete_roi, spectrum_tools, 'Usuń całkę wybraną w tabeli.')
+        self.roi_button = self.tool_button('roi',tr('Integracja myszą'),spectrum_tools,
+                                           tr('Przeciągnij po widmie, aby zaznaczyć granice nowej całki.'))
+        self.button(tr('Dodaj całkę ręcznie'), self.add_numeric_roi, spectrum_tools, tr('Wpisz dolną i górną granicę całkowania w ppm.'))
+        self.button(tr('Usuń całkę'), self.delete_roi, spectrum_tools, tr('Usuń całkę wybraną w tabeli.'))
         for key,label,hint in (
-            ('modify','Modyfikuj całkę','Przeciągnij środek obszaru, aby go przesunąć, lub krawędź, aby zmienić granicę.'),
-            ('split','Podziel całkę','Przeciągnij jedną z krawędzi do środka obszaru i puść w miejscu podziału.'),
-            ('zoom','Zoom','Przeciągnij, aby powiększyć zakres ppm.'),
-            ('pan','Przesuwaj','Przeciągnij, aby przesunąć widok widma.'),
-            ('pivot','Ustaw pivot','Kliknij widmo, aby ustawić punkt obrotu korekcji fazy.'),
-            ('baseline','Zaznacz bazę','Zaznacz fragmenty bez pików, z których program wyznaczy linię bazową. Żółta linia to podgląd.'),
+            ('modify',tr('Modyfikuj całkę'),tr('Przeciągnij środek obszaru, aby go przesunąć, lub krawędź, aby zmienić granicę.')),
+            ('split',tr('Podziel całkę'),tr('Przeciągnij jedną z krawędzi do środka obszaru i puść w miejscu podziału.')),
+            ('zoom','Zoom',tr('Przeciągnij, aby powiększyć zakres ppm.')),
+            ('pan',tr('Przesuwaj'),tr('Przeciągnij, aby przesunąć widok widma.')),
+            ('pivot',tr('Ustaw pivot'),tr('Kliknij widmo, aby ustawić punkt obrotu korekcji fazy.')),
+            ('baseline',tr('Zaznacz bazę'),tr('Zaznacz fragmenty bez pików, z których program wyznaczy linię bazową. Żółta linia to podgląd.')),
         ):
             self.tool_button(key,label,spectrum_tools,hint)
-        self.clear_baseline_button = self.button('Wyczyść bazę',self.clear_baseline,spectrum_tools,
-                                                 'Usuń wszystkie niebieskie obszary bazy i wyłącz jej odejmowanie.')
+        self.clear_baseline_button = self.button(tr('Wyczyść bazę'),self.clear_baseline,spectrum_tools,
+                                                 tr('Usuń wszystkie niebieskie obszary bazy i wyłącz jej odejmowanie.'))
         self.clear_baseline_button.setEnabled(False)
-        self.map_button = self.button('Mapa DOSY 2D', self.show_map, spectrum_tools,
-                                      'Pokaż mapę ppm × D z całek i aktualnych dopasowań.')
+        self.map_button = self.button(tr('Mapa DOSY 2D'), self.show_map, spectrum_tools,
+                                      tr('Pokaż mapę ppm × D z całek i aktualnych dopasowań.'))
         self.map_button.setEnabled(False)
         self.mode_buttons['zoom'].setChecked(True)
         spectrum_tools.addStretch()
         self.button('Processing', lambda:self.processing.setVisible(not self.processing.isVisible()), spectrum_tools,
-                    'Pokaż ustawienia przetwarzania widma i korekcji bazy.')
-        self.phase_button = self.button('Korekcja fazy', self.show_phase, spectrum_tools, 'Dostrój wspólną fazę wszystkich warstw za pomocą myszy.')
-        self.button('Widok', self.edit_spectrum_settings, spectrum_tools, 'Ustaw kolor i grubość linii widma oraz widoczność siatki.')
-        self.button('Cały zakres', lambda:self.spectrum.autoRange(), spectrum_tools, 'Przywróć cały zakres widma. Działa też dwuklik.')
-        self.fullscreen_button = self.button('Pełny ekran', lambda:self.spectrum.fullscreen_controller.open(), spectrum_tools,
-                                             'Otwórz widmo na pełnym ekranie. Esc wraca do głównego okna.')
-        self.save_spectrum_button = self.button('Zapisz PNG', self.choose_spectrum_png, spectrum_tools,
-                                                'Zapisz aktualny widok widma 1D w jasnej kolorystyce.')
+                    tr('Pokaż ustawienia przetwarzania widma i korekcji bazy.'))
+        self.phase_button = self.button(tr('Korekcja fazy'), self.show_phase, spectrum_tools, tr('Dostrój wspólną fazę wszystkich warstw za pomocą myszy.'))
+        self.button(tr('Widok'), self.edit_spectrum_settings, spectrum_tools, tr('Ustaw kolor i grubość linii widma oraz widoczność siatki.'))
+        self.button(tr('Cały zakres'), lambda:self.spectrum.autoRange(), spectrum_tools, tr('Przywróć cały zakres widma. Działa też dwuklik.'))
+        self.fullscreen_button = self.button(tr('Pełny ekran'), lambda:self.spectrum.fullscreen_controller.open(), spectrum_tools,
+                                             tr('Otwórz widmo na pełnym ekranie. Esc wraca do głównego okna.'))
+        self.save_spectrum_button = self.button(tr('Zapisz PNG'), self.choose_spectrum_png, spectrum_tools,
+                                                tr('Zapisz aktualny widok widma 1D w jasnej kolorystyce.'))
         self.save_spectrum_button.setEnabled(False)
         vertical=QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical);layout.addWidget(vertical,1)
         self.view=SpectrumBox();self.spectrum=pg.PlotWidget(viewBox=self.view);vertical.addWidget(self.spectrum)
         self.view.bind_selection_feedback(self.spectrum)
-        self.spectrum.setLabel('bottom','¹H — przesunięcie chemiczne',units='ppm');self.spectrum.setLabel('left','Re / Im',units='j.u.')
+        self.spectrum.setLabel('bottom',tr('¹H — przesunięcie chemiczne'),units='ppm');self.spectrum.setLabel('left','Re / Im',units=tr('j.u.'))
         self.spectrum.invertX(True)
         self.appearance.apply_grid(self.spectrum)
         self.view.selected.connect(self.range_selected);self.view.clicked.connect(self.pivot_clicked)
@@ -158,57 +169,60 @@ class Window(QtWidgets.QMainWindow):
         bottom=QtWidgets.QSplitter();vertical.addWidget(bottom)
         left=QtWidgets.QWidget();ll=QtWidgets.QVBoxLayout(left);bottom.addWidget(left)
         bar=QtWidgets.QHBoxLayout();ll.addLayout(bar)
-        self.button('Dopasuj / odśwież',self.request_calculation,bar,'Przelicz widma, całki i dopasowania D z bieżących ustawień.')
+        self.button(tr('Dopasuj / odśwież'),self.request_calculation,bar,tr('Przelicz widma, całki i dopasowania D z bieżących ustawień.'))
         self.roi_table=QtWidgets.QTableWidget(0,9)
-        self.roi_table.setHorizontalHeaderLabels(['ID','Grupa / związek','Od ppm','Do ppm','Całka','D / 10⁻¹⁰','SE(D) / 10⁻¹⁰','R²','QC'])
+        self.roi_table.setHorizontalHeaderLabels(['ID',tr('Grupa / związek'),tr('Od ppm'),tr('Do ppm'),tr('Całka'),'D / 10⁻¹⁰','SE(D) / 10⁻¹⁰','R²','QC'])
         self.roi_table.setItemDelegateForColumn(GROUP_COLUMN, GroupDelegate(self))
         self.roi_table.horizontalHeaderItem(6).setToolTip(
-            'Błąd standardowy oszacowania D z dopasowania zaniku, w 10⁻¹⁰ m²/s.')
+            tr('Błąd standardowy oszacowania D z dopasowania zaniku, w 10⁻¹⁰ m²/s.'))
         self.roi_table.horizontalHeaderItem(INTEGRAL_COLUMN).setToolTip(
-            'Całki pierwszej widocznej warstwy. Wpisz wartość odniesienia, aby proporcjonalnie przeskalować wszystkie całki.')
+            tr('Całki pierwszej widocznej warstwy. Wpisz wartość odniesienia, aby proporcjonalnie przeskalować wszystkie całki.'))
         self.roi_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.roi_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         self.roi_table.itemChanged.connect(self.roi_edited);self.roi_table.currentCellChanged.connect(self.roi_selected);ll.addWidget(self.roi_table)
-        self.fit_info=QtWidgets.QLabel('Zaznacz sygnał. Grupa jest potrzebna do statystyki zbiorczej.');self.fit_info.setWordWrap(True);ll.addWidget(self.fit_info)
+        self.fit_info=QtWidgets.QLabel(tr('Zaznacz sygnał. Grupa jest potrzebna do statystyki zbiorczej.'));self.fit_info.setWordWrap(True);ll.addWidget(self.fit_info)
         self.tabs=QtWidgets.QTabWidget();bottom.addWidget(self.tabs)
         decay_widget=QtWidgets.QWidget();dl=QtWidgets.QVBoxLayout(decay_widget)
         row=QtWidgets.QHBoxLayout();dl.addLayout(row)
-        self.all_decays=QtWidgets.QCheckBox('Wszystkie ROI');self.all_decays.setChecked(True);row.addWidget(self.all_decays)
-        self.all_decays.setToolTip('Pokaż krzywe zaniku wszystkich integracji. Po wyłączeniu widać tylko wybraną.')
-        self.normalized=QtWidgets.QCheckBox('Podgląd I / pierwsza całka');self.normalized.setChecked(True);row.addWidget(self.normalized)
-        self.normalized.setToolTip('Wyświetl każdy zanik w jednostkach jego pierwszej całki.')
+        self.all_decays=QtWidgets.QCheckBox(tr('Wszystkie ROI'));self.all_decays.setChecked(True);row.addWidget(self.all_decays)
+        self.all_decays.setToolTip(tr('Pokaż krzywe zaniku wszystkich integracji. Po wyłączeniu widać tylko wybraną.'))
+        self.normalized=QtWidgets.QCheckBox(tr('Podgląd I / pierwsza całka'));self.normalized.setChecked(True);row.addWidget(self.normalized)
+        self.normalized.setToolTip(tr('Wyświetl każdy zanik w jednostkach jego pierwszej całki.'))
         self.all_decays.toggled.connect(self.render_diagnostics);self.normalized.toggled.connect(self.render_diagnostics)
         row.addStretch()
-        self.button('Pełny ekran zaników', lambda:self.decay.fullscreen_controller.open(), row, 'Otwórz wykres zaników na pełnym ekranie.')
-        self.button('Pełny ekran reszt', lambda:self.residual.fullscreen_controller.open(), row, 'Otwórz wykres reszt na pełnym ekranie.')
-        self.decay=pg.PlotWidget();self.decay.addLegend();self.decay.showGrid(x=True,y=True,alpha=.2);dl.addWidget(self.decay,3)
-        self.residual=pg.PlotWidget();self.residual.showGrid(x=True,y=True,alpha=.2);self.residual.setXLink(self.decay);dl.addWidget(self.residual,1)
+        self.button(tr('Pełny ekran zaników'), lambda:self.decay.fullscreen_controller.open(), row, tr('Otwórz wykres zaników na pełnym ekranie.'))
+        self.decay=pg.PlotWidget();self.decay.addLegend();self.decay.showGrid(x=True,y=True,alpha=.2);dl.addWidget(self.decay,1)
+        residual_widget=QtWidgets.QWidget();rl=QtWidgets.QVBoxLayout(residual_widget)
+        row=QtWidgets.QHBoxLayout();rl.addLayout(row);row.addStretch()
+        self.button(tr('Pełny ekran reszt'), lambda:self.residual.fullscreen_controller.open(), row, tr('Otwórz wykres reszt na pełnym ekranie.'))
+        self.residual=pg.PlotWidget();self.residual.showGrid(x=True,y=True,alpha=.2);rl.addWidget(self.residual,1)
         for plot in (self.decay,self.residual):
             view = plot.getViewBox()
             view.setMouseMode(pg.ViewBox.RectMode)
-            view.mouse_help = 'Przeciągnij prostokąt, aby powiększyć obszar. Dwuklik przywraca cały zakres.'
+            view.mouse_help = tr('Przeciągnij prostokąt, aby powiększyć obszar. Dwuklik przywraca cały zakres.')
         self.decay.setLabel('bottom','b / 10⁹ [s/m²]');self.residual.setLabel('bottom','b / 10⁹ [s/m²]')
-        self.tabs.addTab(decay_widget,'Zaniki i reszty')
+        self.tabs.addTab(decay_widget,tr('Zaniki'))
+        self.tabs.addTab(residual_widget,tr('Reszty'))
         points=QtWidgets.QWidget();pl=QtWidgets.QVBoxLayout(points)
-        self.weighted=QtWidgets.QCheckBox('Fit ważony: użyj podanych σ(I) aktywnych punktów');pl.addWidget(self.weighted)
-        self.weighted.setToolTip('Użyj niepewności całek wpisanych w tabeli przy dopasowaniu D.')
+        self.weighted=QtWidgets.QCheckBox(tr('Fit ważony: użyj podanych σ(I) aktywnych punktów'));pl.addWidget(self.weighted)
+        self.weighted.setToolTip(tr('Użyj niepewności całek wpisanych w tabeli przy dopasowaniu D.'))
         self.weighted.toggled.connect(self.weighting_changed)
         self.point_table=QtWidgets.QTableWidget(0,8)
-        self.point_table.setHorizontalHeaderLabels(['Fit','Warstwa','g [T/m]','b [s/m²]','Całka','Przewidywanie','Reszta','σ(I) użytkownika'])
+        self.point_table.setHorizontalHeaderLabels(['Fit',tr('Warstwa'),'g [T/m]','b [s/m²]',tr('Całka'),tr('Przewidywanie'),tr('Reszta'),tr('σ(I) użytkownika')])
         self.point_table.itemChanged.connect(self.point_changed);self.point_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
-        pl.addWidget(self.point_table);self.tabs.addTab(points,'Całki / punkty fitu')
+        pl.addWidget(self.point_table);self.tabs.addTab(points,tr('Całki / punkty fitu'))
         self.roi_overlay=pg.PlotWidget();self.roi_overlay.setLabel('bottom','¹H [ppm]');self.roi_overlay.invertX(True)
         self.appearance.apply_grid(self.roi_overlay)
-        self.tabs.addTab(self.roi_overlay,'Widma w aktywnym ROI')
+        self.tabs.addTab(self.roi_overlay,tr('Widma w aktywnym ROI'))
         vertical.setSizes([560,330]);bottom.setSizes([680,750])
         self.processing=ProcessingPanel(self);self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,self.processing)
         self.processing.changed.connect(self.request_calculation);self.processing.mode_requested.connect(self.set_mode)
-        self.statusBar().showMessage('Przeciągnięcie powiększa zakres. Rolka zmienia wysokość widma. Dwuklik przywraca cały zakres.')
+        self.statusBar().showMessage(tr('Przeciągnięcie powiększa zakres. Rolka zmienia wysokość widma. Dwuklik przywraca cały zakres.'))
         context = lambda:html.escape(self.dataset.name) if self.dataset else ''
-        enable_fullscreen(self.spectrum,'Widmo 1D',context,reset_view=self.spectrum.autoRange)
-        for plot,title in [(self.decay,'Zaniki ROI'),(self.residual,'Reszty')]:
-            enable_fullscreen(plot,title,context,reset_view=self.reset_decay_views)
-        enable_fullscreen(self.roi_overlay,'Nakładanie widm w ROI',context)
+        enable_fullscreen(self.spectrum,tr('Widmo 1D'),context,reset_view=self.spectrum.autoRange)
+        for plot,title in [(self.decay,tr('Zaniki ROI')),(self.residual,tr('Reszty'))]:
+            enable_fullscreen(plot,title,context,reset_view=lambda plot=plot:plot.autoRange(padding=.05))
+        enable_fullscreen(self.roi_overlay,tr('Nakładanie widm w ROI'),context)
 
     @staticmethod
     def button(text,fn,layout,tooltip):
@@ -226,10 +240,10 @@ class Window(QtWidgets.QMainWindow):
 
     def choose_file(self):
         try:
-            path,_=QtWidgets.QFileDialog.getOpenFileName(self,'Otwórz klasyczny JEOL DOSY',dialog_directory(DATA),'JEOL (*.jdf)')
+            path,_=QtWidgets.QFileDialog.getOpenFileName(self,tr('Otwórz klasyczny JEOL DOSY'),dialog_directory(DATA),'JEOL (*.jdf)')
             if path:self.open_path(path)
         except OSError as exc:
-            QtWidgets.QMessageBox.warning(self,'Otwórz DOSY',str(exc))
+            QtWidgets.QMessageBox.warning(self,tr('Otwórz DOSY'),str(exc))
 
     def open_path(self,path,project=False):
         if self.worker is not None:return
@@ -245,7 +259,7 @@ class Window(QtWidgets.QMainWindow):
     def start_job(self,fn,callback):
         self.valid=False;self.export_button.setEnabled(False);self.open_button.setEnabled(False)
         self.invalidate_map()
-        self.statusBar().showMessage('Obliczanie w tle. Widok odświeży się po zakończeniu.')
+        self.statusBar().showMessage(tr('Obliczanie w tle. Widok odświeży się po zakończeniu.'))
         self.job_callback=callback;self.worker=Job(fn,self)
         self.worker.completed.connect(self.job_success);self.worker.failed.connect(self.job_error);self.worker.finished.connect(self.job_finished)
         self.worker.start()
@@ -253,7 +267,7 @@ class Window(QtWidgets.QMainWindow):
     @QtCore.Slot(object)
     def job_success(self,value):self.job_callback(value)
     @QtCore.Slot(str)
-    def job_error(self,error):self.statusBar().showMessage('Nie zastosowano zmian. '+error)
+    def job_error(self,error):self.statusBar().showMessage(tr('Nie zastosowano zmian. ')+tr(error))
     @QtCore.Slot()
     def job_finished(self):
         old=self.worker;self.worker=None;old.deleteLater();self.open_button.setEnabled(True)
@@ -316,9 +330,9 @@ class Window(QtWidgets.QMainWindow):
         if self.statistics_window is not None:self.statistics_window.update_live(self.snapshot())
         if self.map_window is not None and self.map_window.isVisible():
             self.map_window.update_data(self.experiment_id,self.dataset,self.results)
-        self.statusBar().showMessage('; '.join(self.dataset.diagnostics['warnings']) or 'Gotowe. Zmiana wyboru widma lub ROI nie zmienia danych pomiarowych.')
+        self.statusBar().showMessage('; '.join(map(tr,self.dataset.diagnostics['warnings'])) or tr('Gotowe. Zmiana wyboru widma lub ROI nie zmienia danych pomiarowych.'))
         if meta.get('digital_filter') and not delay and abs(self.dataset.options['phase1_deg'])<1:
-            self.statusBar().showMessage('Brak zastosowanej korekcji opóźnienia filtra. Sprawdź fazę; falowanie może pochodzić z filtra cyfrowego.')
+            self.statusBar().showMessage(tr('Brak zastosowanej korekcji opóźnienia filtra. Sprawdź fazę; falowanie może pochodzić z filtra cyfrowego.'))
 
     def selected_layers(self):
         if self.raw is None:return []
@@ -327,7 +341,7 @@ class Window(QtWidgets.QMainWindow):
                 values=[int(x.strip())-1 for x in self.overlay_layers.text().split(',')]
                 if not values or any(i<0 or i>=len(self.raw.fid) for i in values):raise ValueError()
                 return list(dict.fromkeys(values))
-        except ValueError:self.statusBar().showMessage('Podaj numery istniejących warstw rozdzielone przecinkami.')
+        except ValueError:self.statusBar().showMessage(tr('Podaj numery istniejących warstw rozdzielone przecinkami.'))
         return [max(0,self.layer.currentIndex())]
 
     def render_spectrum(self,*args):
@@ -385,7 +399,9 @@ class Window(QtWidgets.QMainWindow):
         if value is None:
             return '—'
         scaled = value * self.integral_scale
-        return f'{scaled:.2f}'.replace('.', ',') if np.isfinite(scaled) else '—'
+        if not np.isfinite(scaled):return '—'
+        text=f'{scaled:.2f}'
+        return text if self.language=='en' else text.replace('.', ',')
 
     def position_integral_labels(self, *args):
         low, high = self.view.viewRange()[1]
@@ -426,7 +442,6 @@ class Window(QtWidgets.QMainWindow):
     def reset_decay_views(self):
         self.decay.autoRange(padding=.05)
         self.residual.autoRange(padding=.05)
-        self.residual.getViewBox().linkedXChanged()
 
     def set_mode(self,key):
         for mode,button in self.mode_buttons.items():
@@ -452,13 +467,13 @@ class Window(QtWidgets.QMainWindow):
         else:self.add_roi([a,b])
     def add_numeric_roi(self):
         if self.dataset is None:return
-        text,ok=QtWidgets.QInputDialog.getText(self,'Dodaj całkę ręcznie','Wpisz dwie granice całkowania w ppm, rozdzielone średnikiem.')
+        text,ok=QtWidgets.QInputDialog.getText(self,tr('Dodaj całkę ręcznie'),tr('Wpisz dwie granice całkowania w ppm, rozdzielone średnikiem.'))
         if ok:
             try:self.add_roi([float(v.strip().replace(',', '.')) for v in text.split(';')])
             except ValueError as e:self.statusBar().showMessage(str(e),5000)
 
     def new_roi(self,bounds,name=None,group=''):
-        if len(bounds)!=2 or not np.isfinite(bounds).all() or min(bounds)>=max(bounds):raise ValueError('Nieprawidłowe granice ROI.')
+        if len(bounds)!=2 or not np.isfinite(bounds).all() or min(bounds)>=max(bounds):raise ValueError(tr('Nieprawidłowe granice ROI.'))
         sid=f'S{self.next_id}';self.next_id+=1
         return dict(id=sid,name=name or sid,group=group,bounds=sorted(bounds),color=COLORS[(self.next_id-2)%len(COLORS)],
                     fit_mask=[True]*len(self.raw.fid),sigma=[None]*len(self.raw.fid),weighted=False)
@@ -482,7 +497,7 @@ class Window(QtWidgets.QMainWindow):
         for lo,hi in ranges:
             points = np.searchsorted(ppm,hi,side='right')-np.searchsorted(ppm,lo)
             if points<2:
-                self.statusBar().showMessage('Każda część całki musi obejmować co najmniej dwa punkty widma.',5000)
+                self.statusBar().showMessage(tr('Każda część całki musi obejmować co najmniej dwa punkty widma.'),5000)
                 return
         children = [self.new_roi(bounds,f"{entry['name']} ({part})",entry['group'])
                     for part,bounds in enumerate(ranges,1)]
@@ -504,7 +519,7 @@ class Window(QtWidgets.QMainWindow):
             with QtCore.QSignalBlocker(region):
                 region.setRegion(e['bounds'])
             self.position_integral_labels()
-            self.statusBar().showMessage('Granice całki muszą obejmować co najmniej dwa punkty i mieścić się w widmie.',5000)
+            self.statusBar().showMessage(tr('Granice całki muszą obejmować co najmniej dwa punkty i mieścić się w widmie.'),5000)
             return
         if e['bounds']==[lo,hi]:
             return
@@ -527,16 +542,16 @@ class Window(QtWidgets.QMainWindow):
                     f"{fit['D_m2_s']/1e-10:.5f}" if fit.get('ok') else '—',
                     f"{fit['D_standard_error_m2_s']/1e-10:.5f}" if fit.get('D_standard_error_m2_s') is not None else '—',
                     f"{fit['R2']:.6f}" if fit.get('R2') is not None else '—',
-                    ('UWAGA' if fit.get('warnings') else 'OK') if fit.get('ok') else 'BRAK FITU']
+                    (tr('UWAGA') if fit.get('warnings') else 'OK') if fit.get('ok') else tr('BRAK FITU')]
             for j,value in enumerate(values):
                 item=QtWidgets.QTableWidgetItem(value)
                 editable = j in (GROUP_COLUMN,LOWER_PPM_COLUMN,UPPER_PPM_COLUMN) or (j==INTEGRAL_COLUMN and integral is not None)
                 if not editable:item.setFlags(item.flags()&~QtCore.Qt.ItemFlag.ItemIsEditable)
                 if j==0 and e['name']!=e['id']:item.setToolTip(e['name'])
                 if j==GROUP_COLUMN:
-                    item.setToolTip('Dwuklik otwiera edycję. Wpisz nową grupę lub wybierz istniejącą z listy.')
+                    item.setToolTip(tr('Dwuklik otwiera edycję. Wpisz nową grupę lub wybierz istniejącą z listy.'))
                 if j==INTEGRAL_COLUMN:
-                    item.setToolTip('Wpisz wartość odniesienia. Wszystkie całki przy widmie i w tej kolumnie zmienią się w tej samej proporcji.')
+                    item.setToolTip(tr('Wpisz wartość odniesienia. Wszystkie całki przy widmie i w tej kolumnie zmienią się w tej samej proporcji.'))
                 self.roi_table.setItem(i,j,item)
             if e['id']==self.active_id:self.roi_table.setCurrentCell(i,0)
         self._updating=False
@@ -546,13 +561,13 @@ class Window(QtWidgets.QMainWindow):
         try:
             if item.column()==INTEGRAL_COLUMN:
                 if not self.valid or self.worker is not None:
-                    raise ValueError('Poczekaj na aktualne całki przed kalibracją.')
+                    raise ValueError(tr('Poczekaj na aktualne całki przed kalibracją.'))
                 result=next((r for r in self.results if r['id']==e['id']),None)
                 source=self.integral_value(e,result)
                 target=float(item.text().strip().replace(',','.'))
                 scale=target/source if source else 0.
                 if not np.isfinite(scale) or scale<=0:
-                    raise ValueError('Wpisz skończoną, niezerową wartość o znaku zmierzonej całki.')
+                    raise ValueError(tr('Wpisz skończoną, niezerową wartość o znaku zmierzonej całki.'))
                 self.integral_scale=scale
                 self.render_roi_table()
                 self.update_integral_labels()
@@ -571,14 +586,14 @@ class Window(QtWidgets.QMainWindow):
         self.decay.clear();self.residual.clear();self.render_roi_overlay();self._updating=True;self.point_table.setRowCount(0)
         d=self.dataset
         if d is None:self._updating=False;return
-        normalized=self.normalized.isChecked();self.decay.setLabel('left','I / pierwsza całka' if normalized else 'Całka [j.u.·ppm]')
-        self.residual.setLabel('left','Reszta / Iref' if normalized else 'Reszta')
+        normalized=self.normalized.isChecked();self.decay.setLabel('left',tr('I / pierwsza całka') if normalized else tr('Całka [j.u.·ppm]'))
+        self.residual.setLabel('left',tr('Reszta / Iref') if normalized else tr('Reszta'))
         if d.b is not None:
             x=d.b/1e9;x_label='b / 10⁹ [s/m²]'
         elif np.isfinite(d.gradients).all():
-            x=d.gradients;x_label='g [T/m] · brak zweryfikowanego b'
+            x=d.gradients;x_label=tr('g [T/m] · brak zweryfikowanego b')
         else:
-            x=np.arange(1,len(d.raw.fid)+1);x_label='Warstwa akwizycji · brak zweryfikowanego b'
+            x=np.arange(1,len(d.raw.fid)+1);x_label=tr('Warstwa akwizycji · brak zweryfikowanego b')
         for plot in (self.decay,self.residual):plot.setLabel('bottom',x_label)
         self.residual.addItem(pg.InfiniteLine(0,angle=0,pen=pg.mkPen('#64748b')))
         for entry in self.results:
@@ -611,15 +626,15 @@ class Window(QtWidgets.QMainWindow):
                     factor=y[0] if normalized and y[0]!=0 else 1
                     for state,sym in ((True,'o'),(False,'x')):
                         mask=np.asarray(e['fit_mask'])==state;self.residual.plot(d.b[mask]/1e9,np.asarray(res)[mask]/factor,pen=None,symbol=sym,symbolBrush=e['color'],symbolSize=6)
-            info=f"{e['id']} · {e['name']} · grupa: {e['group'] or 'nieprzypisana'}\n"
+            info=tr(f"{e['id']} · {e['name']} · grupa: {e['group'] or tr('nieprzypisana')}\n")
             if fit.get('ok'):
-                previous=active.get('previous_D');change=f' · poprzednio {previous/1e-10:.4f}' if previous is not None and previous!=fit['D_m2_s'] else ''
+                previous=active.get('previous_D');change=tr(f' · poprzednio {previous/1e-10:.4f}') if previous is not None and previous!=fit['D_m2_s'] else ''
                 info+=f"D={fit['D_m2_s']/1e-10:.5f} ×10⁻¹⁰ m²/s{change}\nSE={number(fit.get('D_standard_error_m2_s'))} m²/s · CI95={fit.get('D_CI95_m2_s')} · R²={fit.get('R2')}\n"
-                info+=' '.join(fit.get('warnings',[]))
+                info+=' '.join(map(tr,fit.get('warnings',[])))
             else:
-                info+=fit.get('message','Brak poprawnego fitu.')
+                info+=tr(fit.get('message','Brak poprawnego fitu.'))
                 if d.b is None:
-                    info+='\n'+d.metadata['b_source']['description']
+                    info+='\n'+tr(d.metadata['b_source']['description'])
             self.fit_info.setText(info)
         self._updating=False
 
@@ -640,8 +655,8 @@ class Window(QtWidgets.QMainWindow):
         e=next((e for e in self.results if e['id']==sid),None)
         if e is None:return ''
         f=e.get('fit') or {};y=e.get('result',{}).get('corrected_integral',[])
-        b=number(self.raw.b[index])+' s/m²' if self.raw.b is not None else 'brak'
-        return f"{sid}, warstwa {index+1}\ng={number(self.raw.gradients[index])} T/m · b={b}\nI={y[index]:.6g} · przewidywanie={number(f.get('prediction',[None]*len(y))[index])}\nreszta={number(f.get('residuals',[None]*len(y))[index])}"
+        b=number(self.raw.b[index])+' s/m²' if self.raw.b is not None else tr('brak')
+        return tr(f"{sid}, warstwa {index+1}\ng={number(self.raw.gradients[index])} T/m · b={b}\nI={y[index]:.6g} · przewidywanie={number(f.get('prediction',[None]*len(y))[index])}\nreszta={number(f.get('residuals',[None]*len(y))[index])}")
     def decay_point_clicked(self,item,points,event):
         if not points:return
         sid,index=points[0].data();self.active_id=sid;self.render_roi_table();self.render_diagnostics();self.point_table.setCurrentCell(index,0);self.statusBar().showMessage(self.point_tooltip(sid,index))
@@ -652,7 +667,7 @@ class Window(QtWidgets.QMainWindow):
             if item.column()==0:e['fit_mask'][i]=item.checkState()==QtCore.Qt.CheckState.Checked
             elif item.column()==7:e['sigma'][i]=float(item.text()) if item.text().strip() else None
             self.request_calculation()
-        except ValueError:self.statusBar().showMessage('σ(I) musi być liczbą dodatnią albo pustym polem.',5000)
+        except ValueError:self.statusBar().showMessage(tr('σ(I) musi być liczbą dodatnią albo pustym polem.'),5000)
     def weighting_changed(self,checked):
         if self._updating or self.active is None:return
         self.active['weighted']=checked;self.request_calculation()
@@ -670,6 +685,16 @@ class Window(QtWidgets.QMainWindow):
         self.info_window.set_dataset(self.dataset,self.integral_scale)
         self.info_window.show()
         self.info_window.raise_()
+
+    def switch_language(self, english):
+        self.language='en' if english else 'pl'
+        set_language(self.language)
+        self.settings.setValue('language',self.language)
+        retranslate(self,self.language)
+        self.render_roi_table()
+        self.update_integral_labels()
+        if self.info_window is not None:
+            self.info_window.set_dataset(self.dataset,self.integral_scale)
     def show_statistics(self):
         if self.dataset is None:return
         if self.statistics_window is None:self.statistics_window=StatisticsWindow(self)
@@ -694,7 +719,7 @@ class Window(QtWidgets.QMainWindow):
     def show_phase(self):
         if self.dataset is None:return
         if not self.valid or self.worker is not None:
-            self.statusBar().showMessage('Poczekaj na zakończenie aktualnego processingu.');return
+            self.statusBar().showMessage(tr('Poczekaj na zakończenie aktualnego processingu.'));return
         if self.phase_window is not None:self.phase_window.raise_();return
         self.phase_window=PhaseWindow(self.dataset,self,self.appearance)
         self.phase_window.applied.connect(self.apply_phase)
@@ -709,32 +734,32 @@ class Window(QtWidgets.QMainWindow):
     def save_project(self):
         if self.dataset is None or not self.valid:return
         try:
-            path=choose_save_file(self,'Zapisz projekt',PROJECTS,'DOSY.proj',PROJECT_FILTER)
+            path=choose_save_file(self,tr('Zapisz projekt'),PROJECTS,'DOSY.proj',tr(PROJECT_FILTER))
             if path:save_project(path,self.dataset,self.entries,integral_scale=self.integral_scale)
         except (OSError,ValueError) as exc:
-            QtWidgets.QMessageBox.warning(self,'Zapisz projekt',str(exc))
+            QtWidgets.QMessageBox.warning(self,tr('Zapisz projekt'),tr(str(exc)))
     def choose_project(self):
         try:
-            path,_=QtWidgets.QFileDialog.getOpenFileName(self,'Wczytaj projekt',dialog_directory(PROJECTS),PROJECT_FILTER)
+            path,_=QtWidgets.QFileDialog.getOpenFileName(self,tr('Wczytaj projekt'),dialog_directory(PROJECTS),tr(PROJECT_FILTER))
             if path:self.open_path(path,project=True)
         except OSError as exc:
-            QtWidgets.QMessageBox.warning(self,'Wczytaj projekt',str(exc))
+            QtWidgets.QMessageBox.warning(self,tr('Wczytaj projekt'),str(exc))
 
     def choose_spectrum_png(self):
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Zapisz widmo 1D', 'widmo_1D.png', 'PNG (*.png)')
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, tr('Zapisz widmo 1D'), 'widmo_1D.png', 'PNG (*.png)')
         if path:
             if not path.lower().endswith('.png'):
                 path += '.png'
             try:
                 save_light_plot(self.spectrum, path)
             except Exception as exc:
-                QtWidgets.QMessageBox.warning(self, 'Zapis widma 1D', str(exc))
+                QtWidgets.QMessageBox.warning(self, tr('Zapis widma 1D'), str(exc))
     def choose_export(self):
         if not self.valid:return
-        parent=QtWidgets.QFileDialog.getExistingDirectory(self,'Folder eksportu')
+        parent=QtWidgets.QFileDialog.getExistingDirectory(self,tr('Folder eksportu'))
         if parent:self.export_to(Path(parent)/datetime.now().strftime('DOSY_Lab_%Y%m%d_%H%M%S_%f'))
     def export_to(self,path):
-        if not self.valid or self.worker is not None:raise ValueError('Poczekaj na aktualne obliczenia.')
+        if not self.valid or self.worker is not None:raise ValueError(tr('Poczekaj na aktualne obliczenia.'))
         d=self.dataset;entries=deepcopy(self.results);choices={};revision=self.revision
         scale=self.integral_scale
         if self.statistics_window is not None:choices=self.statistics_window.choices.get(self.experiment_id,{})
@@ -743,7 +768,7 @@ class Window(QtWidgets.QMainWindow):
                 save = save_light_plot if plot is self.spectrum else self.export_plot
                 save(plot,Path(folder)/(name+'.png'));save(plot,Path(folder)/(name+'.svg'))
             self.valid=revision==self.revision;self.export_button.setEnabled(self.valid)
-            self.statusBar().showMessage('Zapisano eksport w '+str(folder))
+            self.statusBar().showMessage(tr('Zapisano eksport w ')+str(folder))
         self.start_job(lambda:export_bundle(path,d,entries,choices,integral_scale=scale),done)
     @staticmethod
     def export_plot(plot,path):
@@ -763,14 +788,14 @@ class Window(QtWidgets.QMainWindow):
 
 
 def main():
-    parser=argparse.ArgumentParser(description='DOSY Lab — klasyczne 1D DOSY JEOL')
-    parser.add_argument('path',nargs='?',type=Path,help='Plik pomiarowy .jdf lub projekt .proj')
+    parser=argparse.ArgumentParser(description=tr('DOSY Lab — klasyczne 1D DOSY JEOL'))
+    parser.add_argument('path',nargs='?',type=Path,help=tr('Plik pomiarowy .jdf lub projekt .proj'))
     args=parser.parse_args()
     suffix=args.path.suffix.lower() if args.path else None
     if suffix is not None and suffix not in ('.jdf','.proj'):
-        parser.error('Wybierz plik .jdf albo projekt .proj.')
+        parser.error(tr('Wybierz plik .jdf albo projekt .proj.'))
     app=QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
-    app.setApplicationName('DOSY Lab');app.setFont(QtGui.QFont('Segoe UI',10))
+    app.setApplicationName('DOSY Lab');app.setApplicationVersion(VERSION);app.setFont(QtGui.QFont('Segoe UI',10))
     pg.setConfigOptions(background='#101827',foreground='#dbe4ef',antialias=True)
     window=Window();window.showMaximized()
     if args.path:window.open_path(args.path,project=suffix=='.proj')

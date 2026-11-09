@@ -1,4 +1,6 @@
 """ROI-based DOSY projection from the reference spectrum and cached fits."""
+from i18n import tr
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -74,7 +76,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
 
     def __init__(self, parent):
         super().__init__(parent, QtCore.Qt.WindowType.Window)
-        self.setWindowTitle('DOSY Lab · Mapa DOSY 2D')
+        self.setWindowTitle(tr('DOSY Lab · Mapa DOSY 2D'))
         self.resize(1320, 880)
         self.setStyleSheet(parent.styleSheet())
         self.dataset = None
@@ -96,9 +98,9 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         layout.addLayout(toolbar)
         self.tools = QtWidgets.QButtonGroup(self)
         for index, (name, tip) in enumerate((
-            ('Zoom', 'Przeciągnij prostokąt na mapie lub zakres ppm nad widmem 1D.'),
-            ('Przesuwaj', 'Przeciągnij, aby przesunąć widok.'),
-            ('Punkt / prowadnice', 'Kliknij mapę, aby odczytać ppm i D w miejscu przecięcia prowadnic.'),
+            ('Zoom', tr('Przeciągnij prostokąt na mapie lub zakres ppm nad widmem 1D.')),
+            (tr('Przesuwaj'), tr('Przeciągnij, aby przesunąć widok.')),
+            (tr('Punkt / prowadnice'), tr('Kliknij mapę, aby odczytać ppm i D w miejscu przecięcia prowadnic.')),
         )):
             button = QtWidgets.QPushButton(name)
             button.setToolTip(tip)
@@ -107,40 +109,40 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             toolbar.addWidget(button)
         self.tools.button(0).setChecked(True)
         self.tools.idClicked.connect(self.set_tool)
-        reset = QtWidgets.QPushButton('Cały zakres')
+        reset = QtWidgets.QPushButton(tr('Cały zakres'))
         reset.clicked.connect(self.reset_view)
         toolbar.addWidget(reset)
         toolbar.addStretch()
-        toolbar.addWidget(QtWidgets.QLabel('Wzmocnienie 2D'))
+        toolbar.addWidget(QtWidgets.QLabel(tr('Wzmocnienie 2D')))
         self.gain = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
         self.gain.setRange(0, 40)
         self.gain.setFixedWidth(100)
-        self.gain.setToolTip('Wzmocnij jasność mapy od 1× do 100×. Próg podłogi pozostaje niezależny.')
+        self.gain.setToolTip(tr('Wzmocnij jasność mapy od 1× do 100×. Próg podłogi pozostaje niezależny.'))
         self.gain.valueChanged.connect(self.update_intensity)
         toolbar.addWidget(self.gain)
         self.gain_label = QtWidgets.QLabel('1×')
         self.gain_label.setMinimumWidth(39)
         toolbar.addWidget(self.gain_label)
-        self.floor = self.spin_box(toolbar, 'Podłoga', 0, 99, 0,
-                                  'Próg w % najsilniejszej dodatniej intensywności przed wzmocnieniem. Rolka zmienia próg.')
+        self.floor = self.spin_box(toolbar, tr('Podłoga'), 0, 99, 0,
+                                  tr('Próg w % najsilniejszej dodatniej intensywności przed wzmocnieniem. Rolka zmienia próg.'))
         self.floor.valueChanged.connect(self.update_intensity)
-        self.width = self.spin_box(toolbar, 'Szerokość pasma D', .2, 15, 3,
-                                  'Szerokość FWHM w % maksymalnego D widocznych ROI. Ustawienie graficzne.')
+        self.width = self.spin_box(toolbar, tr('Szerokość pasma D'), .2, 15, 3,
+                                  tr('Szerokość FWHM w % maksymalnego D widocznych ROI. Ustawienie graficzne.'))
         self.width.valueChanged.connect(self.render_map)
         view_button = QtWidgets.QToolButton()
-        view_button.setText('Widok')
+        view_button.setText(tr('Widok'))
         view_button.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)
         appearance_menu = QtWidgets.QMenu(view_button)
-        self.map_color_action = appearance_menu.addAction('Kolor mapy 2D…')
-        self.trace_color_action = appearance_menu.addAction('Kolor widma 1D…')
+        self.map_color_action = appearance_menu.addAction(tr('Kolor mapy 2D…'))
+        self.trace_color_action = appearance_menu.addAction(tr('Kolor widma 1D…'))
         view_button.setMenu(appearance_menu)
         toolbar.addWidget(view_button)
-        self.grid_button = QtWidgets.QPushButton('Siatka')
+        self.grid_button = QtWidgets.QPushButton(tr('Siatka'))
         self.grid_button.setCheckable(True)
         self.grid_button.setChecked(self.settings.value('dosy_map/grid', True, type=bool))
-        self.grid_button.setToolTip('Pokaż lub ukryj siatkę na mapie i widmie 1D.')
+        self.grid_button.setToolTip(tr('Pokaż lub ukryj siatkę na mapie i widmie 1D.'))
         toolbar.addWidget(self.grid_button)
-        self.save_button = QtWidgets.QPushButton('Zapisz widok PNG')
+        self.save_button = QtWidgets.QPushButton(tr('Zapisz widok PNG'))
         self.save_button.setEnabled(False)
         self.save_button.clicked.connect(self.choose_save)
         toolbar.addWidget(self.save_button)
@@ -161,7 +163,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.projection.setLabel('left', '1D · Re')
         self.projection.getAxis('bottom').setStyle(showValues=False)
         self.plot.setLabel('left', 'D / 10⁻¹⁰ [m²/s]')
-        self.plot.setLabel('bottom', '¹H — przesunięcie chemiczne', units='ppm')
+        self.plot.setLabel('bottom', tr('¹H — przesunięcie chemiczne'), units='ppm')
         self.plot.getAxis('bottom').enableAutoSIPrefix(False)
         for plot in (self.projection, self.plot):
             plot.invertX(True)
@@ -194,12 +196,12 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.update_map_color()
         self.rois = QtWidgets.QListWidget()
         self.rois.setMinimumWidth(195)
-        self.rois.setToolTip('Odznacz ROI, aby wyłączyć je tylko z mapy.')
+        self.rois.setToolTip(tr('Odznacz ROI, aby wyłączyć je tylko z mapy.'))
         self.rois.itemChanged.connect(self.roi_toggled)
         content.addWidget(self.rois)
         content.setSizes([1040, 250])
         content.setStretchFactor(0, 1)
-        self.coordinate = QtWidgets.QLabel('Włącz Punkt / prowadnice, aby odczytać współrzędne.')
+        self.coordinate = QtWidgets.QLabel(tr('Włącz Punkt / prowadnice, aby odczytać współrzędne.'))
         layout.addWidget(self.coordinate)
         self.note = QtWidgets.QLabel()
         self.note.setWordWrap(True)
@@ -265,7 +267,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             for guide in (self.projection_guide, self.ppm_guide, self.diffusion_guide):
                 guide.hide()
             self.d_label.hide()
-            self.coordinate.setText('Włącz Punkt / prowadnice, aby odczytać współrzędne.')
+            self.coordinate.setText(tr('Włącz Punkt / prowadnice, aby odczytać współrzędne.'))
         self.reference = dataset.spectrum[dataset.options['reference_layer']].real
         self.trace.setData(dataset.ppm, self.reference)
         with QtCore.QSignalBlocker(self.rois):
@@ -275,7 +277,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                 group = result.get('group')
                 diffusion = fitted_diffusion(result)
                 label = f'{sid} · {group}' if group else sid
-                detail = f'{diffusion:.3e} m²/s' if diffusion is not None else 'brak dodatniego D'
+                detail = f'{diffusion:.3e} m²/s' if diffusion is not None else tr('brak dodatniego D')
                 item = QtWidgets.QListWidgetItem(f'{label}\n{detail}')
                 item.setData(QtCore.Qt.ItemDataRole.UserRole, sid)
                 item.setToolTip('\n'.join((result.get('fit') or {}).get('warnings', [])))
@@ -293,7 +295,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
     def invalidate(self):
         self.stale = True
         self.save_button.setEnabled(False)
-        self.statusBar().showMessage('Mapa pokazuje ostatnie ukończone przeliczenie.')
+        self.statusBar().showMessage(tr('Mapa pokazuje ostatnie ukończone przeliczenie.'))
 
     def roi_toggled(self, item):
         sid = item.data(QtCore.Qt.ItemDataRole.UserRole)
@@ -317,7 +319,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.save_button.setEnabled(bool(bands) and not self.stale)
         if not bands:
             self.full_range = ((ppm[0], ppm[-1]), (0., 1.))
-            self.note.setText('Brak dodatnich sygnałów do wyświetlenia. Sprawdź dopasowania D, fazę i wybór ROI.')
+            self.note.setText(tr('Brak dodatnich sygnałów do wyświetlenia. Sprawdź dopasowania D, fazę i wybór ROI.'))
             return
         maximum = max(band.diffusion for band in bands) / self.D_SCALE
         fwhm = self.width.value() * maximum / 100
@@ -344,9 +346,9 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             (max(0., maximum - span - d_margin), maximum + d_margin),
         )
         self.note.setText(
-            f'Widmo 1D: warstwa {layer} (referencja). Mapa: kształt widma w ROI przy jego D. '
-            'Kolor pokazuje dodatnie intensywności. Szerokość w D jest ustawieniem graficznym.'
-            + (' Wspólne punkty nakładających się ROI są pominięte.' if overlaps else ''))
+            tr(f'Widmo 1D: warstwa {layer} (referencja). Mapa: kształt widma w ROI przy jego D. '
+            'Kolor pokazuje dodatnie intensywności. Szerokość w D jest ustawieniem graficznym.')
+            + (tr(' Wspólne punkty nakładających się ROI są pominięte.') if overlaps else ''))
         self.update_intensity()
 
     def update_intensity(self):
@@ -363,8 +365,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
 
     def choose_color(self, *, map_color):
         current = self.map_color if map_color else self.trace_color
-        target = 'mapy 2D' if map_color else 'widma 1D'
-        color = QtWidgets.QColorDialog.getColor(current, self, f'Kolor {target}')
+        title = tr('Kolor mapy 2D') if map_color else tr('Kolor widma 1D')
+        color = QtWidgets.QColorDialog.getColor(current, self, title)
         if not color.isValid():
             return
         if map_color:
@@ -403,13 +405,13 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.reference_view.enableAutoRange(axis=pg.ViewBox.YAxis)
 
     def choose_save(self):
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Zapisz aktywny widok DOSY 2D',
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, tr('Zapisz aktywny widok DOSY 2D'),
                                                        'DOSY_mapa.png', 'PNG (*.png)')
         if path:
             if not path.lower().endswith('.png'):
                 path += '.png'
             if not self.save_view(path):
-                QtWidgets.QMessageBox.warning(self, 'Zapis widoku', 'Nie udało się zapisać pliku PNG.')
+                QtWidgets.QMessageBox.warning(self, tr('Zapis widoku'), tr('Nie udało się zapisać pliku PNG.'))
 
     def save_view(self, path):
         # Render a separate copy so export never changes the live plots or settings.

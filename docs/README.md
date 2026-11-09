@@ -1,36 +1,38 @@
-# DOSY Lab
+# DOSY Lab 1.0
 
-DOSY Lab to aplikacja desktopowa do analizy klasycznych eksperymentów dyfuzyjnych NMR z surowych plików JEOL JDF. Otwiera serię jednowymiarowych widm z różnymi gradientami, pozwala wspólnie je przetworzyć i wyznaczyć współczynnik dyfuzji **D** dla wskazanych sygnałów.
+DOSY Lab is a Windows desktop application for classical 1D diffusion NMR acquired on JEOL instruments. It opens raw JDF gradient series, processes the complex FIDs with a shared phase, and estimates the diffusion coefficient **D** from the decay of selected integrals.
 
-![Główne okno DOSY Lab z widmem, całkami, zanikami i resztami](images/widmo-integracja.png)
+![DOSY Lab main window with the reference spectrum, integration regions and decay plot](images/widmo-integracja.png)
 
-*Dane syntetyczne. Widmo referencyjne u góry, całki i diagnostyka dopasowań poniżej.*
+*Synthetic example. The main window has separate tabs for decays and residuals.*
 
-## Co można zrobić
+## Features
 
-- Wyświetlić dowolną warstwę lub nałożyć kilka widm. Aplikacja po otwarciu pokazuje warstwę o najniższym dostępnym **b**.
-- Ustawić apodyzację, dopełnienie zerami, referencję ppm i korekcję filtra cyfrowego. Skorygować PH0, PH1 i pivot interaktywnie, wspólną fazą dla całej serii.
-- Wybrać fragmenty tła do korekcji linii bazowej. Dodawać, przesuwać, dzielić i kalibrować całki na widmie.
-- Sprawdzić pochodzenie wartości **b** lub wczytać własną listę. Obejrzeć zanik całki, model i reszty dla każdego sygnału. Ręcznie decydować o udziale poszczególnych warstw w dopasowaniu.
-- Porównać wartości **D** w obrębie wskazanej grupy sygnałów oraz zestawić podsumowania osobnych eksperymentów.
-- Zbudować mapę **DOSY 2D** z wybranych całek i ich dopasowanych wartości **D**. Widmo referencyjne nad mapą ma wspólną oś ppm, a aktywny widok można zapisać do PNG.
-- Zapisać projekt, wyeksportować tabele do CSV i XLSX, wykresy do PNG i SVG oraz dane zespolone do NPZ.
+- Inspect the reference spectrum at the lowest **b**, switch gradient layers, or overlay several spectra.
+- Adjust apodization, zero filling, ppm referencing, digital filter delay, shared phase and per-layer baseline subtraction.
+- Draw, edit, split and rescale integrals. Fit a monoexponential decay and inspect individual measured points, fit residuals and quality indicators.
+- Compare diffusion coefficients within a named compound group and compare summaries from separate experiments.
+- Build a 2D ppm × D map from selected integrals and the reference spectrum.
+- Save projects and processing profiles, export tables, and save figures with a light background.
+- Switch the interface between Polish and English using **PL / ENG** next to **Info**.
 
-## Pierwsze uruchomienie na Windows
+## Installation on Windows
 
-Wymagany jest Python 3.11 lub nowszy. Aplikacja działa lokalnie. Połączenie z internetem jest potrzebne przy pobraniu projektu i pierwszej instalacji bibliotek.
-
-Pobierz repozytorium przez **Code → Download ZIP** i rozpakuj je albo użyj Gita.
+Install Python 3.11 or newer. Download and extract the repository through **Code → Download ZIP**, or clone it with Git.
 
 ~~~powershell
 git clone https://github.com/Prospero1988/DOSY_lab.git
 cd DOSY_lab
 ~~~
 
-W otwartym folderze kliknij dwukrotnie **DOSY Lab.cmd**. Przy pierwszym uruchomieniu skrypt przygotuje środowisko `.venv` i zainstaluje zależności. W PowerShell ten sam skrypt uruchomisz przez `& '.\DOSY Lab.cmd'`.
+Double-click **DOSY Lab.cmd**, or run it in PowerShell. On first launch it creates `.venv` and installs the required packages. After installation the application runs locally.
+
+~~~powershell
+& '.\DOSY Lab.cmd'
+~~~
 
 <details>
-<summary>Instalacja ręczna z PowerShell</summary>
+<summary>Manual installation in PowerShell</summary>
 
 ~~~powershell
 py -3 -m venv .venv
@@ -38,58 +40,56 @@ py -3 -m venv .venv
 .\.venv\Scripts\python.exe bin\app.py
 ~~~
 
-Jeżeli instalator Pythona udostępnił polecenie `python` zamiast `py`, użyj `python -m venv .venv` w pierwszym kroku.
+If Windows provides `python` instead of `py`, use `python -m venv .venv` for the first command.
 
 </details>
 
-## Przykład bez własnego pomiaru
-
-Po pierwszym uruchomieniu z katalogu aplikacji wygeneruj syntetyczny eksperyment z 16 warstwami.
+## Try a synthetic experiment
 
 ~~~powershell
 .\.venv\Scripts\python.exe bin\generate_demo.py
 & '.\DOSY Lab.cmd' '.\examples\DOSY_demo.jdf'
 ~~~
 
-Plik można też wybrać w aplikacji przez **Otwórz DOSY**. Dla szybkiej próby kliknij **Dodaj całkę ręcznie** i wpisz `3,60; 3,68`. Powtórz czynność dla `4,66; 4,74`. Granice są podane w ppm. Oczekiwane **D** wynoszą w przybliżeniu odpowiednio **3,8 × 10⁻¹⁰ m²/s** i **8,0 × 10⁻¹⁰ m²/s**. W tabeli głównej kolumna `D / 10⁻¹⁰` pokaże więc wartości w okolicy **3,8** i **8,0**. Generator odmawia nadpisania istniejącego JDF. Przy kolejnym generowaniu można podać inną nazwę jako argument.
+The generator creates 16 layers and preserves existing files. Pass a different output path to generate another copy. Use **Add integral manually** and enter `3.60; 3.68`, then repeat with `4.66; 4.74`. The expected **D** values are about **3.8 × 10⁻¹⁰ m²/s** and **8.0 × 10⁻¹⁰ m²/s**. The main table displays these as approximately **3.8** and **8.0** in its scaled D column.
 
-## Podręcznik
+## User guide
 
-[Instrukcja użytkownika](INSTRUKCJA.md) prowadzi od otwarcia JDF do eksportu. Zawiera opis gestów, parametrów processingu, fazowania, bazy, całek, fitów, statystyki i interpretacji wyników.
+The [user guide](INSTRUKCJA.md) walks through opening data, processing, phase and baseline correction, integration, fitting, statistics and exports.
 
-- [Korekcja fazy i gesty myszy](INSTRUKCJA.md#3-korekcja-fazy)
-- [Pochodzenie b i ręczny import](INSTRUKCJA.md#6-wartości-b)
-- [Statystyka D i diagnostyka](INSTRUKCJA.md#8-statystyka-d)
-- [Projekty i pliki eksportu](INSTRUKCJA.md#9-projekty-i-eksport)
-- [Mapa DOSY 2D z całek](INSTRUKCJA.md#11-mapa-dosy-2d)
+- [Interactive phase correction](INSTRUKCJA.md#3-phase-correction)
+- [Where b values come from](INSTRUKCJA.md#6-b-values)
+- [D statistics and fit diagnostics](INSTRUKCJA.md#8-d-statistics)
+- [Project files and exports](INSTRUKCJA.md#9-projects-and-exports)
+- [2D DOSY map from integrals](INSTRUKCJA.md#11-2d-dosy-map)
 
-## Format danych i zakres obsługi
+## Input and scope
 
-- **Wejście** to surowy JEOL JDF z zespolonym FID w wymiarze bezpośrednim i kolejnymi warstwami w wymiarze gradientowym. Czytnik obsługuje układy `small_two_d` i `two_d`, liczby 32- i 64-bitowe oraz obie kolejności bajtów. Pojedynczy obsługiwany FID można oglądać jak widmo 1D.
-- **Automatyczne b** pochodzi z rozpoznanej osi **b** w JDF albo ze zweryfikowanego bloku kodowania JEOL ¹H BPP-STE-LED (także z presaturacją) lub BPP-DSTE-LED. Rozpoznanie opiera się na osadzonym przebiegu programu, jego parametrach i porównaniu z zapisanym `st_coef`, jeśli jest dostępny. Dla pozostałych sekwencji można podać niezależnie wyznaczone **b** dla każdej warstwy.
-- **Zakres aplikacji** obejmuje klasyczne DOSY 1D. Przetworzone JDF oraz eksperymenty 3D COSY-DOSY, COSY-iDOSY i HMQC-DOSY są poza tym zakresem.
-- **Wynik** zależy od prawidłowej kalibracji gradientów, poprawnego modelu **b**, jakości całek oraz adekwatności modelu zaniku. SE pojedynczego dopasowania i rozrzut **D** między sygnałami opisują różne wielkości.
+- The reader accepts raw JEOL JDF data with complex direct FIDs and gradient layers. Supported 2D storage layouts are `small_two_d` and `two_d`, with 32- or 64-bit values in either byte order. A supported single FID can be viewed as a 1D spectrum.
+- Automatic **b** values come from an explicit JDF b axis or verified proton BPP-STE-LED and BPP-DSTE-LED encoding blocks, including the supported presaturation variant. The reader checks the timing and the recorded `st_coef` when available. Other sequences can use an independently calculated manual b list.
+- The application is designed for classical 1D DOSY. Processed JDFs and 3D COSY-DOSY, COSY-iDOSY and HMQC-DOSY are outside its scope.
+- Quantitative results depend on gradient calibration, the b model, integral quality and the suitability of the decay model.
 
-## Kod i testy
+## Workspace and tests
 
-W `bin` znajduje się kod, konfiguracja zależności i testy. `examples` zawiera widma wzorcowe sacharozy i strychniny. Git ignoruje lokalne katalogi `work`, `data`, `projects` i `processing`.
-
-| Pliki | Rola |
+| Location | Purpose |
 | --- | --- |
-| `app.py`, `ui.py`, `spectrum_view.py` | Uruchamianie aplikacji, główne okno i obsługa widma |
-| `jeol.py`, `core.py` | Odczyt JDF, model **b**, processing, całkowanie i dopasowanie |
-| `phase_window.py`, `processing_panel.py`, `spectrum_settings.py` | Fazowanie, ustawienia processingu i wygląd widma |
-| `d_statistics.py`, `statistics_window.py`, `statistics_svg.py` | Statystyka, diagnostyka ROI i wykresy |
-| `dosy_map.py` | Mapa ppm × D z całek i widma referencyjnego |
-| `exports.py`, `experiment_info.py`, `fullscreen_plot.py` | Projekty i eksport, metadane oraz widoki wykresów |
-| `generate_demo.py`, `test_*.py` | Generator syntetycznego JDF i testy obliczeń oraz interfejsu |
+| `bin` | Application, dependencies and tests |
+| `docs` | User guide, screenshots and license |
+| `examples` | Reference sucrose and strychnine acquisitions |
+| `data` | Default directory for opening local JDF data |
+| `projects` | Local `.proj` files |
+| `processing` | Local `.list` profiles |
+| `work` | Local working data |
+
+Git ignores `data`, `work`, `projects` and `processing`.
 
 ~~~powershell
 .\.venv\Scripts\python.exe -m unittest discover -s bin -v
 ~~~
 
-Testy interfejsu uruchamiają Qt w trybie offscreen. Testy używają danych syntetycznych oraz plików wzorcowych z `examples`. Regresje wymagające konkretnego wzorca są pomijane, kiedy tego pliku brakuje.
+Tests cover the synthetic example, reference acquisitions when present, numerical processing and the Qt interface in offscreen mode.
 
-## Licencja
+## License
 
-Projekt jest udostępniony na [licencji MIT](LICENSE).
+DOSY Lab is distributed under the [MIT license](LICENSE).

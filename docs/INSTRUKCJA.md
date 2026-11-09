@@ -1,107 +1,102 @@
-# Instrukcja użytkownika DOSY Lab
+# DOSY Lab user guide
 
-[Powrót do README](README.md)
+[Back to the README](README.md)
 
-1. [Otwarcie danych](#1-otwarcie-danych)
-2. [Nawigacja i processing](#2-nawigacja-i-processing)
-3. [Korekcja fazy](#3-korekcja-fazy)
-4. [Linia bazowa](#4-linia-bazowa)
-5. [Całki](#5-całki)
-6. [Wartości b](#6-wartości-b)
-7. [Dopasowanie i kontrola jakości](#7-dopasowanie-i-kontrola-jakości)
-8. [Statystyka D](#8-statystyka-d)
-9. [Projekty i eksport](#9-projekty-i-eksport)
-10. [Najczęstsze problemy](#10-najczęstsze-problemy)
-11. [Mapa DOSY 2D](#11-mapa-dosy-2d)
+1. [Open data](#1-open-data)
+2. [Navigation and processing](#2-navigation-and-processing)
+3. [Phase correction](#3-phase-correction)
+4. [Baseline correction](#4-baseline-correction)
+5. [Integrals](#5-integrals)
+6. [b values](#6-b-values)
+7. [Fitting and quality control](#7-fitting-and-quality-control)
+8. [D statistics](#8-d-statistics)
+9. [Projects and exports](#9-projects-and-exports)
+10. [Troubleshooting](#10-troubleshooting)
+11. [2D DOSY map](#11-2d-dosy-map)
 
-## 1. Otwarcie danych
+## 1. Open data
 
-1. Uruchom aplikację zgodnie z [README](README.md#pierwsze-uruchomienie-na-windows).
-2. Kliknij **Otwórz DOSY** i wybierz surowy plik JEOL `.jdf`. Okno zaczyna w katalogu `data`. Program przeliczy widma z zespolonych FID i wyświetli warstwę z najniższym dostępnym **b**. Gdy **b** jest nieznane, warstwę referencyjną wybiera na podstawie gradientu, jeśli ten jest dostępny.
-3. Otwórz **Info**, aby sprawdzić nazwę pliku, parametry akwizycji i aktualnego processingu, pochodzenie **b** oraz metadane zapisane w JDF.
-4. Pole **Warstwa** wybiera pojedyncze widmo. **Pokaż referencję** wraca do warstwy referencyjnej. **Nałóż warstwy** przyjmuje numery od 1, oddzielone przecinkami, np. `1,8,16`. Pierwsza wskazana warstwa wyznacza wartość całki pokazywaną przy sygnale i w tabeli. **Pokaż Im** dołącza do podglądu część urojoną.
+1. Start the application as described in the [README](README.md#installation-on-windows).
+2. Use **PL / ENG** next to **Info** to switch the interface. The application remembers your language preference.
+3. Click **Open DOSY** and choose a raw JEOL `.jdf` file. The dialog starts in `data`. DOSY Lab processes the complex FIDs and displays the layer with the lowest verified **b**, or the lowest known encoding gradient if b is unavailable.
+4. Open **Info** to inspect acquisition settings, the pulse program, processing, and the source of **b**.
+5. Select a spectrum with **Layer**, or return to the reference using **Show reference**. Enter layer numbers such as `1,8,16` in **Overlay layers**. The first visible layer supplies the integral values displayed on the spectrum and in the main table. **Show Im** adds the imaginary spectrum.
 
-Po zmianie warstwy podglądu wszystkie ROI nadal obejmują te same zakresy ppm w każdej warstwie. W tabeli widzisz całkę dla aktualnego podglądu, a model zaniku korzysta z całej serii aktywnych punktów.
+Changing the visible layer preserves the ppm bounds of all ROIs. The decay fit uses the active points from the full gradient series.
 
-## 2. Nawigacja i processing
+## 2. Navigation and processing
 
-| Gest lub przycisk | Działanie |
+| Control | Action |
 | --- | --- |
-| Rolka nad widmem | Zmienia skalę intensywności w pionie. |
-| **Zoom** i przeciągnięcie lewym przyciskiem | Powiększa zaznaczony zakres ppm. Zaznaczenie jest widoczne w trakcie przeciągania. |
-| Przeciągnięcie prawym przyciskiem nad widmem głównym | Powiększa zakres ppm także podczas pracy z narzędziami całkowania. |
-| **Przesuwaj** i przeciągnięcie | Przesuwa widok w pionie i poziomie. |
-| Dwuklik lub **Cały zakres** | Przywraca pełny zakres widma. |
-| **Pełny ekran** | Otwiera powiększony widok. **Esc** wraca do głównego okna. |
-| **Zapisz PNG** | Zapisuje bieżący widok 1D w jasnej kolorystyce z granatowym widmem, zachowując przybliżenie. |
-| **Widok** | Ustawia kolor i grubość linii widma oraz widoczność siatki. |
+| Scroll over the spectrum | Adjust the vertical intensity scale. |
+| **Zoom**, then drag with the left button | Zoom into a ppm interval with live selection feedback. |
+| Right-drag over the main spectrum | Zoom into a ppm interval while an integration tool is active. |
+| **Pan**, then drag | Move the spectrum horizontally or vertically. |
+| Double-click or **Full range** | Restore the full spectrum range. |
+| **Full screen** | Open a large spectrum view. Press **Esc** to return. |
+| **Save PNG** | Save the current spectrum view with a white background, black labels and a navy trace. |
+| **View** | Adjust line color, line width and grid visibility. |
 
-Gdy zatrzymasz kursor na przycisku głównego okna, pojawi się krótka podpowiedź.
+**Processing** shows the parameters shared by the gradient series. The order is FID apodization, zero filling, FFT, common phase correction, optional baseline subtraction and signed real-part integration.
 
-**Processing** pokazuje ustawienia przetwarzania. Kolejność operacji to apodyzacja FID, dopełnienie zerami, FFT, wspólna korekcja fazy, opcjonalne odjęcie bazy, a następnie całkowanie rzeczywistej części widma. Zmiany przeliczają wszystkie warstwy na podstawie oryginalnych FID.
-
-| Opcja | Znaczenie |
+| Option | Meaning |
 | --- | --- |
-| **LB [Hz]** | Wykładnicza apodyzacja FID przez czynnik `exp(−π · LB · t)`. |
-| **Gauss: FWHM [Hz]** | Gaussowska apodyzacja FID przez czynnik `exp(−(π · GB · t)² / (4 ln 2))`. Oba okna można łączyć. Zero wyłącza daną apodyzację. |
-| **Zero filling** | Dopełnienie zerami do 1×, 2×, 4× lub 8× liczby punktów. Zagęszcza siatkę FFT. Rozdzielczość fizyczną wyznacza akwizycja. |
-| **PH0, PH1, Pivot** | Wspólna faza opisana w następnym rozdziale. |
-| **Referencja: przesunięcie ppm** | Dodaje wspólne przesunięcie osi chemicznej. Po zmianie sprawdź położenie zapisanych granic ROI. |
-| **Opóźnienie filtra [próbki]** | Stosuje oddzielną rampę fazową do korekcji opóźnienia filtra cyfrowego. Zero wyłącza tę korekcję. |
-| **Przytnij pasmo filtra według JDF** | Ogranicza pasmo do wartości zapisanej w JDF. Program uwzględnia liczbę próbek i czas akwizycji, gdy plik zgłasza przycięcie, a metadane wskazują na pełny FID. |
-| **Warstwa referencyjna** | Ustala punkt startowy podglądu fazowania i warstwę wskazywaną przyciskiem **Pokaż referencję**. |
-| **Zapisz profil / Wczytaj profil** | Przenosi ustawienia processingu jako profil `.list` w formacie JSON. Oba okna zaczynają w katalogu `processing`. Po wczytaniu na innym widmie sprawdź zwłaszcza fazę, referencję i zakresy bazy. |
+| **LB [Hz]** | Exponential apodization with `exp(−π · LB · t)`. |
+| **Gaussian FWHM [Hz]** | Gaussian apodization with `exp(−(π · GB · t)² / (4 ln 2))`. Both windows can be combined. Set either parameter to zero to disable its window. |
+| **Zero filling** | Pad to 1×, 2×, 4× or 8× the acquired point count. This increases the density of the FFT grid. The acquisition determines physical resolution. |
+| **PH0, PH1 and Pivot** | Shared phase settings. |
+| **Reference: ppm shift** | Apply a common chemical shift offset. Check your ROI bounds after changing it. |
+| **Filter delay [samples]** | Set the separate phase ramp for digital filter delay. Zero disables the ramp. |
+| **Crop to the JDF filter passband** | Use the passband recorded in the JDF. Point counts and acquisition time help distinguish a full FID from already clipped data. |
+| **Reference layer** | Set the default phasing preview and the layer opened by **Show reference**. |
+| **Save profile / Load profile** | Save or restore a JSON processing profile with a `.list` extension. Both dialogs start in `processing`. Review the phase, ppm reference and baseline regions when applying a profile to another sample. |
 
-## 3. Korekcja fazy
+## 3. Phase correction
 
-![Interaktywna korekcja fazy z oznaczeniem pivotu i podglądem przed korekcją](images/korekcja-fazy.png)
+![Interactive phasing with a shared pivot and before-correction preview](images/korekcja-fazy.png)
 
-*Podgląd wspólnej fazy w syntetycznej serii gradientowej.*
+1. Open **Phase correction**. The reference layer is shown first.
+2. Click near a peak to set the **pivot**, or enter it in ppm. The correction at the pivot is PH0.
+3. Drag up or down with the **left mouse button** to change **PH0** and with the **right mouse button** to change **PH1**. Hold **Shift** for fine adjustment. You can set the sensitivity of each gesture.
+4. Use **Zoom range** and **Pan spectrum** to inspect the signal. Turn off the navigation tool to resume phasing. Scroll to adjust the height. Use **Show Im** and **Show previous phase** to inspect the effect.
+5. Use **Preview** to check another gradient layer. **Apply shared phase to all layers** commits one correction to the full series. **Cancel** discards changes made in the dialog.
 
-1. Kliknij **Korekcja fazy**. Okno pokazuje początkowo warstwę referencyjną.
-2. Kliknij widmo w pobliżu wybranego piku, żeby ustawić **pivot**, albo wpisz jego pozycję w ppm. To punkt, w którym korekcja ręczna ma wartość PH0.
-3. Przytrzymaj **lewy przycisk** i przesuwaj mysz góra–dół, aby zmieniać **PH0**. Przytrzymaj **prawy przycisk**, aby tak samo zmieniać **PH1**. **Shift** włącza dokładniejsze strojenie. Czułość obu gestów można ustawić w oknie.
-4. Skorzystaj z **Zoom zakresu** i **Przesuń widmo**, jeśli potrzebujesz zbliżenia lub linia bazowa wyszła poza widok. Wyłącz wybrany tryb, aby wrócić do gestów fazowania. Rolka zmienia skalę intensywności. Opcje **Pokaż Im** oraz **Pokaż fazę sprzed edycji** pomagają ocenić efekt.
-5. Sprawdź w polu **Podgląd** jedną z warstw o większym **b**. **Zastosuj wspólną fazę do wszystkich warstw** zatwierdza jeden zestaw parametrów dla całej serii. **Anuluj** porzuca edycję w tym oknie.
+PH1 is specified in degrees across the entire acquired spectral width, in order of increasing ppm. The manual correction at a given point is `PH0 + PH1 · (ppm − pivot) / SW_ppm`. The displayed ppm axis usually decreases from left to right. Values from another program may use a different pivot, sign or axis convention.
 
-PH1 opisuje różnicę fazy w stopniach na szerokość całego akwizycyjnego pasma SW, w kierunku rosnących ppm. Ręczna faza w punkcie `ppm` to `PH0 + PH1 · (ppm − pivot) / SW_ppm`. Zoom nie zmienia tej zależności. Wyświetlane ppm zwykle maleją od lewej do prawej. Wartość liczbowa PH1 zapisana w innym programie może wymagać przeliczenia, jeśli używa on innego pivotu, kierunku lub znaku.
+When the JDF contains suitable decimation metadata, DOSY Lab estimates the filter delay and applies a separate shared ramp on opening a raw file. **Info** shows the applied delay. The phasing dialog can also add a manual ramp of 360° per sample of delay. Check the independent filter correction before adding that ramp.
 
-Jeśli metadane JDF są odpowiednie, DOSY Lab osobno szacuje opóźnienie filtra na podstawie zapisanych etapów decymacji. **Info** pozwala sprawdzić, czy model został zastosowany. Okno fazowania pozwala też ręcznie dodać rampę `360° × opóźnienie w próbkach` do PH1. Przy korzystaniu z tej funkcji sprawdź, czy niezależna korekcja filtra nie obejmuje już tej samej rampy.
+## 4. Baseline correction
 
-## 4. Linia bazowa
+Choose **Select baseline** and draw several peak-free intervals, preferably on both sides of the signals to integrate. Blue bands mark the shared mask and yellow curves preview the fitted baselines.
 
-**Zaznacz bazę** pozwala wskazać obszary, w których sygnał powinien odpowiadać lokalnemu tłu. Wybierz kilka przedziałów bez pików, najlepiej po obu stronach sygnałów całkowanych. Niebieskie pasma oznaczają dane użyte do dopasowania wielomianu, a żółta linia pokazuje podgląd bazy.
+The default polynomial order is **1**. **Separate polynomial for each layer** is enabled by default and fits an independent line or polynomial to each layer on the same ppm mask. Before applying the correction you may preview the reference-layer fit instead. **Apply baseline subtraction** always subtracts each layer’s own fitted baseline before integration. This also applies when reopening projects with baseline subtraction enabled.
 
-W **Processing** domyślny rząd to 1, czyli linia prosta. Możesz ustawić rząd od 1 do 5. Domyślnie zaznaczony **Osobny wielomian dla każdej warstwy** pokazuje podgląd baz dopasowanych na tych samych zakresach ppm. Przed zatwierdzeniem możesz przełączyć podgląd na bazę referencyjną. **Zatwierdź odejmowanie bazy** zawsze odejmuje od każdej warstwy jej własną bazę przed całkowaniem. Dotyczy to także wczytanych projektów z aktywną korekcją. Upewnij się, że niebieskie pasma nie zachodzą na ROI. Poza skrajnymi wskazanymi obszarami wielomian jest ekstrapolowany, więc warto obejrzeć tam jego podgląd.
+Keep the blue baseline intervals clear of all ROIs. The fit extrapolates outside the outermost mask regions. Review the preview there before applying it. In **Processing**, use **Remove region** to remove one selected interval or **Undo correction** to disable subtraction while keeping the mask. **Clear baseline** above the spectrum removes the entire mask.
 
-Aby skasować jeden przedział, zaznacz go w liście panelu **Processing** i kliknij **Usuń obszar**. **Cofnij korekcję** wyłącza odejmowanie i zachowuje maskę. **Wyczyść bazę** nad widmem usuwa wszystkie obszary i wyłącza odejmowanie.
+## 5. Integrals
 
-## 5. Całki
+An ROI is a ppm interval integrated in every layer. DOSY Lab integrates the signed real spectrum after common phasing and any applied baseline correction. Integrals have units of arbitrary intensity × ppm.
 
-ROI to zakres ppm, na którym program całkuje dany sygnał w każdej warstwie. Całki mają znak i powstają z części rzeczywistej po wspólnej korekcji fazy oraz ewentualnym odjęciu bazy. Jednostką jest intensywność w jednostkach umownych razy ppm.
+- **Mouse integration** creates an ROI by dragging from one bound to the other. The shaded preview updates as you drag.
+- **Add integral manually** accepts two ppm bounds separated by a semicolon, for example `3.60; 3.68`. Decimal commas also work.
+- **Edit integral** moves a region by its center or changes a bound by dragging its edge.
+- **Split integral** divides an ROI where you release a dragged edge inside the region.
+- **Delete integral** removes the selected ROI. Each integral has a stable ID. Double-click **Group / compound** to type a new group or reuse an existing one.
 
-- **Integracja myszą** aktywuje tworzenie zakresów. Kliknij jedną granicę, przytrzymaj przycisk, przeciągnij i puść na drugiej granicy. Kolorowe pasmo pokazuje zakres na żywo.
-- **Dodaj całkę ręcznie** przyjmuje dwie granice w ppm. Dla liczb z polskim przecinkiem wpisz np. `3,60; 3,68`.
-- **Modyfikuj całkę** pozwala przeciągnąć środek ROI, by przesunąć cały zakres, lub krawędź, by zmienić tylko granicę.
-- **Podziel całkę** wymaga przeciągnięcia jednej krawędzi do środka ROI. Po puszczeniu w miejscu podziału powstają dwa sąsiadujące zakresy.
-- **Usuń całkę** usuwa pozycję wybraną w tabeli. Każda całka ma własne ID. Dwuklik w kolumnie **Grupa / związek** pozwala wpisać nową etykietę lub wybrać wcześniej użytą z rozwijanej listy. Wspólna etykieta oznacza świadomą decyzję o zestawieniu tych sygnałów w statystyce.
+The ID is shown above the peak and the integral below. Edit **Integral** to set a relative reference, such as 1.00. The application proportionally rescales all displayed integrals and saves the factor in the project. Fits still use the original signed integrals.
 
-Identyfikator, np. **S1**, znajduje się nad sygnałem, a wartość całki poniżej. W kolumnie **Całka** można nadać wybranemu sygnałowi wartość odniesienia, np. **1,00**. Program przeliczy współczynnik skali i proporcjonalnie odświeży pozostałe całki na widmie oraz w tabeli. Zaokrąglenie do dwóch miejsc dotyczy prezentacji. Dopasowania zachowują oryginalne całki.
-
-W syntetycznym przykładzie możesz utworzyć dwie grupy i sprawdzić, jak działa porównanie.
-
-| Grupa | Zakresy ppm | Zadane D [m²/s] |
+| Synthetic group | ppm ranges | Expected D [m²/s] |
 | --- | --- | --- |
-| A | 3,60–3,68 · 3,74–3,82 · 5,26–5,33 | około 3,8 × 10⁻¹⁰ |
-| B | 4,66–4,74 | około 8,0 × 10⁻¹⁰ |
+| A | 3.60–3.68, 3.74–3.82, 5.26–5.33 | About 3.8 × 10⁻¹⁰ |
+| B | 4.66–4.74 | About 8.0 × 10⁻¹⁰ |
 
-## 6. Wartości b
+## 6. b values
 
-**Lista b** przypisuje każdej warstwie wartość **b** w **s/m²**. Kolumna **g**, jeśli jest dostępna, pokazuje gradient w **T/m**. Dwie warstwy z takim samym **b** nadal stanowią dwa odrębne punkty pomiarowe.
+Open **b values** to review the gradient **g** in T/m and diffusion weighting **b** in s/m² for every layer. Repeated b values remain separate observations.
 
-1. Sprawdź, czy program rozpoznał gotową oś **b** lub zweryfikował model fabryczny. Dla protonowych BPP-STE-LED (w tym obsługiwanego wariantu z presaturacją) i BPP-DSTE-LED rozpoznaje przebieg kodowania w osadzonym JXP i porównuje zapisany `st_coef` z modelowymi wartościami, kiedy współczynnik jest obecny. Nazwa JXP jest widoczna w **Info**. Obsługiwane nazwy kształtów w tym modelu to `SQUARE`, `SINE`, `SQUARE_SINE`, `TRAPEZOID` i `S_RECTANGLE`. Każdy ma osobne współczynniki.
-2. Dla sekwencji spoza modelu podaj własne **b**, wyznaczone dla faktycznej sekwencji. Możesz użyć **Import CSV** z jedną kolumną albo pliku z kolumną `b`, `b_s_m2` lub `b_s_per_m2`. Poniżej minimalny przykład formatu. Liczby służą wyłącznie do pokazania zapisu.
-3. Wpisz dokładnie jedną skończoną, nieujemną wartość na każdą warstwę, w kolejności akwizycji. Zachowaj powtórzenia. Kliknij **Zastosuj jako ręczną listę** i opisz źródło wartości w polu uzasadnienia.
+1. Check whether b came from the JDF axis or a verified proton BPP-STE-LED or BPP-DSTE-LED model. DOSY Lab checks the embedded encoding block, timing and recorded `st_coef` when available. Supported waveform names for these models are `SQUARE`, `SINE`, `SQUARE_SINE`, `TRAPEZOID` and `S_RECTANGLE`.
+2. For other sequences, use a list calculated independently for the actual experiment. **Import CSV** accepts a single column or a named `b`, `b_s_m2` or `b_s_per_m2` column.
+3. Provide exactly one finite, non-negative value per layer in acquisition order. Keep repeated values. Click **Apply manual list** and record its source.
 
 ~~~csv
 b_s_m2
@@ -110,81 +105,79 @@ b_s_m2
 5.41e8
 ~~~
 
-**b** obliczone z nominalnych amplitud i timingów ma charakter nominalny. Aplikacja sprawdza spójność zapisu i modelu. Rzeczywistą kalibrację pola gradientowego ustala się niezależnie.
+The values above illustrate the file format. b values from nominal gradient amplitudes and timings are nominal. Instrument calibration remains an independent measurement.
 
-## 7. Dopasowanie i kontrola jakości
+## 7. Fitting and quality control
 
-Dla każdego ROI DOSY Lab dopasowuje model **I(b) = I₀ exp(−bD)** do całek ze znakiem. Wartości **D** i SE(D) raportuje w m²/s. Tabela główna wyświetla obie wielkości w skali 10⁻¹⁰ m²/s. **R²** pomaga ocenić dopasowanie, a **QC** sygnalizuje m.in. problem z liczbą punktów lub niestabilnością wyniku. Wymagane są co najmniej trzy różne aktywne wartości **b**.
+Each ROI is fitted to **I(b) = I₀ exp(−bD)** using its signed integrals. A fit requires at least three distinct active b values. D and its standard error SE(D) are reported in m²/s. The main table scales both by 10⁻¹⁰ m²/s. Inspect **QC**, R² and the residuals before interpreting a fit.
 
-- **Zaniki i reszty** pokazują dane, krzywą oraz różnicę pomiar − model. **Podgląd I / pierwsza całka** normalizuje prezentację. Dopasowanie nadal używa całek w ich pierwotnej skali.
-- **Całki / punkty fitu** pokazuje poszczególne warstwy i ich udział w dopasowaniu. Punkty możesz wyłączyć ręcznie, pozostają one w projekcie i eksporcie. Ważenie fitu według niepewności całek stosuj, gdy masz wiarygodne wartości σ(I) dla aktywnych warstw.
-- **Widma w aktywnym ROI** pomaga porównać kształt sygnału w wybranych warstwach. Jeśli zakres obejmuje nakładające się składniki, dobre **R²** samo w sobie nie potwierdza, że **D** opisuje jedną substancję.
-- Na wykresie zaniku lub reszt przeciągnij prostokąt, by powiększyć wycinek. Dwuklik przywraca pełny zakres. Dedykowane przyciski otwierają wykresy na pełnym ekranie.
+- **Decays** shows measured points and fitted curves. **Show I / first integral** normalizes the display. Fitting uses the original integrals.
+- **Residuals** shows measurement minus prediction for the selected ROI in a separate full-height tab.
+- **Integrals / fit points** shows the layer values and their fit inclusion. Excluded points stay in the project and export. Use weighted fitting when valid σ(I) values are available for the active layers.
+- **Spectra in active ROI** compares line shapes across layers. Overlapping signals can produce an apparent D even when R² is high.
+- Drag a rectangle on a plot to zoom and double-click to reset. The fullscreen button is in each plot tab.
 
-## 8. Statystyka D
+When b is unavailable, the decay tab still displays integrals against the gradient or acquisition layer. A verified b list is required to estimate D.
 
-![Okno Statystyka D z tabelą sygnałów, wykresem zbiorczym i diagnostyką](images/statystyka-d.png)
+## 8. D statistics
 
-*Dane syntetyczne. Kliknięcie punktu D pokazuje oryginalne punkty zaniku, dopasowanie i reszty dla odpowiadającego mu ROI.*
+![D Statistics with the selected group, summary plot and cached ROI diagnostics](images/statystyka-d.png)
 
-1. Nadaj sygnałom etykiety w kolumnie **Grupa / związek** w głównym oknie. Otwórz **Statystyka D** i wybierz grupę w polu **Związek**. Tabela pokazuje sygnały w eksperymencie, a podsumowanie korzysta z sygnałów z wybranej grupy.
-2. Użyj kolumny **Uwzględnij**, żeby włączać i wyłączać ROI w statystyce. Zmiana dotyczy zestawienia. Dopasowanie pojedynczego ROI i jego punkty pozostają w projekcie.
-3. Kliknij punkt **D** lub odpowiadający mu wiersz. Panel **Zanik wybranego ROI** pokazuje zapisany model, **D**, SE(D), **R²**, korekcję bazy oraz rzeczywiste punkty I(b). Włącz **Pokaż reszty**, jeśli chcesz ocenić strukturę błędu. Po wskazaniu punktu zaniku dostępne wartości obejmują **g**, **b**, całkę, przewidywanie, resztę i S/N.
-4. Użyj **Zachowaj kopię do porównania** lub **Wczytaj zapis statystyki**, aby zestawić osobne eksperymenty. W zakładce porównania każdy pomiar ma własne podsumowanie.
-5. **Eksport CSV + zapis statystyki** zapisuje tabele i migawkę JSON. Przyciski **PNG** i **SVG** eksportują wykres wybrany w polu **Eksportowany wykres** z białym tłem, czarnymi opisami i granatowymi danymi. **Wyłącz siatkę** działa osobno dla wykresu D oraz pary wykresów zaniku i reszt.
+1. Assign groups in **Group / compound** in the main window. Open **D Statistics** and select a **Compound**.
+2. The D plot and summary use checked signals from that group. Toggle **Include** to change the summary without changing the ROI or its fit.
+3. Click a point or table row to open the cached decay and residuals. Hover a measured point to inspect g, b, integral, prediction, residual and S/N when available.
+4. Use **Keep a copy for comparison** or **Load statistics snapshot** to compare separate experiments. Each keeps its own summary.
+5. **Export CSV and snapshot** saves the numerical tables and JSON snapshot. **PNG** and **SVG** save the selected plot with a white background, black labels and navy data. Grid controls are available for the D plot and the decay and residual panel.
 
-Wykres **D** pokazuje wyłącznie zaznaczone sygnały wybranego związku. Punkty mają słupki ±SE(D), a wykres zawiera średnią i pasmo ±1 SD. **Linie ±2 SD** można włączyć dodatkowo. Gdy liczba uwzględnionych sygnałów na to pozwala, podsumowanie zawiera średnią, medianę, SD próby, CV, opisowe SEM, minimum, maksimum i **N**. Dla N < 2 brakuje podstaw do wyznaczenia SD próby, CV i SEM.
+The summary includes the arithmetic mean, median, sample SD, CV, descriptive SEM, minimum, maximum and N where defined. The plot shows ±SE(D) bars, the mean and a ±1 SD band. You can add ±2 SD lines. Sample SD, CV and descriptive SEM require at least two signals.
 
-- **SE(D)** opisuje niepewność jednego dopasowania wynikającą z jego modelu i danych.
-- **SD** opisuje rozrzut wyników **D** pomiędzy wybranymi sygnałami. **SEM** to opisowe SD/√N. Sygnały z jednego eksperymentu mogą mieć skorelowane błędy, np. wspólne odchylenie kalibracji gradientu, więc to SEM ma ograniczoną interpretację jako niepewność średniej.
-- Opcjonalna **Średnia ważona wg SE(D)** używa wag 1/SE². Włącza się ją po potwierdzeniu poprawności i porównywalności SE. Potrzebne jest dodatnie i skończone SE dla każdego uwzględnionego ROI. Domyślnym wynikiem jest średnia arytmetyczna.
+- **SE(D)** describes uncertainty in one fit under its model.
+- **SD** describes spread across selected signals. **SEM** is descriptive SD/√N. ROIs from one experiment can share errors, including gradient calibration errors.
+- **Weighted mean by SE(D)** uses 1/SE² weights. Enable it only when all included SE values are finite, positive and comparable.
 
-## 9. Projekty i eksport
+## 9. Projects and exports
 
-**Zapisz projekt** zachowuje ustawienia processingu, wspólną fazę, ręczne **b**, granice ROI, grupy, maski punktów oraz kalibrację całek. **Zapisz projekt** i **Wczytaj projekt…** zaczynają w katalogu `projects`. Projekt `.proj` zawiera JSON z odwołaniem do źródłowego JDF i jego SHA-256. Po przeniesieniu JDF program szuka tej samej nazwy przy projekcie i w katalogach `data`, `work` i `examples`, a przed użyciem sprawdza SHA-256. Starszym projektom i profilom DOSY Lab zapisanym jako `.json` wystarczy zmienić rozszerzenie odpowiednio na `.proj` lub `.list`.
+**Save project** and **Load project** start in `projects`. The `.proj` file stores JSON with processing, phase, manual b, ROI bounds, groups, fit masks, integral scaling and the source JDF path and SHA-256. If the JDF moves, DOSY Lab searches for the same filename next to the project and under `data`, `work` and `examples`, then verifies the checksum.
 
-**Eksport Statystyki D** w głównym oknie zapisuje pakiet wyników analizy. Poniżej znajduje się lista najważniejszych plików.
+Older DOSY Lab project and processing JSON files can be opened after changing their extensions to `.proj` or `.list`, respectively. Statistics snapshots retain the `.json` extension.
 
-| Plik | Zawartość |
+**Export D statistics** in the main window saves an analysis bundle.
+
+| File | Contents |
 | --- | --- |
-| `roi_results.csv` | Granice ROI, grupy, **D**, SE, **R²** i QC. |
-| `integrals_and_fits.csv` | Całki według warstwy, **g**, **b**, przewidywania, reszty i udział w fitach. |
-| `compound_statistics.csv` | Podsumowania według jawnie zdefiniowanych grup. |
-| `DOSY_results.xlsx` | Arkusze ROI, punktów, statystyki, processingu i eksperymentu. |
-| `experiment.json`, `processing.json`, `fit_results.json` | Metadane, opcje i szczegóły dopasowań. |
-| `project.proj`, `statistics_snapshot.json` | Projekt i migawka wyników do porównań. |
-| `complex_data.npz` | FID, ppm, widma zespolone, baza oraz wartości gradientów i **b**. |
-| `embedded_sequence.txt` | Tekst sekwencji, jeśli występuje w JDF. |
-| `Raport.md` i pliki PNG/SVG | Podsumowanie i wykresy. |
+| `roi_results.csv` | ROI bounds, groups, D, SE, R² and QC |
+| `integrals_and_fits.csv` | Layer integrals, g, b, predictions, residuals and fit inclusion |
+| `compound_statistics.csv` | Summaries by explicitly assigned compound group |
+| `DOSY_results.xlsx` | ROI, point, statistics, processing and experiment sheets |
+| `experiment.json`, `processing.json`, `fit_results.json` | Metadata, options and fit details |
+| `project.proj`, `statistics_snapshot.json` | Reopenable project and statistics snapshot |
+| `complex_data.npz` | FIDs, ppm, complex spectra, baseline, gradients and b |
+| `embedded_sequence.txt` | Pulse program text if embedded in the JDF |
+| `Raport.md` and PNG/SVG files | Analysis summary and figures |
 
-Pakiet eksportu może zawierać pełne dane pomiarowe i treść osadzonej sekwencji. Przed udostępnieniem wybierz konkretne pliki odpowiednie dla odbiorcy.
+An export bundle can contain complete measurement data and the embedded pulse program. Select the files appropriate for the recipient before sharing.
 
-## 10. Najczęstsze problemy
+## 10. Troubleshooting
 
-| Objaw | Co sprawdzić |
+| Symptom | What to check |
 | --- | --- |
-| Widmo otwiera się bez wartości D | Otwórz **Listę b** i sprawdź źródło wartości, a w tabeli punktów liczbę różnych aktywnych **b**. Gdy **b** jest nieznane, wykres nadal pokazuje całki względem gradientu albo numeru warstwy. |
-| Całka jest ujemna lub silnie zależy od granic | Sprawdź fazę absorpcyjną, bazę i możliwe nakładanie się pików. Porównaj kilka warstw tym samym processingiem. |
-| Linia bazowa faluje już przed korekcją wielomianową | Zacznij od metadanych i korekcji filtra cyfrowego w **Info** oraz **Processing**. Następnie sprawdź wspólne PH0 i PH1 na kilku pikach. |
-| Dopasowanie ma dobre R², ale **D** różni się między sygnałami | Sprawdź reszty, widma w ROI, kalibrację **b**, granice całek i przypisanie sygnałów do związków. |
-| Statystyka pokazuje N = 0 | Sprawdź grupę **Związek**, pole **Uwzględnij** i QC sygnałów. |
-| Projekt nie znajduje JDF | Sprawdź ścieżkę do oryginalnego pliku w projekcie i jego dostępność. |
-| Skrypt startowy zamyka się lub brakuje bibliotek | Spróbuj [instalacji ręcznej](README.md#pierwsze-uruchomienie-na-windows) i uruchom `bin/app.py` z tego samego środowiska. |
+| No D values | Verify the source of b and the number of distinct active b values. |
+| Negative or unstable integrals | Check absorption phase, baseline and possible peak overlap. Compare the same ROI across layers. |
+| Ripples before baseline correction | Inspect the filter delay and passband in **Info** and **Processing**. Check shared PH0 and PH1 against several peaks. |
+| Good R² but inconsistent D across signals | Compare residuals, ROI spectra, b calibration, integration bounds and compound assignments. |
+| Statistics show N = 0 | Check the selected **Compound**, the **Include** column and QC. |
+| A project cannot find its JDF | Place the original JDF next to the project or in `data`. DOSY Lab verifies the source checksum. |
+| Launcher closes or dependencies are missing | Try the [manual installation](README.md#installation-on-windows) and run `bin/app.py` with the same environment. |
 
-## 11. Mapa DOSY 2D
+## 11. 2D DOSY map
 
-![Mapa DOSY 2D z połączonym widmem 1D, listą całek i prowadnicami](images/mapa-dosy-2d.png)
+![2D DOSY map with the linked 1D spectrum, ROI list and crosshair](images/mapa-dosy-2d.png)
 
-*Dane syntetyczne. Cztery całki grupy A tworzą pasmo w pobliżu 3,9 × 10⁻¹⁰ m²/s. Prowadnice wskazują sygnał grupy B przy 4,70 ppm.*
+1. Define integrals and complete their fits. Click **2D DOSY map** next to **Clear baseline**.
+2. Select the ROIs to show. A displayed ROI must have a successful fit with finite, positive D. The checkboxes affect the map only.
+3. Use **Zoom** to drag a rectangle, **Pan** to move, or **Full range** to reset. The ppm zoom is linked to the 1D spectrum above.
+4. Use **Point / crosshair** to read ppm and D at the selected location. The D label appears beside the crosshair and is included in PNG export. The vertical guide also appears in the 1D spectrum.
+5. Scroll over the 1D spectrum to adjust its height. Scroll over the 2D map to change the **Threshold** relative to the strongest positive signal. Increase **2D gain** to brighten weak signals above the threshold.
+6. Use **View** for separate spectrum and map colors and **Grid** to toggle the grid. **Save view as PNG** exports the current zoom, intensity, grid and guides in a light color scheme.
 
-1. Wyznacz całki i poczekaj na zakończenie dopasowań. Nad widmem, obok **Wyczyść bazę**, kliknij **Mapa DOSY 2D**.
-2. Z prawej strony wybierz, które całki mają się znaleźć na mapie. Dostępne są całki z poprawnie zakończonym dopasowaniem i dodatnim, skończonym **D**. Wybór dotyczy mapy i nie zmienia projektu ani statystyki.
-3. Przeciągnij prostokąt w trybie **Zoom**. Zmiana zakresu ppm na mapie od razu zmienia zakres widma 1D nad nią. **Przesuwaj** włącza przesuwanie, a **Cały zakres** lub dwuklik przywraca widok wszystkich wyświetlanych sygnałów.
-4. Włącz **Punkt / prowadnice** i kliknij mapę. Wartość **D** pojawi się przy przecięciu linii i zostanie zapisana w PNG. Pionowa prowadnica pojawia się też na widmie 1D. Odczyt dotyczy miejsca kliknięcia, bez przyciągania do najbliższego piku.
-5. Rolka nad **1D** zmienia wysokość widma. Rolka nad **2D** zmienia **Podłogę**, czyli próg widoczności w procentach najsilniejszego sygnału. Aby uwidocznić słabsze sygnały, obniż podłogę i przesuń suwak **Wzmocnienie 2D**. Suwak rozjaśnia punkty powyżej progu, a najsilniejsze mogą osiągnąć maksymalną jasność.
-6. W menu **Widok** możesz osobno ustawić kolor mapy 2D i widma 1D. Przycisk **Siatka** włącza lub wyłącza siatkę obu wykresów.
-7. **Zapisz widok PNG** zachowuje aktualny zakres, intensywność, siatkę i prowadnice. Plik ma białe tło, czarne osie i opisy oraz granatowe widmo i sygnały. Eksport renderuje tę wersję w tle, z zachowaniem kolorystyki roboczej w aplikacji.
-
-Mapa umieszcza dodatnią intensywność sfazowanego widma referencyjnego w granicach każdej całki przy współczynniku **D** z jej zapisanego dopasowania. Domyślny kolor to pomarańczowy. Ujemna intensywność widma, np. fragment dyspersyjnej linii, nadal jest widoczna w widmie 1D. Wzmocnienie, podłoga i kolor mapy wpływają wyłącznie na podgląd. Jeśli wybrane całki się nakładają, ich wspólne punkty są pomijane. Wyłączenie jednej z nich przywraca wspólny fragment w drugiej.
-
-**Szerokość pasma D** steruje graficznym rozmyciem w pionie jako FWHM w procentach największego widocznego **D**. Położenie pasma wynika z fitu. Każda całka ma jedno przypisane **D**, więc mapa nie rozdziela związków, których sygnały leżą w tym samym ROI.
+The map places each ROI’s positive real reference spectrum at its fitted D. Orange is the default signal color. Shared points of overlapping selected ROIs are omitted until the overlap is resolved. **D band width** controls the vertical display broadening as a percentage of the largest visible D. Each ROI contributes one fitted coefficient, so mixed signals within an ROI are represented by an apparent D.

@@ -1,4 +1,6 @@
 """Temporarily move a live plot into a fullscreen window; never copy/refit data."""
+from i18n import tr
+
 from copy import deepcopy
 import weakref
 
@@ -14,14 +16,14 @@ class FullscreenPlotWindow(QtWidgets.QMainWindow):
         super().__init__(controller.owner, QtCore.Qt.WindowType.Window)
         self.controller = controller
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
-        self.setWindowTitle(controller.title+' · Pełny ekran')
+        self.setWindowTitle(controller.title+tr(' · Pełny ekran'))
         self.setStyleSheet(controller.owner.styleSheet())
         central = QtWidgets.QWidget(); self.setCentralWidget(central)
         self.box = QtWidgets.QVBoxLayout(central)
         row = QtWidgets.QHBoxLayout(); self.box.addLayout(row)
-        back = QtWidgets.QPushButton('Wróć do małego widoku (Esc)'); back.clicked.connect(self.close); row.addWidget(back)
-        all_data = QtWidgets.QPushButton('Cały zakres'); all_data.clicked.connect(controller.reset_view or controller.plot.autoRange); row.addWidget(all_data)
-        hint=getattr(controller.plot.getViewBox(),'mouse_help','Zoom: kółko myszy · Przesuwanie: przeciągnięcie · F11: tryb okna')
+        back = QtWidgets.QPushButton(tr('Wróć do małego widoku (Esc)')); back.clicked.connect(self.close); row.addWidget(back)
+        all_data = QtWidgets.QPushButton(tr('Cały zakres')); all_data.clicked.connect(controller.reset_view or controller.plot.autoRange); row.addWidget(all_data)
+        hint=tr(getattr(controller.plot.getViewBox(),'mouse_help','Zoom: kółko myszy · Przesuwanie: przeciągnięcie · F11: tryb okna'))
         row.addStretch(); row.addWidget(QtWidgets.QLabel(hint))
         self.context = QtWidgets.QLabel(); self.context.setWordWrap(True)
         self.context.setTextFormat(QtCore.Qt.TextFormat.RichText); self.box.addWidget(self.context)
@@ -59,9 +61,9 @@ class FullscreenPlotController(QtCore.QObject):
         self.saved_views = []
         plot.viewport().installEventFilter(self); self.owner.installEventFilter(self)
         if reset_view is None:
-            plot.setToolTip('Dwuklik lewym przyciskiem otwiera pełny ekran. Esc lub ponowny dwuklik przywraca okno.')
+            plot.setToolTip(tr('Dwuklik lewym przyciskiem otwiera pełny ekran. Esc lub ponowny dwuklik przywraca okno.'))
         else:
-            plot.setToolTip('Przeciągnij, aby powiększyć obszar. Dwuklik przywraca cały zakres.')
+            plot.setToolTip(tr('Przeciągnij, aby powiększyć obszar. Dwuklik przywraca cały zakres.'))
         _controllers.add(self)
 
     def eventFilter(self, watched, event):
@@ -100,16 +102,16 @@ class FullscreenPlotController(QtCore.QObject):
         if current is not None: current.close()
         self.original_parent = self.plot.parentWidget()
         placeholder = QtWidgets.QFrame(self.original_parent); box = QtWidgets.QVBoxLayout(placeholder)
-        label = QtWidgets.QLabel(self.title+' — otwarty w osobnym oknie.'); label.setWordWrap(True); box.addWidget(label)
-        show = QtWidgets.QPushButton('Pokaż pełny ekran'); show.clicked.connect(self.open); box.addWidget(show)
-        back = QtWidgets.QPushButton('Przywróć wykres tutaj'); back.clicked.connect(self.close); box.addWidget(back)
+        label = QtWidgets.QLabel(self.title+tr(' — otwarty w osobnym oknie.')); label.setWordWrap(True); box.addWidget(label)
+        show = QtWidgets.QPushButton(tr('Pokaż pełny ekran')); show.clicked.connect(self.open); box.addWidget(show)
+        back = QtWidgets.QPushButton(tr('Przywróć wykres tutaj')); back.clicked.connect(self.close); box.addWidget(back)
         if isinstance(self.original_parent, QtWidgets.QSplitter):
             self.splitter_sizes = self.original_parent.sizes()
             self.original_parent.replaceWidget(self.original_parent.indexOf(self.plot), placeholder)
         else:
             self.original_layout = self.original_parent.layout()
             if self.original_layout is None or self.original_layout.replaceWidget(self.plot, placeholder) is None:
-                placeholder.deleteLater(); raise RuntimeError('Nie można odnaleźć miejsca wykresu w interfejsie.')
+                placeholder.deleteLater(); raise RuntimeError(tr('Nie można odnaleźć miejsca wykresu w interfejsie.'))
         self.placeholder = placeholder
         self.suspend_links()
         self.window = FullscreenPlotWindow(self)

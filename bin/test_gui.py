@@ -258,6 +258,38 @@ class InterfaceTests(unittest.TestCase):
             w.processing.save()
             self.assertEqual(dialog.call_args.args[2:],(PROCESSING,'processing.list',PROFILE_FILTER))
 
+    def test_switch_language_preserves_project_and_relabels_open_windows(self):
+        w=self.w
+        w.add_roi([3.60,3.68],group='Przesuwaj')
+        settle(w)
+        w.show_info();w.show_statistics();w.show_map()
+        APP.processEvents()
+        w.tabs.setCurrentIndex(1)
+        w.spectrum.setXRange(3.6,3.7,padding=0)
+        original=(w.dataset,w.results,w.view.viewRange())
+        w.language_button.click()
+        APP.processEvents()
+        self.assertEqual(w.open_button.text(),'Open DOSY')
+        self.assertEqual([w.tabs.tabText(i) for i in range(2)],['Decays','Residuals'])
+        self.assertTrue(w.residual.isVisible())
+        self.assertFalse(w.decay.isVisible())
+        self.assertEqual(w.roi_table.horizontalHeaderItem(1).text(),'Group / compound')
+        self.assertEqual(w.roi_table.item(0,1).text(),'Przesuwaj')
+        self.assertIn('.',w.roi_table.item(0,INTEGRAL_COLUMN).text())
+        self.assertIn('Source of b',w.info_window.experiment.toPlainText())
+        self.assertEqual(w.statistics_window.group_combo.currentText(),'Przesuwaj')
+        self.assertEqual(w.statistics_window.export_kind.itemText(0),'D summary')
+        self.assertIn('2D DOSY map',w.map_window.windowTitle())
+        self.assertIs(w.dataset,original[0])
+        self.assertIs(w.results,original[1])
+        np.testing.assert_array_equal(w.view.viewRange(),original[2])
+        self.assertEqual(w.settings.value('language'),'en')
+        w.language_button.click()
+        self.assertEqual(w.open_button.text(),'Otwórz DOSY')
+        self.assertEqual(w.tabs.tabText(1),'Reszty')
+        self.assertIn(',',w.roi_table.item(0,INTEGRAL_COLUMN).text())
+        self.assertEqual(w.settings.value('language'),'pl')
+
     def test_load_selects_lowest_b_and_preview_layer_keeps_common_phase(self):
         w=self.w;r=synthetic();order=np.r_[3,0,2,1,np.arange(4,16)]
         raw=RawData(r.fid[order].copy(),r.gradients[order].copy(),r.b[order].copy(),dict(r.metadata))
@@ -588,6 +620,7 @@ class InterfaceTests(unittest.TestCase):
         self.assertIsNone(w.spectrum.fullscreen_controller.window)
         for plot in (w.decay, w.residual):
             with self.subTest(plot=plot):
+                w.tabs.setCurrentWidget(plot.parentWidget())
                 w.reset_decay_views()
                 APP.processEvents()
                 view = plot.getViewBox()

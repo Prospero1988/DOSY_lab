@@ -1,4 +1,6 @@
 """Per-user spectrum appearance and its editor."""
+from i18n import tr
+
 from dataclasses import dataclass
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -36,26 +38,26 @@ class SpectrumAppearance:
 class SpectrumSettingsDialog(QtWidgets.QDialog):
     def __init__(self, appearance, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('Ustawienia widma')
+        self.setWindowTitle(tr('Ustawienia widma'))
         self.color = appearance.color
         form = QtWidgets.QFormLayout(self)
         self.color_button = QtWidgets.QPushButton()
         self.color_button.clicked.connect(self.choose_color)
         self.show_color()
-        form.addRow('Kolor głównej linii', self.color_button)
+        form.addRow(tr('Kolor głównej linii'), self.color_button)
         self.width = QtWidgets.QDoubleSpinBox()
         self.width.setRange(.5, 6)
         self.width.setDecimals(1)
         self.width.setSingleStep(.1)
         self.width.setSuffix(' px')
         self.width.setValue(appearance.width)
-        form.addRow('Grubość linii', self.width)
-        self.grid = QtWidgets.QCheckBox('Pokaż siatkę')
+        form.addRow(tr('Grubość linii'), self.width)
+        self.grid = QtWidgets.QCheckBox(tr('Pokaż siatkę'))
         self.grid.setChecked(appearance.grid)
         form.addRow(self.grid)
         buttons = QtWidgets.QDialogButtonBox()
-        buttons.addButton('Zapisz', QtWidgets.QDialogButtonBox.ButtonRole.AcceptRole)
-        buttons.addButton('Anuluj', QtWidgets.QDialogButtonBox.ButtonRole.RejectRole)
+        buttons.addButton(tr('Zapisz'), QtWidgets.QDialogButtonBox.ButtonRole.AcceptRole)
+        buttons.addButton(tr('Anuluj'), QtWidgets.QDialogButtonBox.ButtonRole.RejectRole)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         form.addRow(buttons)
@@ -67,7 +69,7 @@ class SpectrumSettingsDialog(QtWidgets.QDialog):
         self.color_button.setText(self.color)
 
     def choose_color(self):
-        selected = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color), self, 'Kolor widma')
+        selected = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color), self, tr('Kolor widma'))
         if selected.isValid():
             self.color = selected.name()
             self.show_color()
