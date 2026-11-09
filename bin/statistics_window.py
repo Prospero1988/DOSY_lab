@@ -426,7 +426,7 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         self.current_id = key; self.active_roi = None; self.rebuild_experiment_combo(); self.refresh_current()
 
     def choose_import(self):
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Wczytaj statistics_snapshot.json z DOSY Lab', '', 'Zapis statystyki / projektu (*.json)')
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Wczytaj statistics_snapshot.json z DOSY Lab', '', 'Zapis statystyki (*.json)')
         if path:
             try: self.load_snapshot(path)
             except Exception as e: QtWidgets.QMessageBox.warning(self, 'Odczyt statystyki', str(e))

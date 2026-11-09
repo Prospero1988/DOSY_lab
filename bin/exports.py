@@ -1,11 +1,12 @@
 """Reproducible projects, CSV/XLSX tables and a compact analysis report."""
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from datetime import datetime,timezone
 import csv,json,uuid
 import numpy as np
 from core import clean_json,validate_options
 from d_statistics import build_snapshot,groups,summarize,export_statistics,SCIENTIFIC_NOTE
 from jeol import read_jdf,manual_b
+from storage import DATA, EXAMPLES, WORK, require_extension
 
 
 def project_payload(dataset,entries,*,integral_scale=1.):
@@ -18,14 +19,57 @@ def project_payload(dataset,entries,*,integral_scale=1.):
 
 def save_project(path,dataset,entries,*,integral_scale=1.):
     packet=project_payload(dataset,entries,integral_scale=integral_scale)
-    Path(path).write_text(json.dumps(clean_json(packet),ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
+    require_extension(path,'.proj').write_text(json.dumps(clean_json(packet),ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
+
+
+def _project_source(project, packet):
+    original = packet['source_path']
+    name = PureWindowsPath(original).name
+    saved = Path(original)
+    if not saved.is_absolute():
+        saved = project.parent / saved
+    directories = (DATA, WORK, EXAMPLES)
+    def candidates():
+        if not original.startswith(('\\\\', '//')):
+            yield saved
+        yield project.parent / name
+        for directory in directories:
+            yield directory / name
+        for directory in directories:
+            for candidate in directory.rglob('*'):
+                if candidate.name.casefold() == name.casefold():
+                    yield candidate
+        yield saved
+
+    seen = set()
+    mismatch = False
+    read_error = None
+    for candidate in candidates():
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        try:
+            raw = read_jdf(candidate)
+        except FileNotFoundError:
+            continue
+        except (OSError, ValueError) as exc:
+            read_error = exc
+            continue
+        if raw.metadata['source_sha256'] == packet['source_sha256']:
+            return raw
+        mismatch = True
+    if mismatch:
+        raise ValueError('SHA źródłowego JDF różni się od zapisanego projektu.')
+    if read_error is not None:
+        raise ValueError(f'Nie udało się odczytać źródłowego JDF {name}.') from read_error
+    raise FileNotFoundError(f'Nie znaleziono źródłowego JDF {name}. Umieść go w katalogu data albo przy pliku projektu.')
 
 
 def read_project(path,*,with_integral_scale=False):
-    packet=json.loads(Path(path).read_text(encoding='utf-8'))
+    path=require_extension(path,'.proj').resolve()
+    packet=json.loads(path.read_text(encoding='utf-8'))
     if packet.get('schema')!='dosy_lab_project' or packet.get('version')!=1:raise ValueError('Nieobsługiwany projekt DOSY Lab.')
-    raw=read_jdf(packet['source_path'])
-    if raw.metadata['source_sha256']!=packet['source_sha256']:raise ValueError('SHA źródłowego JDF różni się od zapisanego projektu.')
+    raw=_project_source(path,packet)
     if packet['b_source'].get('kind')=='manual':raw=manual_b(raw,packet['b'],packet['b_source']['description'])
     elif packet['b'] is not None:
         if raw.b is None or not np.allclose(raw.b,packet['b'],rtol=1e-12,atol=0):raise ValueError('Lista b projektu różni się od ponownie odczytanego JDF.')
@@ -82,7 +126,7 @@ def export_bundle(directory,dataset,entries,choices=None,*,integral_scale=1.):
     (directory/'processing.json').write_text(json.dumps(clean_json(dataset.options),ensure_ascii=False,indent=2),encoding='utf-8')
     (directory/'fit_results.json').write_text(json.dumps(clean_json(entries),ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
     (directory/'embedded_sequence.txt').write_text(dataset.metadata.get('context',''),encoding='utf-8')
-    save_project(directory/'project.json',dataset,entries,integral_scale=integral_scale)
+    save_project(directory/'project.proj',dataset,entries,integral_scale=integral_scale)
     np.savez_compressed(directory/'complex_data.npz',fid=dataset.raw.fid,ppm=dataset.ppm,
                         phased=dataset.phased,spectrum=dataset.spectrum,baseline=dataset.baseline,
                         gradients=dataset.gradients,b=np.array([]) if dataset.b is None else dataset.b)

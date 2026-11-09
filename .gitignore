@@ -2,9 +2,16 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
-work/
-data/
+/work/
+/data/
+/projects/
+/processing/
 *.[jJ][dD][fF]
+# Reference acquisitions under examples are intentionally versioned.
+!/examples/**/*.[jJ][dD][fF]
+/examples/DOSY_demo.jdf
+*.[pP][rR][oO][jJ]
+*.[lL][iI][sS][tT]
 DOSY_Lab_*/
 statystyka_D_*/
 DOSY_project.json

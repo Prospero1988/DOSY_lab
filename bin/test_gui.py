@@ -12,7 +12,8 @@ from ui import Window, GROUP_COLUMN, INTEGRAL_COLUMN
 from spectrum_settings import SpectrumAppearance, SpectrumSettingsDialog
 from core import default_options
 from test_dosy_lab import STE,synthetic
-from examples.generate_demo import demo_bytes
+from generate_demo import demo_bytes
+from storage import DATA, PROJECTS, PROCESSING, PROJECT_FILTER, PROFILE_FILTER
 from jeol import RawData
 from core import process_fids
 
@@ -240,6 +241,22 @@ class InterfaceTests(unittest.TestCase):
         self.assertIsNone(w.dataset.diagnostics['baseline'])
         self.assertEqual(w.view.mode,'zoom')
         np.testing.assert_array_equal(w.dataset.spectrum,before)
+
+    def test_dialogs_start_in_workspace_folders_and_filter_extensions(self):
+        w=self.w
+        with patch.object(QtWidgets.QFileDialog,'getOpenFileName',return_value=('','')) as dialog:
+            w.choose_file()
+            self.assertEqual(dialog.call_args.args[2:],(str(DATA),'JEOL (*.jdf)'))
+            w.choose_project()
+            self.assertEqual(dialog.call_args.args[2:],(str(PROJECTS),PROJECT_FILTER))
+            w.processing.load()
+            self.assertEqual(dialog.call_args.args[2:],(str(PROCESSING),PROFILE_FILTER))
+        with patch('ui.choose_save_file',return_value=None) as dialog:
+            w.save_project()
+            self.assertEqual(dialog.call_args.args[2:],(PROJECTS,'DOSY.proj',PROJECT_FILTER))
+        with patch('processing_panel.choose_save_file',return_value=None) as dialog:
+            w.processing.save()
+            self.assertEqual(dialog.call_args.args[2:],(PROCESSING,'processing.list',PROFILE_FILTER))
 
     def test_load_selects_lowest_b_and_preview_layer_keeps_common_phase(self):
         w=self.w;r=synthetic();order=np.r_[3,0,2,1,np.arange(4,16)]
@@ -549,8 +566,8 @@ class InterfaceTests(unittest.TestCase):
         expected = f'{measured[1][3]/measured[0][0]:.2f}'.replace('.', ',')
         self.assertEqual(w.roi_table.item(1, INTEGRAL_COLUMN).text(), expected)
         self.assertEqual(w.integral_labels['S2'].textItem.toPlainText(), expected)
-        path = str(Path(self.settings_path).with_name('project.json'))
-        with patch.object(QtWidgets.QFileDialog, 'getSaveFileName', return_value=(path, '')):
+        path = str(Path(self.settings_path).with_name('project.proj'))
+        with patch('ui.choose_save_file', return_value=path):
             w.save_project()
         w.open_path(path, project=True)
         settle(w)

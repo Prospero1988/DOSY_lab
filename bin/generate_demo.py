@@ -6,6 +6,7 @@ import struct
 import numpy as np
 
 from jeol import GAMMA_H
+from storage import EXAMPLES
 
 
 def encode_fixture(fid, gradients, parameters, context, *, edge=4, little=True, dtype_code=0):
@@ -115,8 +116,12 @@ def demo_bytes():
 
 def main():
     parser = argparse.ArgumentParser(description='Utwórz syntetyczny przykład DOSY w formacie JDF.')
-    parser.add_argument('path',nargs='?',type=Path,default=Path('DOSY_demo.jdf'))
-    path = parser.parse_args().path
+    parser.add_argument('path',nargs='?',type=Path)
+    args = parser.parse_args()
+    path = args.path
+    if path is None:
+        EXAMPLES.mkdir(parents=True, exist_ok=True)
+        path = EXAMPLES/'DOSY_demo.jdf'
     with path.open('xb') as stream:
         stream.write(demo_bytes())
     print(path.resolve())

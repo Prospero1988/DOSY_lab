@@ -2,7 +2,7 @@
 
 DOSY Lab to aplikacja desktopowa do analizy klasycznych eksperymentów dyfuzyjnych NMR z surowych plików JEOL JDF. Otwiera serię jednowymiarowych widm z różnymi gradientami, pozwala wspólnie je przetworzyć i wyznaczyć współczynnik dyfuzji **D** dla wskazanych sygnałów.
 
-![Główne okno DOSY Lab z widmem, całkami, zanikami i resztami](docs/images/widmo-integracja.png)
+![Główne okno DOSY Lab z widmem, całkami, zanikami i resztami](images/widmo-integracja.png)
 
 *Dane syntetyczne. Widmo referencyjne u góry, całki i diagnostyka dopasowań poniżej.*
 
@@ -27,15 +27,15 @@ git clone https://github.com/Prospero1988/DOSY_lab.git
 cd DOSY_lab
 ~~~
 
-W otwartym folderze kliknij dwukrotnie **start.cmd**. Przy pierwszym uruchomieniu skrypt przygotuje środowisko `.venv` i zainstaluje zależności. W PowerShell ten sam skrypt uruchomisz przez `.\start.cmd`.
+W otwartym folderze kliknij dwukrotnie **DOSY Lab.cmd**. Przy pierwszym uruchomieniu skrypt przygotuje środowisko `.venv` i zainstaluje zależności. W PowerShell ten sam skrypt uruchomisz przez `& '.\DOSY Lab.cmd'`.
 
 <details>
 <summary>Instalacja ręczna z PowerShell</summary>
 
 ~~~powershell
 py -3 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe app.py
+.\.venv\Scripts\python.exe -m pip install -r bin\requirements.txt
+.\.venv\Scripts\python.exe bin\app.py
 ~~~
 
 Jeżeli instalator Pythona udostępnił polecenie `python` zamiast `py`, użyj `python -m venv .venv` w pierwszym kroku.
@@ -47,21 +47,21 @@ Jeżeli instalator Pythona udostępnił polecenie `python` zamiast `py`, użyj `
 Po pierwszym uruchomieniu z katalogu aplikacji wygeneruj syntetyczny eksperyment z 16 warstwami.
 
 ~~~powershell
-.\.venv\Scripts\python.exe -m examples.generate_demo
-.\start.cmd DOSY_demo.jdf
+.\.venv\Scripts\python.exe bin\generate_demo.py
+& '.\DOSY Lab.cmd' '.\examples\DOSY_demo.jdf'
 ~~~
 
 Plik można też wybrać w aplikacji przez **Otwórz DOSY**. Dla szybkiej próby kliknij **Dodaj całkę ręcznie** i wpisz `3,60; 3,68`. Powtórz czynność dla `4,66; 4,74`. Granice są podane w ppm. Oczekiwane **D** wynoszą w przybliżeniu odpowiednio **3,8 × 10⁻¹⁰ m²/s** i **8,0 × 10⁻¹⁰ m²/s**. W tabeli głównej kolumna `D / 10⁻¹⁰` pokaże więc wartości w okolicy **3,8** i **8,0**. Generator odmawia nadpisania istniejącego JDF. Przy kolejnym generowaniu można podać inną nazwę jako argument.
 
 ## Podręcznik
 
-[Instrukcja użytkownika](docs/INSTRUKCJA.md) prowadzi od otwarcia JDF do eksportu. Zawiera opis gestów, parametrów processingu, fazowania, bazy, całek, fitów, statystyki i interpretacji wyników.
+[Instrukcja użytkownika](INSTRUKCJA.md) prowadzi od otwarcia JDF do eksportu. Zawiera opis gestów, parametrów processingu, fazowania, bazy, całek, fitów, statystyki i interpretacji wyników.
 
-- [Korekcja fazy i gesty myszy](docs/INSTRUKCJA.md#3-korekcja-fazy)
-- [Pochodzenie b i ręczny import](docs/INSTRUKCJA.md#6-wartości-b)
-- [Statystyka D i diagnostyka](docs/INSTRUKCJA.md#8-statystyka-d)
-- [Projekty i pliki eksportu](docs/INSTRUKCJA.md#9-projekty-i-eksport)
-- [Mapa DOSY 2D z całek](docs/INSTRUKCJA.md#11-mapa-dosy-2d)
+- [Korekcja fazy i gesty myszy](INSTRUKCJA.md#3-korekcja-fazy)
+- [Pochodzenie b i ręczny import](INSTRUKCJA.md#6-wartości-b)
+- [Statystyka D i diagnostyka](INSTRUKCJA.md#8-statystyka-d)
+- [Projekty i pliki eksportu](INSTRUKCJA.md#9-projekty-i-eksport)
+- [Mapa DOSY 2D z całek](INSTRUKCJA.md#11-mapa-dosy-2d)
 
 ## Format danych i zakres obsługi
 
@@ -72,6 +72,8 @@ Plik można też wybrać w aplikacji przez **Otwórz DOSY**. Dla szybkiej próby
 
 ## Kod i testy
 
+W `bin` znajduje się kod, konfiguracja zależności i testy. `examples` zawiera widma wzorcowe sacharozy i strychniny. Git ignoruje lokalne katalogi `work`, `data`, `projects` i `processing`.
+
 | Pliki | Rola |
 | --- | --- |
 | `app.py`, `ui.py`, `spectrum_view.py` | Uruchamianie aplikacji, główne okno i obsługa widma |
@@ -80,13 +82,13 @@ Plik można też wybrać w aplikacji przez **Otwórz DOSY**. Dla szybkiej próby
 | `d_statistics.py`, `statistics_window.py`, `statistics_svg.py` | Statystyka, diagnostyka ROI i wykresy |
 | `dosy_map.py` | Mapa ppm × D z całek i widma referencyjnego |
 | `exports.py`, `experiment_info.py`, `fullscreen_plot.py` | Projekty i eksport, metadane oraz widoki wykresów |
-| `examples/generate_demo.py`, `test_*.py` | Syntetyczny JDF i testy obliczeń oraz interfejsu |
+| `generate_demo.py`, `test_*.py` | Generator syntetycznego JDF i testy obliczeń oraz interfejsu |
 
 ~~~powershell
-.\.venv\Scripts\python.exe -m unittest discover -v
+.\.venv\Scripts\python.exe -m unittest discover -s bin -v
 ~~~
 
-Testy interfejsu uruchamiają Qt w trybie offscreen. Publiczny zestaw używa danych syntetycznych. Dodatkowe testy regresji na lokalnych plikach pomiarowych są pomijane, kiedy tych plików brakuje.
+Testy interfejsu uruchamiają Qt w trybie offscreen. Testy używają danych syntetycznych oraz plików wzorcowych z `examples`. Regresje wymagające konkretnego wzorca są pomijane, kiedy tego pliku brakuje.
 
 ## Licencja
 

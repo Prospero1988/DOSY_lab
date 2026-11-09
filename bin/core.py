@@ -2,13 +2,13 @@
 from dataclasses import dataclass
 from copy import deepcopy
 import json
-from pathlib import Path
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.integrate import trapezoid
 from scipy.stats import t as student_t
 from scipy.signal import find_peaks
 from jeol import RawData,read_jdf,validate_b,reference_layer
+from storage import require_extension
 
 
 def default_options(raw):
@@ -246,10 +246,13 @@ def clean_json(value):
 
 
 def save_profile(path,options):
-    Path(path).write_text(json.dumps({'schema':'dosy_lab_processing','version':1,'options':clean_json(validate_options(options))},indent=2,ensure_ascii=False),encoding='utf-8')
+    require_extension(path,'.list').write_text(json.dumps({'schema':'dosy_lab_processing','version':1,'options':clean_json(validate_options(options))},indent=2,ensure_ascii=False),encoding='utf-8')
 
 
 def load_profile(path):
-    data=json.loads(Path(path).read_text(encoding='utf-8'))
-    if data.get('schema')!='dosy_lab_processing' or data.get('version')!=1:raise ValueError('Nieobsługiwany profil processingu.')
-    return validate_options(data['options'])
+    data=json.loads(require_extension(path,'.list').read_text(encoding='utf-8'))
+    if (not isinstance(data,dict) or data.get('schema')!='dosy_lab_processing'
+            or data.get('version')!=1 or not isinstance(data.get('options'),dict)):
+        raise ValueError('Nieobsługiwany profil processingu.')
+    try:return validate_options(data['options'])
+    except (KeyError, TypeError) as exc:raise ValueError('Niekompletne ustawienia profilu processingu.') from exc

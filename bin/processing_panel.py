@@ -6,6 +6,7 @@ import numpy as np
 from PySide6 import QtCore,QtWidgets
 from core import save_profile,load_profile
 from jeol import validate_b
+from storage import PROCESSING, PROFILE_FILTER, choose_save_file, dialog_directory
 
 
 class ProcessingPanel(QtWidgets.QDockWidget):
@@ -118,14 +119,18 @@ class ProcessingPanel(QtWidgets.QDockWidget):
         self._setting=False;self.changed.emit()
 
     def save(self):
-        path,_=QtWidgets.QFileDialog.getSaveFileName(self,'Zapisz processing','processing.json','JSON (*.json)')
-        if path:save_profile(path,self.options())
+        try:
+            path=choose_save_file(self,'Zapisz profil',PROCESSING,'processing.list',PROFILE_FILTER)
+            if path:save_profile(path,self.options())
+        except (OSError,ValueError) as exc:
+            QtWidgets.QMessageBox.warning(self,'Profil processingu',str(exc))
 
     def load(self):
-        path,_=QtWidgets.QFileDialog.getOpenFileName(self,'Wczytaj processing','','JSON (*.json)')
-        if path:
-            try:self.set_options(load_profile(path),self.controls['reference_layer'].maximum());self.changed.emit()
-            except Exception as e:QtWidgets.QMessageBox.warning(self,'Profil processingu',str(e))
+        try:
+            path,_=QtWidgets.QFileDialog.getOpenFileName(self,'Wczytaj profil',dialog_directory(PROCESSING),PROFILE_FILTER)
+            if path:self.set_options(load_profile(path),self.controls['reference_layer'].maximum());self.changed.emit()
+        except (OSError,ValueError) as exc:
+            QtWidgets.QMessageBox.warning(self,'Profil processingu',str(exc))
 
 
 class BDialog(QtWidgets.QDialog):

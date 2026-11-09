@@ -1,6 +1,6 @@
 # Instrukcja użytkownika DOSY Lab
 
-[Powrót do README](../README.md)
+[Powrót do README](README.md)
 
 1. [Otwarcie danych](#1-otwarcie-danych)
 2. [Nawigacja i processing](#2-nawigacja-i-processing)
@@ -16,8 +16,8 @@
 
 ## 1. Otwarcie danych
 
-1. Uruchom aplikację zgodnie z [README](../README.md#pierwsze-uruchomienie-na-windows).
-2. Kliknij **Otwórz DOSY** i wybierz surowy plik JEOL `.jdf`. Program przeliczy widma z zespolonych FID i wyświetli warstwę z najniższym dostępnym **b**. Gdy **b** jest nieznane, warstwę referencyjną wybiera na podstawie gradientu, jeśli ten jest dostępny.
+1. Uruchom aplikację zgodnie z [README](README.md#pierwsze-uruchomienie-na-windows).
+2. Kliknij **Otwórz DOSY** i wybierz surowy plik JEOL `.jdf`. Okno zaczyna w katalogu `data`. Program przeliczy widma z zespolonych FID i wyświetli warstwę z najniższym dostępnym **b**. Gdy **b** jest nieznane, warstwę referencyjną wybiera na podstawie gradientu, jeśli ten jest dostępny.
 3. Otwórz **Info**, aby sprawdzić nazwę pliku, parametry akwizycji i aktualnego processingu, pochodzenie **b** oraz metadane zapisane w JDF.
 4. Pole **Warstwa** wybiera pojedyncze widmo. **Pokaż referencję** wraca do warstwy referencyjnej. **Nałóż warstwy** przyjmuje numery od 1, oddzielone przecinkami, np. `1,8,16`. Pierwsza wskazana warstwa wyznacza wartość całki pokazywaną przy sygnale i w tabeli. **Pokaż Im** dołącza do podglądu część urojoną.
 
@@ -50,7 +50,7 @@ Gdy zatrzymasz kursor na przycisku głównego okna, pojawi się krótka podpowie
 | **Opóźnienie filtra [próbki]** | Stosuje oddzielną rampę fazową do korekcji opóźnienia filtra cyfrowego. Zero wyłącza tę korekcję. |
 | **Przytnij pasmo filtra według JDF** | Ogranicza pasmo do wartości zapisanej w JDF. Program uwzględnia liczbę próbek i czas akwizycji, gdy plik zgłasza przycięcie, a metadane wskazują na pełny FID. |
 | **Warstwa referencyjna** | Ustala punkt startowy podglądu fazowania i warstwę wskazywaną przyciskiem **Pokaż referencję**. |
-| **Zapisz profil / Wczytaj profil** | Przenosi ustawienia processingu jako profil JSON. Po wczytaniu na innym widmie sprawdź zwłaszcza fazę, referencję i zakresy bazy. |
+| **Zapisz profil / Wczytaj profil** | Przenosi ustawienia processingu jako profil `.list` w formacie JSON. Oba okna zaczynają w katalogu `processing`. Po wczytaniu na innym widmie sprawdź zwłaszcza fazę, referencję i zakresy bazy. |
 
 ## 3. Korekcja fazy
 
@@ -141,7 +141,7 @@ Wykres **D** pokazuje wyłącznie zaznaczone sygnały wybranego związku. Punkty
 
 ## 9. Projekty i eksport
 
-**Zapisz projekt** zachowuje ustawienia processingu, wspólną fazę, ręczne **b**, granice ROI, grupy, maski punktów oraz kalibrację całek. Projekt JSON przechowuje odwołanie do źródłowego JDF i jego SHA-256. **Wczytaj projekt…** odtwarza analizę z tym źródłem. Przy przenoszeniu projektu zachowaj oryginalny JDF i sprawdź ścieżkę zapisaną w JSON. Profil processingu i migawka statystyki pełnią odrębne funkcje.
+**Zapisz projekt** zachowuje ustawienia processingu, wspólną fazę, ręczne **b**, granice ROI, grupy, maski punktów oraz kalibrację całek. **Zapisz projekt** i **Wczytaj projekt…** zaczynają w katalogu `projects`. Projekt `.proj` zawiera JSON z odwołaniem do źródłowego JDF i jego SHA-256. Po przeniesieniu JDF program szuka tej samej nazwy przy projekcie i w katalogach `data`, `work` i `examples`, a przed użyciem sprawdza SHA-256. Starszym projektom i profilom DOSY Lab zapisanym jako `.json` wystarczy zmienić rozszerzenie odpowiednio na `.proj` lub `.list`.
 
 **Eksport Statystyki D** w głównym oknie zapisuje pakiet wyników analizy. Poniżej znajduje się lista najważniejszych plików.
 
@@ -152,7 +152,7 @@ Wykres **D** pokazuje wyłącznie zaznaczone sygnały wybranego związku. Punkty
 | `compound_statistics.csv` | Podsumowania według jawnie zdefiniowanych grup. |
 | `DOSY_results.xlsx` | Arkusze ROI, punktów, statystyki, processingu i eksperymentu. |
 | `experiment.json`, `processing.json`, `fit_results.json` | Metadane, opcje i szczegóły dopasowań. |
-| `project.json`, `statistics_snapshot.json` | Projekt i migawka wyników do porównań. |
+| `project.proj`, `statistics_snapshot.json` | Projekt i migawka wyników do porównań. |
 | `complex_data.npz` | FID, ppm, widma zespolone, baza oraz wartości gradientów i **b**. |
 | `embedded_sequence.txt` | Tekst sekwencji, jeśli występuje w JDF. |
 | `Raport.md` i pliki PNG/SVG | Podsumowanie i wykresy. |
@@ -169,7 +169,7 @@ Pakiet eksportu może zawierać pełne dane pomiarowe i treść osadzonej sekwen
 | Dopasowanie ma dobre R², ale **D** różni się między sygnałami | Sprawdź reszty, widma w ROI, kalibrację **b**, granice całek i przypisanie sygnałów do związków. |
 | Statystyka pokazuje N = 0 | Sprawdź grupę **Związek**, pole **Uwzględnij** i QC sygnałów. |
 | Projekt nie znajduje JDF | Sprawdź ścieżkę do oryginalnego pliku w projekcie i jego dostępność. |
-| Skrypt startowy zamyka się lub brakuje bibliotek | Spróbuj [instalacji ręcznej](../README.md#pierwsze-uruchomienie-na-windows) i uruchom `app.py` z tego samego środowiska. |
+| Skrypt startowy zamyka się lub brakuje bibliotek | Spróbuj [instalacji ręcznej](README.md#pierwsze-uruchomienie-na-windows) i uruchom `bin/app.py` z tego samego środowiska. |
 
 ## 11. Mapa DOSY 2D
 

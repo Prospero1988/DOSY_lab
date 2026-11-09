@@ -1,6 +1,7 @@
 """Synthetic and actual-data tests of the classical DOSY application."""
 from pathlib import Path
 from copy import deepcopy
+from unittest.mock import patch
 import csv,hashlib,json,struct,tempfile,unittest
 import numpy as np
 from jeol import RawData,read_jdf,manual_b,validate_b,factory_b,parameters,GAMMA_H,infer_filter_delay
@@ -9,12 +10,13 @@ from core import (default_options,process_fids,signed_integrals,integrate,fit_de
 from d_statistics import build_snapshot,descriptive_statistics,summarize,diagnostic_points,export_statistics,import_statistics
 from dosy_map import roi_bands
 from exports import export_bundle,save_project,read_project
-from examples.generate_demo import demo_bytes, encode_fixture, ste_fixture_context
+from generate_demo import demo_bytes, encode_fixture, ste_fixture_context
+from storage import EXAMPLES
 
-ROOT=Path(__file__).parent
-DATA=ROOT/'data/DOSY_sacharoza'
+DATA=EXAMPLES/'DOSY_sacharoza'
 STE=DATA/'Sacharoza_50mM_D2O_2D_DOSY-1-1.jdf'
 DSTE=DATA/'Sacharoza_50mM_D2O_2D_DOSY_CC-1-1.jdf'
+STRYCHNINE=EXAMPLES/'Strychnina/Strychnina_CDCl3_bpp_ste_led_diffusion-1-1.jdf'
 real_sucrose = unittest.skipUnless(STE.is_file() and DSTE.is_file(), 'Lokalne JDF sacharozy są opcjonalne.')
 
 
@@ -45,6 +47,31 @@ def fake_jdf(edge=4,little=True,dtype_code=0,*,supported=True):
 
 
 class ReaderTests(unittest.TestCase):
+    def test_project_finds_relocated_jdf_and_checks_sha(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            source=root/'sample.jdf'
+            source.write_bytes(demo_bytes())
+            dataset=initial_dataset(read_jdf(source))
+            project=root/'projects'/'analysis.proj'
+            project.parent.mkdir()
+            save_project(project,dataset,[])
+            with self.assertRaisesRegex(ValueError,r'\.proj'):
+                read_project(project.with_suffix('.json'))
+            with self.assertRaisesRegex(ValueError,r'\.proj'):
+                save_project(project.with_suffix('.list'),dataset,[])
+            relocated=root/'data'/'batch'/source.name
+            relocated.parent.mkdir(parents=True)
+            source.rename(relocated)
+            (project.parent/source.name).write_bytes(fake_jdf()[0])
+            with patch.multiple('exports',DATA=root/'data',WORK=root/'work',EXAMPLES=root/'examples'):
+                loaded,options,_=read_project(project)
+                self.assertEqual(Path(loaded.metadata['source_path']),relocated)
+                self.assertEqual(options,dataset.options)
+                relocated.rename(relocated.with_name('moved.jdf'))
+                with self.assertRaisesRegex(ValueError,'SHA'):
+                    read_project(project)
+
     def test_generated_demo_fits_two_diffusion_coefficients(self):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'DOSY_demo.jdf'
@@ -122,7 +149,7 @@ class ReaderTests(unittest.TestCase):
             np.testing.assert_allclose(read.b,(GAMMA_H*raw.gradients*.0025)**2*.098166675)
             self.assertEqual(read.metadata['b_source']['pulse_program'],'dosy_presat.jxp')
             dataset=process_fids(read)
-            project=Path(directory)/'old.json'
+            project=Path(directory)/'old.proj'
             save_project(project,dataset,[])
             payload=json.loads(project.read_text(encoding='utf-8'))
             payload.update(b=None,b_source={'kind':'unavailable'})
@@ -195,7 +222,7 @@ class ProcessingTests(unittest.TestCase):
                 np.testing.assert_array_equal(raw.fid,saved)
                 np.testing.assert_array_equal(after.b,before.b)
                 with tempfile.TemporaryDirectory() as tmp:
-                    project=Path(tmp)/'project.json'
+                    project=Path(tmp)/'project.proj'
                     save_project(project,after,[])
                     _,opts,_=read_project(project)
                     self.assertEqual(opts,after.options)
@@ -221,10 +248,10 @@ class ProcessingTests(unittest.TestCase):
         np.testing.assert_allclose(areas/areas[0],np.exp(-r.b*3.86e-10),atol=1e-12)
         np.testing.assert_array_equal(raw.fid,saved)
 
-    @unittest.skipUnless((ROOT/'data/Strychnina_CDCl3_bpp_ste_led_diffusion-1-1.jdf').exists(),'Optional strychnine reference JDF unavailable')
+    @unittest.skipUnless(STRYCHNINE.is_file(),'Optional strychnine reference JDF unavailable')
     def test_strychnine_manual_common_phase_reduces_periodic_blank_baseline(self):
         # Empirical diagnostic profile for this JDF, never an application default.
-        raw=read_jdf(ROOT/'data/Strychnina_CDCl3_bpp_ste_led_diffusion-1-1.jdf')
+        raw=read_jdf(STRYCHNINE)
         original=raw.fid.copy();o=default_options(raw);before=process_fids(raw,o)
         o['phase1_deg']=7200.;trial=process_fids(raw,o)
         o['phase0_deg']=-float(np.angle(signed_integrals(trial.ppm,trial.phased,[7.03,7.5])[0],deg=True))
@@ -325,8 +352,12 @@ class ProcessingTests(unittest.TestCase):
 
     def test_processing_profile_roundtrip(self):
         with tempfile.TemporaryDirectory() as d:
-            o=default_options(synthetic());o['phase1_deg']=7200;p=Path(d)/'profile.json';save_profile(p,o)
+            o=default_options(synthetic());o['phase1_deg']=7200;p=Path(d)/'profile.list';save_profile(p,o)
             self.assertEqual(load_profile(p),o)
+            with self.assertRaisesRegex(ValueError,r'\.list'):
+                load_profile(p.with_suffix('.json'))
+            with self.assertRaisesRegex(ValueError,r'\.list'):
+                save_profile(p.with_suffix('.proj'),o)
             saved=json.loads(p.read_text(encoding='utf-8'))
             saved['options'].update(baseline_per_layer=False,baseline_degree=2)
             p.write_text(json.dumps(saved),encoding='utf-8')
@@ -395,6 +426,7 @@ class FitStatisticsExportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out=export_bundle(Path(tmp)/'export',d,rows)
             self.assertTrue((out/'Raport.md').exists());self.assertTrue((out/'processing.json').exists())
+            self.assertTrue((out/'project.proj').exists())
             saved=json.loads((out/'processing.json').read_text(encoding='utf-8'))
             self.assertEqual([saved[k] for k in ('phase0_deg','phase1_deg','pivot_ppm')],[12.,30.,4.6])
             book=load_workbook(out/'DOSY_results.xlsx',read_only=True,data_only=True);self.assertEqual(book['ROI']['A2'].value,'S1');book.close()
@@ -416,7 +448,7 @@ class FitStatisticsExportTests(unittest.TestCase):
             rows=analyze(d,[entry]);f=rows[0]['fit'];self.assertTrue(f['ok']);self.assertGreater(f['R2'],.995)
             self.assertGreater(f['D_m2_s'],3.7e-10);self.assertLess(f['D_m2_s'],4.05e-10)
             with tempfile.TemporaryDirectory() as tmp:
-                p=Path(tmp)/'project.json';save_project(p,d,[entry]);rr,oo,ee=read_project(p)
+                p=Path(tmp)/'project.proj';save_project(p,d,[entry]);rr,oo,ee=read_project(p)
                 self.assertEqual(oo,o);self.assertEqual(ee[0]['bounds'],entry['bounds']);np.testing.assert_array_equal(rr.fid,r.fid)
 
 

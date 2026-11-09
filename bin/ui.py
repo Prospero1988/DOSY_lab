@@ -12,6 +12,7 @@ from jeol import read_jdf,manual_b
 from processing_panel import ProcessingPanel,BDialog
 from statistics_window import StatisticsWindow
 from dosy_map import DosyMapWindow
+from storage import DATA, PROJECTS, PROJECT_FILTER, choose_save_file, dialog_directory
 from plot_export import save_light_plot
 from d_statistics import build_snapshot,number
 from fullscreen_plot import enable_fullscreen
@@ -224,8 +225,11 @@ class Window(QtWidgets.QMainWindow):
     def active_result(self):return next((e for e in self.results if e['id']==self.active_id),None)
 
     def choose_file(self):
-        path,_=QtWidgets.QFileDialog.getOpenFileName(self,'Otwórz klasyczny JEOL DOSY','','JEOL (*.jdf)')
-        if path:self.open_path(path)
+        try:
+            path,_=QtWidgets.QFileDialog.getOpenFileName(self,'Otwórz klasyczny JEOL DOSY',dialog_directory(DATA),'JEOL (*.jdf)')
+            if path:self.open_path(path)
+        except OSError as exc:
+            QtWidgets.QMessageBox.warning(self,'Otwórz DOSY',str(exc))
 
     def open_path(self,path,project=False):
         if self.worker is not None:return
@@ -704,11 +708,17 @@ class Window(QtWidgets.QMainWindow):
         self.processing.set_options(options,len(self.raw.fid));self.request_calculation()
     def save_project(self):
         if self.dataset is None or not self.valid:return
-        path,_=QtWidgets.QFileDialog.getSaveFileName(self,'Zapisz projekt','DOSY_project.json','JSON (*.json)')
-        if path:save_project(path,self.dataset,self.entries,integral_scale=self.integral_scale)
+        try:
+            path=choose_save_file(self,'Zapisz projekt',PROJECTS,'DOSY.proj',PROJECT_FILTER)
+            if path:save_project(path,self.dataset,self.entries,integral_scale=self.integral_scale)
+        except (OSError,ValueError) as exc:
+            QtWidgets.QMessageBox.warning(self,'Zapisz projekt',str(exc))
     def choose_project(self):
-        path,_=QtWidgets.QFileDialog.getOpenFileName(self,'Wczytaj projekt','','JSON (*.json)')
-        if path:self.open_path(path,project=True)
+        try:
+            path,_=QtWidgets.QFileDialog.getOpenFileName(self,'Wczytaj projekt',dialog_directory(PROJECTS),PROJECT_FILTER)
+            if path:self.open_path(path,project=True)
+        except OSError as exc:
+            QtWidgets.QMessageBox.warning(self,'Wczytaj projekt',str(exc))
 
     def choose_spectrum_png(self):
         path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Zapisz widmo 1D', 'widmo_1D.png', 'PNG (*.png)')
@@ -753,10 +763,15 @@ class Window(QtWidgets.QMainWindow):
 
 
 def main():
-    parser=argparse.ArgumentParser(description='DOSY Lab — klasyczne 1D DOSY JEOL');parser.add_argument('path',nargs='?');args=parser.parse_args()
+    parser=argparse.ArgumentParser(description='DOSY Lab — klasyczne 1D DOSY JEOL')
+    parser.add_argument('path',nargs='?',type=Path,help='Plik pomiarowy .jdf lub projekt .proj')
+    args=parser.parse_args()
+    suffix=args.path.suffix.lower() if args.path else None
+    if suffix is not None and suffix not in ('.jdf','.proj'):
+        parser.error('Wybierz plik .jdf albo projekt .proj.')
     app=QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
     app.setApplicationName('DOSY Lab');app.setFont(QtGui.QFont('Segoe UI',10))
     pg.setConfigOptions(background='#101827',foreground='#dbe4ef',antialias=True)
     window=Window();window.showMaximized()
-    if args.path:window.open_path(args.path,project=str(args.path).lower().endswith('.json'))
+    if args.path:window.open_path(args.path,project=suffix=='.proj')
     sys.exit(app.exec())
