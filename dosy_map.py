@@ -6,6 +6,7 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from d_statistics import finite
+from plot_export import NAVY, light_plot
 from spectrum_view import SpectrumBox
 
 
@@ -399,9 +400,12 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(3)
         try:
-            spectrum = self.export_plot(self.projection, layout)
-            map_plot = self.export_plot(self.plot, layout)
-            navy = QtGui.QColor('#142b5c')
+            spectrum = light_plot(self.projection)
+            map_plot = light_plot(self.plot)
+            for source, plot in ((self.projection, spectrum), (self.plot, map_plot)):
+                plot.setFixedHeight(source.height())
+                layout.addWidget(plot)
+            navy = QtGui.QColor(NAVY)
             spectrum.plot(*self.trace.getData(), pen=pg.mkPen(navy, width=1.3))
             lookup = self.color_table(navy)
             for image in self.images:
@@ -425,24 +429,3 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         finally:
             canvas.close()
             canvas.deleteLater()
-
-    def export_plot(self, source, layout):
-        plot = pg.PlotWidget(background='w')
-        layout.addWidget(plot)
-        plot.setFixedHeight(source.height())
-        plot.invertX(True)
-        plot.hideButtons()
-        plot.getViewBox().setBorder('k')
-        for name in ('left', 'bottom'):
-            original = source.getAxis(name)
-            axis = plot.getAxis(name)
-            axis.setPen('k')
-            axis.setTickPen('k')
-            axis.setTextPen('k')
-            axis.setLabel(original.labelText, units=original.labelUnits, color='#000000')
-            axis.setStyle(showValues=original.style['showValues'])
-            axis.enableAutoSIPrefix(original.autoSIPrefix)
-        plot.getAxis('left').setWidth(source.getAxis('left').width())
-        grid = self.grid_button.isChecked()
-        plot.showGrid(x=grid, y=grid, alpha=.17)
-        return plot

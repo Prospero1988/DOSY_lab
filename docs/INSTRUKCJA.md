@@ -33,6 +33,7 @@ Po zmianie warstwy podglądu wszystkie ROI nadal obejmują te same zakresy ppm w
 | **Przesuwaj** i przeciągnięcie | Przesuwa widok w pionie i poziomie. |
 | Dwuklik lub **Cały zakres** | Przywraca pełny zakres widma. |
 | **Pełny ekran** | Otwiera powiększony widok. **Esc** wraca do głównego okna. |
+| **Zapisz PNG** | Zapisuje bieżący widok 1D w jasnej kolorystyce z granatowym widmem, zachowując przybliżenie. |
 | **Widok** | Ustawia kolor i grubość linii widma oraz widoczność siatki. |
 
 Gdy zatrzymasz kursor na przycisku głównego okna, pojawi się krótka podpowiedź.
@@ -130,9 +131,9 @@ Dla każdego ROI DOSY Lab dopasowuje model **I(b) = I₀ exp(−bD)** do całek 
 2. Użyj kolumny **Uwzględnij**, żeby włączać i wyłączać ROI w statystyce. Zmiana dotyczy zestawienia. Dopasowanie pojedynczego ROI i jego punkty pozostają w projekcie.
 3. Kliknij punkt **D** lub odpowiadający mu wiersz. Panel **Zanik wybranego ROI** pokazuje zapisany model, **D**, SE(D), **R²**, korekcję bazy oraz rzeczywiste punkty I(b). Włącz **Pokaż reszty**, jeśli chcesz ocenić strukturę błędu. Po wskazaniu punktu zaniku dostępne wartości obejmują **g**, **b**, całkę, przewidywanie, resztę i S/N.
 4. Użyj **Zachowaj kopię do porównania** lub **Wczytaj zapis statystyki**, aby zestawić osobne eksperymenty. W zakładce porównania każdy pomiar ma własne podsumowanie.
-5. **Eksport CSV + zapis statystyki** zapisuje tabele i migawkę JSON. Przyciski **PNG** i **SVG** eksportują wykres wybrany w polu **Eksportowany wykres**.
+5. **Eksport CSV + zapis statystyki** zapisuje tabele i migawkę JSON. Przyciski **PNG** i **SVG** eksportują wykres wybrany w polu **Eksportowany wykres** z białym tłem, czarnymi opisami i granatowymi danymi. **Wyłącz siatkę** działa osobno dla wykresu D oraz pary wykresów zaniku i reszt.
 
-Wykres **D** pokazuje punkty z błędami ±SE(D), średnią i pasmo ±1 SD. **Linie ±2 SD** można włączyć dodatkowo. Gdy liczba uwzględnionych sygnałów na to pozwala, podsumowanie zawiera średnią, medianę, SD próby, CV, opisowe SEM, minimum, maksimum i **N**. Dla N < 2 brakuje podstaw do wyznaczenia SD próby, CV i SEM.
+Wykres **D** pokazuje wyłącznie zaznaczone sygnały wybranego związku. Punkty mają słupki ±SE(D), a wykres zawiera średnią i pasmo ±1 SD. **Linie ±2 SD** można włączyć dodatkowo. Gdy liczba uwzględnionych sygnałów na to pozwala, podsumowanie zawiera średnią, medianę, SD próby, CV, opisowe SEM, minimum, maksimum i **N**. Dla N < 2 brakuje podstaw do wyznaczenia SD próby, CV i SEM.
 
 - **SE(D)** opisuje niepewność jednego dopasowania wynikającą z jego modelu i danych.
 - **SD** opisuje rozrzut wyników **D** pomiędzy wybranymi sygnałami. **SEM** to opisowe SD/√N. Sygnały z jednego eksperymentu mogą mieć skorelowane błędy, np. wspólne odchylenie kalibracji gradientu, więc to SEM ma ograniczoną interpretację jako niepewność średniej.
@@ -142,7 +143,7 @@ Wykres **D** pokazuje punkty z błędami ±SE(D), średnią i pasmo ±1 SD. **Li
 
 **Zapisz projekt** zachowuje ustawienia processingu, wspólną fazę, ręczne **b**, granice ROI, grupy, maski punktów oraz kalibrację całek. Projekt JSON przechowuje odwołanie do źródłowego JDF i jego SHA-256. **Wczytaj projekt…** odtwarza analizę z tym źródłem. Przy przenoszeniu projektu zachowaj oryginalny JDF i sprawdź ścieżkę zapisaną w JSON. Profil processingu i migawka statystyki pełnią odrębne funkcje.
 
-**Eksport** zapisuje pakiet wyników analizy. Poniżej znajduje się lista najważniejszych plików.
+**Eksport Statystyki D** w głównym oknie zapisuje pakiet wyników analizy. Poniżej znajduje się lista najważniejszych plików.
 
 | Plik | Zawartość |
 | --- | --- |

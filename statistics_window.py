@@ -9,11 +9,11 @@ import uuid
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
-import pyqtgraph.exporters
 from fullscreen_plot import enable_fullscreen
+from plot_export import save_light_plot
 
 from d_statistics import (SCIENTIFIC_NOTE, diagnostic_points, export_statistics,
-                          finite, import_statistics, number, summarize, groups)
+                          finite, import_statistics, number, summarize, groups, included_records)
 
 
 class StatisticsWindow(QtWidgets.QMainWindow):
@@ -83,7 +83,8 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         self.d_plot.getAxis('left').enableAutoSIPrefix(False)
         overview_layout.addWidget(self.d_plot,1)
         upper.addWidget(overview); upper.setSizes([760, 660])
-        self.highlight = None; self.d_points = []
+        self.highlight = None; self.d_positions = {}
+        self.d_grid = self.grid_button(plot_tools, self.d_plot)
         self.tabs = QtWidgets.QTabWidget(); splitter.addWidget(self.tabs)
         detail = QtWidgets.QWidget(); detail_layout = QtWidgets.QVBoxLayout(detail)
         self.roi_info = QtWidgets.QLabel('Wybierz wiersz lub punkt D, aby zobaczyć zapisany zanik.')
@@ -102,6 +103,7 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         self.residual_plot = pg.PlotWidget(); self.residual_plot.showGrid(x=True, y=True, alpha=.2)
         self.residual_plot.setLabel('left', 'I − przewidywanie'); self.residual_plot.setLabel('bottom', 'b / 10⁹ [s/m²]')
         self.residual_plot.setXLink(self.decay_plot); detail_layout.addWidget(self.residual_plot, 1)
+        self.detail_grid = self.grid_button(plot_tools, self.decay_plot, self.residual_plot)
         self.tabs.addTab(detail, 'Zanik wybranego ROI')
         self.comparison = QtWidgets.QTableWidget(0, 7)
         self.comparison.setHorizontalHeaderLabels(['Eksperyment (oddzielne grupy)', 'N', 'Średnia D [m²/s]', 'Mediana D [m²/s]', 'SD [m²/s]', 'CV [%]', 'SEM opisowe [m²/s]'])
@@ -133,7 +135,7 @@ class StatisticsWindow(QtWidgets.QMainWindow):
 
     def reset_overview(self):
         self.d_plot.autoRange(padding=.05)
-        count = len(self.current['records']) if self.current is not None else 0
+        count = len(self.d_positions)
         self.d_plot.setXRange(-.6,max(.6,count-.4),padding=0)
 
     def reset_diagnostics(self):
@@ -144,6 +146,18 @@ class StatisticsWindow(QtWidgets.QMainWindow):
     @staticmethod
     def button(text, callback, row):
         button = QtWidgets.QPushButton(text); button.clicked.connect(callback); row.addWidget(button); return button
+
+    @staticmethod
+    def grid_button(row, *plots):
+        button = QtWidgets.QPushButton('Wyłącz siatkę')
+        button.setCheckable(True)
+        def toggle(hidden):
+            for plot in plots:
+                plot.showGrid(x=not hidden, y=not hidden, alpha=.2)
+            button.setText('Włącz siatkę' if hidden else 'Wyłącz siatkę')
+        button.toggled.connect(toggle)
+        row.addWidget(button)
+        return button
 
     @property
     def current(self): return self.experiments.get(self.current_id)
@@ -220,34 +234,37 @@ class StatisticsWindow(QtWidgets.QMainWindow):
 
     def refresh_statistics(self, *args):
         exp = self.current
-        self.d_plot.clear(); self.d_points = []; self.highlight = None
+        self.d_plot.clear(); self.d_positions = {}; self.highlight = None
         if exp is None:
             self.summary_label.setText('N = 0 · Brak wyników. Otwórz dane i zaznacz ROI w głównym oknie.')
             self.csv_button.setEnabled(False); return
         self.csv_button.setEnabled(True)
+        records = included_records(exp, self.choices[self.current_id])
+        self.d_positions = {r['id']: i for i, r in enumerate(records)}
         self.summary = summarize(exp, self.choices[self.current_id], self.weighted.isChecked())
         s = self.summary
         cv = f"{s['CV_percent']:.3f}%" if s['CV_percent'] is not None else '—'
         self.summary_label.setText(f"N = {s['N']}    Średnia: {number(s['mean'])}    Mediana: {number(s['median'])}    SD (ddof=1): {number(s['SD'])} m²/s\n"
                                    f"CV: {cv}    SEM opisowe: {number(s['SEM'])}    Min: {number(s['minimum'])}    Max: {number(s['maximum'])} m²/s")
         self.weighted_label.setText((f"Średnia ważona: {number(s['weighted_mean'])} m²/s. " if self.weighted.isChecked() else '')+s['weighted_status'])
-        values = [abs(r['D']) for r in exp['records'] if finite(r['D']) is not None]
-        values += [r['SE'] for r in exp['records'] if finite(r['SE']) is not None and r['SE'] >= 0]
+        values = [abs(r['D']) for r in records]
+        values += [r['SE'] for r in records if finite(r['SE']) is not None and r['SE'] >= 0]
         largest = max(values, default=0)
         exponent = max(-300, min(300, math.floor(math.log10(largest)))) if largest else -10
         self.scale = 10.**exponent
         self.d_plot.setLabel('left', f'D / 10^{exponent} [m²/s]'); self.d_plot.setLabel('bottom', 'ID sygnału')
-        legend='● uwzględnione · × poza statystyką · słupki ±SE(D) · linia średniej · pasmo ±1 SD'
+        legend='● uwzględnione · słupki ±SE(D) · linia średniej · pasmo ±1 SD'
+        if not records: legend='Brak zaznaczonych sygnałów w wybranej grupie.'
         if s['SD'] is None: legend+='<br>SD i SEM wymagają co najmniej dwóch sygnałów'
         if self.two_sd.isChecked(): legend+='<br>Przerywane: ±2 SD'
-        if s['weighted_mean'] is not None: legend+=' · fioletowa kropkowana: średnia ważona'
+        if s['weighted_mean'] is not None: legend+=' · linia kropkowana: średnia ważona'
         self.d_plot.setTitle(html.escape(exp['label'])+'<br><span style="font-size:9pt">'+legend+'</span>')
         # PlotItem defaults to a fixed 30 px title row, even for a multiline legend.
         title = self.d_plot.plotItem.titleLabel
         height = max(30,title.item.boundingRect().height())
         title.setMaximumHeight(height)
         self.d_plot.plotItem.layout.setRowFixedHeight(0,height)
-        self.d_plot.getAxis('bottom').setTicks([[(i, r['id']) for i, r in enumerate(exp['records'])]])
+        self.d_plot.getAxis('bottom').setTicks([self.d_ticks()])
         if s['mean'] is not None:
             mean = s['mean']/self.scale
             if s['SD'] is not None:
@@ -261,12 +278,10 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         if s['weighted_mean'] is not None:
             self.d_plot.addItem(pg.InfiniteLine(s['weighted_mean']/self.scale, angle=0, pen=pg.mkPen('#c4b5fd', style=QtCore.Qt.PenStyle.DotLine)))
         spots = []; ex=[]; ey=[]; es=[]
-        for i, r in enumerate(exp['records']):
-            if finite(r['D']) is None: continue
-            included = r['eligible'] and self.choices[self.current_id].get(r['id'], True) and r.get('group')==exp.get('statistics_group') and bool(r.get('group'))
-            spots.append({'pos': (i, r['D']/self.scale), 'data': r['id'], 'symbol': 'o' if included else 'x',
-                          'brush': pg.mkBrush(r['color'] if included else '#64748b'), 'pen': pg.mkPen(r['color'] if included else '#94a3b8'), 'size': 10})
-            if r['eligible'] and r['SE'] is not None and r['SE'] >= 0:
+        for i, r in enumerate(records):
+            spots.append({'pos': (i, r['D']/self.scale), 'data': r['id'], 'symbol': 'o',
+                          'brush': pg.mkBrush(r['color']), 'pen': pg.mkPen(r['color']), 'size': 10})
+            if r['SE'] is not None and r['SE'] >= 0:
                 ex.append(i); ey.append(r['D']/self.scale); es.append(r['SE']/self.scale)
         if ex:
             errors = pg.ErrorBarItem(x=np.array(ex), y=np.array(ey), top=np.array(es), bottom=np.array(es), beam=.2, pen=pg.mkPen('#94a3b8'))
@@ -275,9 +290,12 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         self.scatter.sigClicked.connect(self.scatter_clicked); self.d_plot.addItem(self.scatter)
         self.highlight = pg.ScatterPlotItem(size=18, pen=pg.mkPen('#ffffff', width=2), brush=pg.mkBrush(None), useCache=False)
         self.d_plot.addItem(self.highlight)
-        self.d_plot.setXRange(-.6, max(.6, len(exp['records'])-.4), padding=0)
+        self.d_plot.setXRange(-.6, max(.6, len(records)-.4), padding=0)
         self.d_plot.enableAutoRange(axis=pg.ViewBox.YAxis, enable=True)
         self.draw_highlight(); self.refresh_comparison()
+
+    def d_ticks(self):
+        return [(x, sid) for sid, x in self.d_positions.items()]
 
     def d_tooltip(self, x, y, data):
         r = self.records_by_id.get(data)
@@ -301,8 +319,8 @@ class StatisticsWindow(QtWidgets.QMainWindow):
     def draw_highlight(self):
         if self.highlight is None: return
         r = self.records_by_id.get(self.active_roi)
-        if r is not None and r['D'] is not None:
-            self.highlight.setData([self.row_by_id[r['id']]], [r['D']/self.scale])
+        if r is not None and r['id'] in self.d_positions:
+            self.highlight.setData([self.d_positions[r['id']]], [r['D']/self.scale])
         else: self.highlight.setData([], [])
 
     def refresh_diagnostic(self):
@@ -327,7 +345,7 @@ class StatisticsWindow(QtWidgets.QMainWindow):
             info+=f'\nPunkty: {used} w dopasowaniu · {excluded} poza fitem · {unknown} o nieustalonym statusie.'
         if warning: info += '\n'+warning
         self.roi_info.setText(info)
-        self.decay_plot.setTitle(html.escape(record['id'])+' · rzeczywiste I(b) i zapisany model; × poza fitem, szare punkty: status nieznany')
+        self.decay_plot.setTitle(html.escape(record['id'])+' · rzeczywiste I(b) i zapisany model · × poza fitem · □ status nieznany')
         self.measurement_scatters = []
         for status, symbol, color in [(True,'o',record['color']),(False,'x','#fb923c'),(None,'s','#94a3b8')]:
             spots = [{'pos': (r['b']/1e9, r['integral']), 'data': r['index']} for r in self.point_rows
@@ -429,15 +447,7 @@ class StatisticsWindow(QtWidgets.QMainWindow):
     def export_plot(self, path, kind=None):
         kind = self.export_kind.currentIndex() if kind is None else kind
         plot = [self.d_plot, self.decay_plot, self.residual_plot][kind]
-        path = Path(path)
-        if path.suffix.lower() == '.svg':
-            from statistics_svg import export_svg
-            export_svg(plot.plotItem, path)
-            return
-        elif path.suffix.lower() == '.png':
-            exporter = pg.exporters.ImageExporter(plot.plotItem); exporter.parameters()['width'] = 1600
-        else: raise ValueError('Wybierz rozszerzenie PNG lub SVG.')
-        exporter.export(str(path))
+        save_light_plot(plot, path, bottom_ticks=self.d_ticks() if kind == 0 else None)
 
     def choose_plot_export(self, suffix):
         path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Zapisz wykres', f'statystyka_D.{suffix}', f'Wykres (*.{suffix})')

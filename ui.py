@@ -12,6 +12,7 @@ from jeol import read_jdf,manual_b
 from processing_panel import ProcessingPanel,BDialog
 from statistics_window import StatisticsWindow
 from dosy_map import DosyMapWindow
+from plot_export import save_light_plot
 from d_statistics import build_snapshot,number
 from fullscreen_plot import enable_fullscreen
 from exports import export_bundle,save_project,read_project
@@ -93,7 +94,7 @@ class Window(QtWidgets.QMainWindow):
         top.addStretch()
         self.button('Lista b', self.edit_b, top, 'Sprawdź lub zmień wartości b przypisane warstwom gradientowym.')
         self.button('Statystyka D', self.show_statistics, top, 'Porównaj współczynniki dyfuzji w obrębie grup związków.')
-        self.export_button = self.button('Eksport', self.choose_export, top, 'Zapisz wyniki, tabele i wykresy do wybranego folderu.')
+        self.export_button = self.button('Eksport Statystyki D', self.choose_export, top, 'Zapisz pakiet wyników, statystyki, tabele i wykresy.')
         self.export_button.setEnabled(False)
         row=QtWidgets.QHBoxLayout();layout.addLayout(row)
         row.addWidget(QtWidgets.QLabel('Warstwa:'));self.layer=QtWidgets.QComboBox();row.addWidget(self.layer,1)
@@ -140,6 +141,9 @@ class Window(QtWidgets.QMainWindow):
         self.button('Cały zakres', lambda:self.spectrum.autoRange(), spectrum_tools, 'Przywróć cały zakres widma. Działa też dwuklik.')
         self.fullscreen_button = self.button('Pełny ekran', lambda:self.spectrum.fullscreen_controller.open(), spectrum_tools,
                                              'Otwórz widmo na pełnym ekranie. Esc wraca do głównego okna.')
+        self.save_spectrum_button = self.button('Zapisz PNG', self.choose_spectrum_png, spectrum_tools,
+                                                'Zapisz aktualny widok widma 1D w jasnej kolorystyce.')
+        self.save_spectrum_button.setEnabled(False)
         vertical=QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical);layout.addWidget(vertical,1)
         self.view=SpectrumBox();self.spectrum=pg.PlotWidget(viewBox=self.view);vertical.addWidget(self.spectrum)
         self.view.bind_selection_feedback(self.spectrum)
@@ -293,6 +297,7 @@ class Window(QtWidgets.QMainWindow):
 
     def accepted(self):
         self.valid=True;self.export_button.setEnabled(True)
+        self.save_spectrum_button.setEnabled(True)
         self.map_button.setEnabled(True)
         meta=self.raw.metadata
         delay=self.dataset.options['filter_delay_samples']
@@ -694,6 +699,16 @@ class Window(QtWidgets.QMainWindow):
     def choose_project(self):
         path,_=QtWidgets.QFileDialog.getOpenFileName(self,'Wczytaj projekt','','JSON (*.json)')
         if path:self.open_path(path,project=True)
+
+    def choose_spectrum_png(self):
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Zapisz widmo 1D', 'widmo_1D.png', 'PNG (*.png)')
+        if path:
+            if not path.lower().endswith('.png'):
+                path += '.png'
+            try:
+                save_light_plot(self.spectrum, path)
+            except Exception as exc:
+                QtWidgets.QMessageBox.warning(self, 'Zapis widma 1D', str(exc))
     def choose_export(self):
         if not self.valid:return
         parent=QtWidgets.QFileDialog.getExistingDirectory(self,'Folder eksportu')
@@ -705,7 +720,8 @@ class Window(QtWidgets.QMainWindow):
         if self.statistics_window is not None:choices=self.statistics_window.choices.get(self.experiment_id,{})
         def done(folder):
             for name,plot in [('spectrum',self.spectrum),('decays',self.decay),('residuals',self.residual)]:
-                self.export_plot(plot,Path(folder)/(name+'.png'));self.export_plot(plot,Path(folder)/(name+'.svg'))
+                save = save_light_plot if plot is self.spectrum else self.export_plot
+                save(plot,Path(folder)/(name+'.png'));save(plot,Path(folder)/(name+'.svg'))
             self.valid=revision==self.revision;self.export_button.setEnabled(self.valid)
             self.statusBar().showMessage('Zapisano eksport w '+str(folder))
         self.start_job(lambda:export_bundle(path,d,entries,choices,integral_scale=scale),done)

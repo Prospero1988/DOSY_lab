@@ -277,14 +277,66 @@ class InterfaceTests(unittest.TestCase):
         w=self.w;w.add_roi([3.60,3.68],name='H1',group='A');w.add_roi([5.26,5.33],name='H2',group='B');settle(w)
         w.show_statistics();s=w.statistics_window;APP.processEvents()
         self.assertEqual(s.summary['N'],0)
+        self.assertEqual(s.scatter.points().size,0)
         s.group_combo.setCurrentIndex(s.group_combo.findData('A'));self.assertEqual(s.summary['N'],1)
+        self.assertEqual(s.d_ticks(),[(0,'S1')])
+        self.assertEqual([p.data() for p in s.scatter.points()],['S1'])
         with patch('core.fit_decay',side_effect=AssertionError('Unexpected refit')):
             s.select_roi('S1');s.table.item(0,0).setCheckState(QtCore.Qt.CheckState.Unchecked)
-            self.assertEqual(s.summary['N'],0);s.table.item(0,0).setCheckState(QtCore.Qt.CheckState.Checked)
+            self.assertEqual(s.summary['N'],0)
+            self.assertEqual(s.scatter.points().size,0)
+            self.assertEqual(s.highlight.points().size,0)
+            s.group_combo.setCurrentIndex(s.group_combo.findData('B'))
+            self.assertEqual(s.d_ticks(),[(0,'S2')])
+            self.assertEqual([p.data() for p in s.scatter.points()],['S2'])
+            s.group_combo.setCurrentIndex(s.group_combo.findData('A'))
+            s.table.item(0,0).setCheckState(QtCore.Qt.CheckState.Checked)
             self.assertEqual(s.summary['N'],1);s.show_point(2)
         w.processing.controls['lb_Hz'].setValue(.4);settle(w)
         self.assertEqual(s.current['statistics_group'],'A');self.assertEqual(s.summary['N'],1)
         self.assertEqual(s.current['processing']['lb_Hz'],.4)
+
+    def test_light_spectrum_and_statistics_exports(self):
+        w=self.w
+        w.add_roi([3.60,3.68],group='A')
+        w.add_roi([5.26,5.33],group='A')
+        settle(w)
+        w.spectrum.setXRange(3.50,3.85,padding=0)
+        before=np.array(w.view.viewRange())
+        live_pen=w.spectrum.listDataItems()[0].opts['pen'].color()
+        w.show_statistics()
+        s=w.statistics_window
+        APP.processEvents()
+        s.d_grid.click()
+        self.assertFalse(s.d_plot.getAxis('left').grid)
+        self.assertTrue(s.decay_plot.getAxis('left').grid)
+        s.detail_grid.click()
+        self.assertFalse(s.decay_plot.getAxis('left').grid)
+        self.assertFalse(s.residual_plot.getAxis('left').grid)
+        with tempfile.TemporaryDirectory() as directory:
+            folder=Path(directory)
+            png=folder/'spectrum.png'
+            with patch.object(QtWidgets.QFileDialog,'getSaveFileName',return_value=(str(png),'')):
+                w.save_spectrum_button.click()
+            for kind in range(3):
+                s.export_plot(folder/f'stats_{kind}.png',kind)
+                svg=folder/f'stats_{kind}.svg'
+                s.export_plot(svg,kind)
+                markup=svg.read_text(encoding='utf-8')
+                self.assertIn('fill="#ffffff"',markup)
+                self.assertIn('#142b5c',markup)
+            for path in folder.glob('*.png'):
+                image=QtGui.QImage(str(path)).convertToFormat(QtGui.QImage.Format.Format_RGB888)
+                self.assertFalse(image.isNull(), path)
+                rows=np.frombuffer(image.constBits(),dtype=np.uint8).reshape(image.height(),image.bytesPerLine())
+                colors=rows[:,:3*image.width()].reshape(-1,3)
+                self.assertGreater(np.mean(np.all(colors>=210,axis=1)),.90,path)
+                self.assertTrue(np.any(np.all(colors==255,axis=1)),path)
+                self.assertTrue(np.any(np.all(colors==0,axis=1)),path)
+                self.assertTrue(np.any(np.all(colors==[20,43,92],axis=1)),path)
+            self.assertTrue(png.is_file())
+        self.assertEqual(w.spectrum.listDataItems()[0].opts['pen'].color(),live_pen)
+        np.testing.assert_allclose(w.view.viewRange(),before)
 
     def test_statistics_plots_zoom_reset_and_open_fullscreen_by_button(self):
         w = self.w

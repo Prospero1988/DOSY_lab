@@ -155,9 +155,13 @@ def build_snapshot(dataset,entries,experiment_id,label,**unused):
 def groups(snapshot):return sorted({r.get('group','').strip() for r in snapshot['records'] if r.get('group','').strip()})
 
 
-def summarize(snapshot,choices,weighted=False,group=None):
+def included_records(snapshot,choices,group=None):
     group=snapshot.get('statistics_group','') if group is None else group
-    rows=[r for r in snapshot['records'] if group and r.get('group')==group and r['eligible'] and choices.get(r['id'],True)]
+    return [r for r in snapshot['records'] if group and r.get('group')==group and r['eligible'] and choices.get(r['id'],True)]
+
+
+def summarize(snapshot,choices,weighted=False,group=None):
+    rows=included_records(snapshot,choices,group)
     return descriptive_statistics([r['D'] for r in rows],[r['SE'] for r in rows],weighted)
 
 
