@@ -392,6 +392,115 @@ class InterfaceTests(unittest.TestCase):
             self.assertIs(w.results, results)
             self.assertTrue(w.valid)
 
+    def test_global_ilt_selected_rows_comparison_and_export(self):
+        w = self.w
+        for bounds in ([3.60, 3.68], [5.26, 5.33], [3.74, 3.82]):
+            w.add_roi(bounds)
+        settle(w)
+        table = w.roi_table
+        for row, modifier in [(0, QtCore.Qt.KeyboardModifier.NoModifier), (1, QtCore.Qt.KeyboardModifier.ControlModifier)]:
+            pos = table.visualItemRect(table.item(row, 0)).center()
+            QtTest.QTest.mouseClick(table.viewport(), QtCore.Qt.MouseButton.LeftButton, modifier, pos)
+        self.assertEqual(w.selected_roi_ids(), ['S1', 'S2'])
+        w.render_roi_table()
+        self.assertEqual(w.selected_roi_ids(), ['S1', 'S2'])
+        self.assertEqual(w.global_ilt_button.text(), 'Global ILT (2)')
+        results = w.results
+
+        def wait_for(predicate):
+            end = time.monotonic()+10
+            while not predicate() and time.monotonic() < end:
+                QtTest.QTest.qWait(15)
+            self.assertTrue(predicate(), dialog.status.text())
+
+        with patch('ui.analyze', side_effect=AssertionError('Global ILT must not redo the mono fit')):
+            w.global_ilt_button.click()
+            dialog = w.global_ilt_window
+            self.assertIsNotNone(dialog)
+            self.assertEqual(dialog.ids, ['S1', 'S2'])
+            wait_for(lambda: dialog.result is not None)
+            np.testing.assert_array_equal(dialog.b, w.dataset.b)
+            np.testing.assert_array_equal(dialog.y[:,1], results[1]['result']['corrected_integral'])
+            self.assertIs(dialog.fits[0], results[0]['fit'])
+            self.assertEqual(dialog.table.rowCount(), 2)
+            self.assertTrue(dialog.result.components)
+            relative = dialog.heatmap_values()
+            np.testing.assert_allclose(relative.sum(axis=0), [100, 100])
+            dialog.absolute.setChecked(True)
+            np.testing.assert_array_equal(dialog.heatmap_values(), dialog.result.contributions)
+            dialog.visible_rois[0].setChecked(False)
+            self.assertEqual([item.name() for item in dialog.roi_plot.listDataItems()], ['S2'])
+            dialog.log_axis.setChecked(False)
+            self.assertFalse(dialog.roi_plot.getAxis('bottom').logMode)
+            dialog.penalties[1][1].setText('0')
+            dialog.compare.setChecked(True)
+            dialog.points.setCurrentIndex(dialog.points.findData(50))
+            dialog.recalculate()
+            wait_for(lambda: len(dialog.independent) == 2)
+            self.assertEqual(dialog.solved_parameters.sparsity, 0.)
+            self.assertEqual(dialog.result.weights.shape, (50, 2))
+            self.assertTrue(all(dialog.independent))
+            dialog.roi.setCurrentIndex(1)
+            with tempfile.TemporaryDirectory() as folder:
+                single, combined = [Path(folder)/name for name in ('heatmap.png', 'global.png')]
+                with (patch.object(QtWidgets.QFileDialog, 'getSaveFileName', side_effect=[(str(single), ''), (str(combined), '')]),
+                      patch.object(QtWidgets.QMessageBox, 'warning', side_effect=AssertionError('PNG export failed'))):
+                    dialog.export_png((dialog.heatmap,), 'heatmap')
+                    dialog.export_png(dialog.plots, 'combined')
+                image = QtGui.QImage(str(single))
+                self.assertEqual(image.width(), 1600)
+                self.assertEqual(image.dotsPerMeterX(), 11811)
+                montage = QtGui.QImage(str(combined))
+                self.assertGreater(montage.height(), image.height())
+                for exported in (image, montage):
+                    rgb = exported.convertToFormat(QtGui.QImage.Format.Format_RGB32)
+                    pixels = np.frombuffer(rgb.constBits(), dtype=np.uint32)
+                    self.assertGreater(np.count_nonzero(pixels == 0xff60a5fa), 20)
+            dialog.close()
+            self.assertIsNone(w.global_ilt_window)
+            self.assertIs(w.results, results)
+            self.assertTrue(w.valid)
+
+    def test_global_ilt_cancels_an_obsolete_running_job(self):
+        from global_ilt import SolveCancelled, solve_global_ilt
+
+        w = self.w
+        w.add_roi([3.60, 3.68]); w.add_roi([5.26, 5.33])
+        settle(w)
+        w.roi_table.selectAll()
+        started, cancelled = Event(), Event()
+        seen = []
+
+        def solve(b, y, parameters, **kwargs):
+            seen.append(parameters.sparsity)
+            if len(seen) == 1:
+                started.set()
+                deadline = time.monotonic()+5
+                while not kwargs['cancelled']() and time.monotonic() < deadline:
+                    time.sleep(.01)
+                if not kwargs['cancelled']():
+                    raise RuntimeError('Expected cancellation')
+                cancelled.set()
+                raise SolveCancelled('Obsolete')
+            return solve_global_ilt(b, y, parameters, **kwargs)
+
+        with patch('global_ilt_window.solve_global_ilt', side_effect=solve):
+            w.global_ilt_button.click()
+            dialog = w.global_ilt_window
+            deadline = time.monotonic()+8
+            while not started.is_set() and time.monotonic() < deadline:
+                QtTest.QTest.qWait(15)
+            self.assertTrue(started.is_set())
+            dialog.penalties[1][0].setValue(-55)
+            dialog.penalties[1][0].setValue(-60)
+            while dialog.result is None and time.monotonic() < deadline:
+                QtTest.QTest.qWait(15)
+            self.assertTrue(cancelled.is_set())
+            self.assertIsNotNone(dialog.result, dialog.status.text())
+            self.assertEqual(seen, [1e-4, 1e-6])
+            self.assertEqual(dialog.solved_parameters.sparsity, 1e-6)
+            dialog.close()
+
     def test_ilt_discards_running_solution_when_parameters_change(self):
         from ilt import solve_ilt
 

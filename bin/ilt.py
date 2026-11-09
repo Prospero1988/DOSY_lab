@@ -49,7 +49,7 @@ def _kernel(b, diffusion):
         return np.exp(-np.multiply.outer(np.asarray(b) * D_UNIT, diffusion / D_UNIT))
 
 
-def _grid_and_penalty(p):
+def diffusion_grid(p):
     if not (np.isfinite([p.d_min, p.d_max]).all() and 0 < p.d_min < p.d_max
             and np.isfinite(p.d_max / D_UNIT)):
         raise ValueError('Zakres D musi spełniać 0 < D min < D max.')
@@ -65,6 +65,12 @@ def _grid_and_penalty(p):
         diffusion = p.d_min + u * (p.d_max - p.d_min)
     if np.any(np.diff(diffusion) <= 0):
         raise ValueError('Zakres D jest za wąski dla wybranej siatki.')
+    return diffusion
+
+
+def _grid_and_penalty(p):
+    diffusion = diffusion_grid(p)
+    n = p.points
     identity = np.eye(n)
     # Each cell has width 1/n in u. The amplitude density equals n times the bin mass.
     # The 0.05-u length scale keeps the curvature penalty usable on a similar λ scale.

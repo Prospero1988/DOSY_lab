@@ -1,41 +1,17 @@
 """On-demand ILT diagnostics for a snapshot of one DOSY integral."""
-import html
-from pathlib import Path
-from tempfile import TemporaryDirectory
+from functools import partial
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from d_statistics import number
-from fullscreen_plot import enable_fullscreen
 from i18n import tr
 from ilt import D_UNIT, GRID_SIZES, ILTParameters, solve_ilt
-from plot_export import save_light_plot
+from ilt_tools import ILTPlotTools, SolveJob
 
 
-class SolveSignals(QtCore.QObject):
-    finished = QtCore.Signal(int, object, object, str)
-
-
-class SolveJob(QtCore.QRunnable):
-    def __init__(self, revision, parameters, b, intensity, mask, sigma):
-        super().__init__()
-        self.revision, self.parameters = revision, parameters
-        self.data = b, intensity, mask, sigma
-        self.signals = SolveSignals()
-
-    def run(self):
-        b, y, mask, sigma = self.data
-        result, error = None, ''
-        try:
-            result = solve_ilt(b, y, self.parameters, include=mask, sigma=sigma)
-        except (ValueError, RuntimeError, FloatingPointError, np.linalg.LinAlgError) as exc:
-            error = str(exc)
-        self.signals.finished.emit(self.revision, self.parameters, result, error)
-
-
-class ILTWindow(QtWidgets.QDialog):
+class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
     def __init__(self, parent, source, b, entry):
         super().__init__(parent, QtCore.Qt.WindowType.Window | QtCore.Qt.WindowType.WindowMaximizeButtonHint)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -136,46 +112,6 @@ class ILTWindow(QtWidgets.QDialog):
         actions.addWidget(self.combined_export)
         self.export_buttons = [self.combined_export]
 
-    def create_plot(self, splitter, title, bottom, left):
-        panel = QtWidgets.QWidget()
-        splitter.addWidget(panel)
-        layout = QtWidgets.QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        bar = QtWidgets.QHBoxLayout()
-        layout.addLayout(bar)
-        coordinate = QtWidgets.QLabel()
-        bar.addWidget(coordinate, 1)
-        plot = pg.PlotWidget()
-        layout.addWidget(plot, 1)
-        plot.setTitle(tr(title))
-        plot.setLabel('bottom', bottom)
-        plot.setLabel('left', left)
-        plot.showGrid(x=True, y=True, alpha=.2)
-        view = plot.getViewBox()
-        view.setMouseMode(pg.ViewBox.RectMode)
-        enable_fullscreen(plot, tr(title), lambda: html.escape(self.context), reset_view=plot.autoRange)
-        for label, callback in [('Cały zakres', plot.autoRange), ('Pełny ekran', plot.fullscreen_controller.open)]:
-            button = QtWidgets.QPushButton(tr(label))
-            button.clicked.connect(callback)
-            bar.addWidget(button)
-        pan = QtWidgets.QPushButton(tr('Przesuwaj'))
-        pan.setCheckable(True)
-        pan.toggled.connect(lambda checked: view.setMouseMode(pg.ViewBox.PanMode if checked else pg.ViewBox.RectMode))
-        bar.addWidget(pan)
-        save = QtWidgets.QPushButton(tr('Zapisz PNG'))
-        save.clicked.connect(lambda: self.export_png((plot,), 'ILT_' + title[0]))
-        bar.addWidget(save)
-        self.export_buttons.append(save)
-
-        def read_coordinate(pos):
-            if view.sceneBoundingRect().contains(pos):
-                point = view.mapSceneToView(pos)
-                x = 10.**point.x() if plot.getAxis('bottom').logMode and abs(point.x()) < 300 else point.x()
-                coordinate.setText(f'x = {x:.5g}   y = {point.y():.5g}')
-
-        plot.scene().sigMouseMoved.connect(read_coordinate)
-        return plot
-
     def reset_parameters(self):
         p = self.defaults
         with (QtCore.QSignalBlocker(self.slider), QtCore.QSignalBlocker(self.minimum),
@@ -232,7 +168,8 @@ class ILTWindow(QtWidgets.QDialog):
         except ValueError as exc:
             self.show_error(str(exc))
             return
-        self.job = SolveJob(self.revision, p, self.b, self.y, self.mask, self.sigma)
+        compute = partial(solve_ilt, self.b, self.y, include=self.mask, sigma=self.sigma)
+        self.job = SolveJob(self.revision, p, compute)
         self.job.signals.finished.connect(self.solved)
         QtCore.QThreadPool.globalInstance().start(self.job)
 
@@ -327,46 +264,6 @@ class ILTWindow(QtWidgets.QDialog):
             if not p.d_min <= f['D_m2_s'] <= p.d_max:
                 text += ' · ' + tr('D mono poza zakresem siatki')
         self.summary.setText(text)
-
-    def export_png(self, plots, name):
-        filename, _ = QtWidgets.QFileDialog.getSaveFileName(self, tr('Zapisz PNG'), f'{name}.png', 'PNG (*.png)')
-        if not filename:
-            return
-        path = Path(filename if filename.lower().endswith('.png') else filename+'.png')
-        try:
-            if len(plots) == 1:
-                save_light_plot(plots[0], path, legend=True, dpi=300)
-            else:
-                self.save_combined(plots, path)
-        except (OSError, ValueError) as exc:
-            QtWidgets.QMessageBox.warning(self, tr('Zapisz PNG'), str(exc))
-
-    @staticmethod
-    def save_combined(plots, path):
-        with TemporaryDirectory() as tmp:
-            panels = []
-            for index, plot in enumerate(plots):
-                panel = Path(tmp)/f'{index}.png'
-                save_light_plot(plot, panel, legend=True)
-                image = QtGui.QImage(str(panel))
-                if image.isNull():
-                    raise OSError(tr('Nie udało się zapisać pliku PNG.'))
-                panels.append(image)
-            margin = 32
-            combined = QtGui.QImage(max(image.width() for image in panels)+2*margin,
-                                   sum(image.height()+margin for image in panels)+margin,
-                                   QtGui.QImage.Format.Format_RGB32)
-            combined.fill(QtGui.QColor('white'))
-            painter = QtGui.QPainter(combined)
-            y = margin
-            for image in panels:
-                painter.drawImage(margin, y, image)
-                y += image.height()+margin
-            painter.end()
-            combined.setDotsPerMeterX(11811)
-            combined.setDotsPerMeterY(11811)
-            if not combined.save(str(path), 'PNG'):
-                raise OSError(tr('Nie udało się zapisać pliku PNG.'))
 
     def done(self, result):
         self.closed = True

@@ -17,6 +17,8 @@ from plot_export import save_light_plot
 from d_statistics import build_snapshot,number
 from fullscreen_plot import enable_fullscreen
 from ilt_window import ILTWindow
+from global_ilt_window import GlobalILTWindow
+from ilt import MIN_DISTINCT_B
 from exports import export_bundle,save_project,read_project
 from spectrum_view import SpectrumBox
 from phase_window import PhaseWindow
@@ -90,6 +92,7 @@ class Window(QtWidgets.QMainWindow):
         self.info_window = None
         self.map_window = None
         self.ilt_window = None
+        self.global_ilt_window = None
         self.worker=None;self.job_callback=None;self.pending=False;self.revision=0;self.job_revision=0
         self.valid=False;self._updating=False;self.close_pending=False;self.statistics_window=None;self.phase_window=None
         self.experiment_id=uuid.uuid4().hex;self.region_items={};self.base_items=[];self.next_id=1
@@ -182,6 +185,8 @@ class Window(QtWidgets.QMainWindow):
         left=QtWidgets.QWidget();ll=QtWidgets.QVBoxLayout(left);bottom.addWidget(left)
         bar=QtWidgets.QHBoxLayout();ll.addLayout(bar)
         self.button(tr('Dopasuj / odśwież'),self.request_calculation,bar,tr('Przelicz widma, całki i dopasowania D z bieżących ustawień.'))
+        self.global_ilt_button = self.button('Global ILT', self.show_global_ilt, bar,
+                                            tr('Zaznacz co najmniej dwa wiersze przez Ctrl lub Shift.'))
         self.roi_table=QtWidgets.QTableWidget(0,10)
         self.roi_table.setHorizontalHeaderLabels(['ID',tr('Grupa / związek'),tr('Od ppm'),tr('Do ppm'),tr('Całka'),'D / 10⁻¹⁰','SE(D) / 10⁻¹⁰','R²','QC','ILT'])
         self.roi_table.setItemDelegateForColumn(GROUP_COLUMN, GroupDelegate(self))
@@ -190,6 +195,8 @@ class Window(QtWidgets.QMainWindow):
         self.roi_table.horizontalHeaderItem(INTEGRAL_COLUMN).setToolTip(
             tr('Całki pierwszej widocznej warstwy. Wpisz wartość odniesienia, aby proporcjonalnie przeskalować wszystkie całki.'))
         self.roi_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.roi_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.roi_table.itemSelectionChanged.connect(self.update_global_ilt_selection)
         self.roi_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         self.roi_table.itemChanged.connect(self.roi_edited);self.roi_table.currentCellChanged.connect(self.roi_selected);ll.addWidget(self.roi_table)
         self.fit_info=QtWidgets.QLabel(tr('Zaznacz sygnał. Grupa jest potrzebna do statystyki zbiorczej.'));self.fit_info.setWordWrap(True);ll.addWidget(self.fit_info)
@@ -296,6 +303,7 @@ class Window(QtWidgets.QMainWindow):
 
     def loaded(self,payload):
         self.raw,self.dataset,self.entries,self.results,self.integral_scale=payload
+        self.roi_table.clearSelection()
         self.processing.source_name = self.dataset.name
         self.experiment_id=uuid.uuid4().hex
         self.active_id=self.entries[0]['id'] if self.entries else None
@@ -608,6 +616,7 @@ class Window(QtWidgets.QMainWindow):
             self.render_spectrum();self.render_roi_table();self.request_calculation()
 
     def render_roi_table(self):
+        selected = set(self.selected_roi_ids())
         self._updating=True;self.roi_table.setRowCount(len(self.entries));fits={e['id']:e for e in self.results}
         for i,e in enumerate(self.entries):
             fit=fits.get(e['id'],{}).get('fit') or {}
@@ -635,7 +644,18 @@ class Window(QtWidgets.QMainWindow):
                     self.roi_table.setCellWidget(i, ILT_COLUMN, button)
             else:
                 self.roi_table.removeCellWidget(i, ILT_COLUMN)
-            if e['id']==self.active_id:self.roi_table.setCurrentCell(i,0)
+            if e['id']==self.active_id:
+                self.roi_table.setCurrentCell(i, 0, QtCore.QItemSelectionModel.SelectionFlag.NoUpdate)
+        selection = QtCore.QItemSelection()
+        preserved = selected & {entry['id'] for entry in self.entries}
+        if len(preserved) < 2:
+            preserved = {self.active_id}
+        for i, entry in enumerate(self.entries):
+            if entry['id'] in preserved:
+                index = self.roi_table.model().index(i, 0)
+                selection.select(index, index)
+        flags = QtCore.QItemSelectionModel.SelectionFlag
+        self.roi_table.selectionModel().select(selection, flags.ClearAndSelect | flags.Rows)
         self._updating=False
     def roi_edited(self,item):
         if self._updating:return
@@ -797,6 +817,37 @@ class Window(QtWidgets.QMainWindow):
     def ilt_closed(self):
         self.ilt_window = None
 
+    def selected_roi_ids(self):
+        rows = sorted(index.row() for index in self.roi_table.selectionModel().selectedRows())
+        return [item.text() for row in rows if (item := self.roi_table.item(row, 0)) is not None]
+
+    def update_global_ilt_selection(self):
+        count = len(self.selected_roi_ids())
+        self.global_ilt_button.setText(f'Global ILT ({count})' if count else 'Global ILT')
+
+    def show_global_ilt(self):
+        if not self.valid or self.dataset is None or self.dataset.b is None:
+            self.statusBar().showMessage(tr('Wczytaj widmo z wartościami b i przelicz całki.'), 7000)
+            return
+        ids = self.selected_roi_ids()
+        if len(ids) < 2:
+            self.statusBar().showMessage(tr('Zaznacz co najmniej dwa wiersze przez Ctrl lub Shift.'), 7000)
+            return
+        by_id = {entry['id']: entry for entry in self.results}
+        entries = [by_id.get(sid) for sid in ids]
+        if any(entry is None or not entry['fit'].get('ok') or
+               len(np.unique(self.dataset.b[entry['fit']['fit_mask']])) < MIN_DISTINCT_B for entry in entries):
+            self.statusBar().showMessage(tr('Wybierz ROI z poprawnym fitem i co najmniej 6 różnymi aktywnymi wartościami b.'), 9000)
+            return
+        if self.global_ilt_window is not None:
+            self.global_ilt_window.close()
+        self.global_ilt_window = GlobalILTWindow(self, self.dataset.name, self.dataset.b, entries)
+        self.global_ilt_window.finished.connect(self.global_ilt_closed)
+        self.global_ilt_window.show()
+
+    def global_ilt_closed(self):
+        self.global_ilt_window = None
+
     def show_map(self):
         if not self.valid:return
         if self.map_window is None:self.map_window=DosyMapWindow(self)
@@ -885,6 +936,7 @@ class Window(QtWidgets.QMainWindow):
         if self.statistics_window is not None:self.statistics_window.close()
         if self.map_window is not None:self.map_window.close()
         if self.ilt_window is not None:self.ilt_window.close()
+        if self.global_ilt_window is not None:self.global_ilt_window.close()
         if self.info_window is not None:self.info_window.close()
         super().closeEvent(event)
 
