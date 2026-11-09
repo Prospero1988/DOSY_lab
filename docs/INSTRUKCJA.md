@@ -82,7 +82,7 @@ ROI to zakres ppm, na którym program całkuje dany sygnał w każdej warstwie. 
 - **Dodaj całkę ręcznie** przyjmuje dwie granice w ppm. Dla liczb z polskim przecinkiem wpisz np. `3,60; 3,68`.
 - **Modyfikuj całkę** pozwala przeciągnąć środek ROI, by przesunąć cały zakres, lub krawędź, by zmienić tylko granicę.
 - **Podziel całkę** wymaga przeciągnięcia jednej krawędzi do środka ROI. Po puszczeniu w miejscu podziału powstają dwa sąsiadujące zakresy.
-- **Usuń całkę** usuwa pozycję wybraną w tabeli. Nazwę sygnału i grupę możesz edytować w tabeli. Wspólna etykieta grupy oznacza świadomą decyzję o zestawieniu tych sygnałów w statystyce.
+- **Usuń całkę** usuwa pozycję wybraną w tabeli. Każda całka ma własne ID. Dwuklik w kolumnie **Grupa / związek** pozwala wpisać nową etykietę lub wybrać wcześniej użytą z rozwijanej listy. Wspólna etykieta oznacza świadomą decyzję o zestawieniu tych sygnałów w statystyce.
 
 Identyfikator, np. **S1**, znajduje się nad sygnałem, a wartość całki poniżej. W kolumnie **Całka** można nadać wybranemu sygnałowi wartość odniesienia, np. **1,00**. Program przeliczy współczynnik skali i proporcjonalnie odświeży pozostałe całki na widmie oraz w tabeli. Zaokrąglenie do dwóch miejsc dotyczy prezentacji. Dopasowania zachowują oryginalne całki.
 

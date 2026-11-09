@@ -27,7 +27,36 @@ QTableWidget,QListWidget {gridline-color:#334155;} QHeaderView::section {backgro
 QTabBar::tab {padding:6px;background:#26364e;} QTabBar::tab:selected {background:#40516d;}
 QDockWidget::title {background:#26364e;padding:7px;}'''
 COLORS=['#67e8f9','#fb923c','#4ade80','#f472b6','#facc15','#60a5fa','#c084fc','#f87171']
-INTEGRAL_COLUMN = 5
+GROUP_COLUMN = 1
+LOWER_PPM_COLUMN = 2
+UPPER_PPM_COLUMN = 3
+INTEGRAL_COLUMN = 4
+
+
+class GroupDelegate(QtWidgets.QStyledItemDelegate):
+    """Edit a group as text or reuse a label from the current project."""
+    def __init__(self, window):
+        super().__init__(window.roi_table)
+        self.window = window
+
+    def createEditor(self, parent, option, index):
+        editor = QtWidgets.QComboBox(parent)
+        editor.setEditable(True)
+        editor.setInsertPolicy(QtWidgets.QComboBox.InsertPolicy.NoInsert)
+        editor.addItems(sorted({e['group'] for e in self.window.entries if e['group']}, key=str.casefold))
+        editor.activated.connect(lambda _: self.commit_selection(editor))
+        return editor
+
+    def setEditorData(self, editor, index):
+        editor.setCurrentText(index.data())
+        editor.lineEdit().selectAll()
+
+    def setModelData(self, editor, model, index):
+        model.setData(index, editor.currentText().strip())
+
+    def commit_selection(self, editor):
+        self.commitData.emit(editor)
+        self.closeEditor.emit(editor)
 
 
 class Job(QtCore.QThread):
@@ -120,8 +149,11 @@ class Window(QtWidgets.QMainWindow):
         left=QtWidgets.QWidget();ll=QtWidgets.QVBoxLayout(left);bottom.addWidget(left)
         bar=QtWidgets.QHBoxLayout();ll.addLayout(bar)
         self.button('Dopasuj / odśwież',self.request_calculation,bar,'Przelicz widma, całki i dopasowania D z bieżących ustawień.')
-        self.roi_table=QtWidgets.QTableWidget(0,10)
-        self.roi_table.setHorizontalHeaderLabels(['ID','Nazwa','Grupa / związek','Od ppm','Do ppm','Całka','D / 10⁻¹⁰','SE / 10⁻¹⁰','R²','QC'])
+        self.roi_table=QtWidgets.QTableWidget(0,9)
+        self.roi_table.setHorizontalHeaderLabels(['ID','Grupa / związek','Od ppm','Do ppm','Całka','D / 10⁻¹⁰','SE(D) / 10⁻¹⁰','R²','QC'])
+        self.roi_table.setItemDelegateForColumn(GROUP_COLUMN, GroupDelegate(self))
+        self.roi_table.horizontalHeaderItem(6).setToolTip(
+            'Błąd standardowy oszacowania D z dopasowania zaniku, w 10⁻¹⁰ m²/s.')
         self.roi_table.horizontalHeaderItem(INTEGRAL_COLUMN).setToolTip(
             'Całki pierwszej widocznej warstwy. Wpisz wartość odniesienia, aby proporcjonalnie przeskalować wszystkie całki.')
         self.roi_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
@@ -468,7 +500,7 @@ class Window(QtWidgets.QMainWindow):
         for i,e in enumerate(self.entries):
             fit=fits.get(e['id'],{}).get('fit') or {}
             integral=self.integral_value(e,fits.get(e['id']))
-            values=[e['id'],e['name'],e['group'],*[f'{x:.6f}' for x in e['bounds']],
+            values=[e['id'],e['group'],*[f'{x:.6f}' for x in e['bounds']],
                     self.format_integral(integral),
                     f"{fit['D_m2_s']/1e-10:.5f}" if fit.get('ok') else '—',
                     f"{fit['D_standard_error_m2_s']/1e-10:.5f}" if fit.get('D_standard_error_m2_s') is not None else '—',
@@ -476,8 +508,11 @@ class Window(QtWidgets.QMainWindow):
                     ('UWAGA' if fit.get('warnings') else 'OK') if fit.get('ok') else 'BRAK FITU']
             for j,value in enumerate(values):
                 item=QtWidgets.QTableWidgetItem(value)
-                editable = j in (1,2,3,4) or (j==INTEGRAL_COLUMN and integral is not None)
+                editable = j in (GROUP_COLUMN,LOWER_PPM_COLUMN,UPPER_PPM_COLUMN) or (j==INTEGRAL_COLUMN and integral is not None)
                 if not editable:item.setFlags(item.flags()&~QtCore.Qt.ItemFlag.ItemIsEditable)
+                if j==0 and e['name']!=e['id']:item.setToolTip(e['name'])
+                if j==GROUP_COLUMN:
+                    item.setToolTip('Dwuklik otwiera edycję. Wpisz nową grupę lub wybierz istniejącą z listy.')
                 if j==INTEGRAL_COLUMN:
                     item.setToolTip('Wpisz wartość odniesienia. Wszystkie całki przy widmie i w tej kolumnie zmienią się w tej samej proporcji.')
                 self.roi_table.setItem(i,j,item)
@@ -502,8 +537,9 @@ class Window(QtWidgets.QMainWindow):
                 if self.info_window is not None and self.info_window.isVisible():
                     self.info_window.set_dataset(self.dataset,self.integral_scale)
                 return
-            if item.column() in (1,2):e['name' if item.column()==1 else 'group']=item.text().strip()
-            elif item.column() in (3,4):e['bounds'][item.column()-3]=float(item.text());e['bounds']=sorted(e['bounds'])
+            if item.column()==GROUP_COLUMN:e['group']=item.text().strip()
+            elif item.column() in (LOWER_PPM_COLUMN,UPPER_PPM_COLUMN):
+                e['bounds'][item.column()-LOWER_PPM_COLUMN]=float(item.text());e['bounds']=sorted(e['bounds'])
             self.render_spectrum();self.request_calculation()
         except Exception as exc:self.statusBar().showMessage(str(exc),5000);self.render_roi_table()
     def roi_selected(self,row,col,oldrow,oldcol):
@@ -674,6 +710,6 @@ def main():
     app=QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
     app.setApplicationName('DOSY Lab');app.setFont(QtGui.QFont('Segoe UI',10))
     pg.setConfigOptions(background='#101827',foreground='#dbe4ef',antialias=True)
-    window=Window();window.show()
+    window=Window();window.showMaximized()
     if args.path:window.open_path(args.path,project=str(args.path).lower().endswith('.json'))
     sys.exit(app.exec())

@@ -62,8 +62,9 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         self.weighted_label = QtWidgets.QLabel(''); self.weighted_label.setWordWrap(True); layout.addWidget(self.weighted_label)
         splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical); layout.addWidget(splitter, 1)
         upper = QtWidgets.QSplitter(); splitter.addWidget(upper)
-        self.table = QtWidgets.QTableWidget(0, 9)
-        self.table.setHorizontalHeaderLabels(['Uwzględnij', 'ID', 'Nazwa', 'Grupa / związek', 'ppm', 'D [m²/s]', 'SE(D) [m²/s]', 'R²', 'QC'])
+        self.table = QtWidgets.QTableWidget(0, 8)
+        self.table.setHorizontalHeaderLabels(['Uwzględnij', 'ID', 'Grupa / związek', 'ppm', 'D [m²/s]', 'SE(D) [m²/s]', 'R²', 'QC'])
+        self.table.horizontalHeaderItem(5).setToolTip('Błąd standardowy oszacowania D z dopasowania zaniku.')
         self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -191,10 +192,12 @@ class StatisticsWindow(QtWidgets.QMainWindow):
             check.setCheckState(QtCore.Qt.CheckState.Checked if record['eligible'] and self.choices[self.current_id].get(sid, True) else QtCore.Qt.CheckState.Unchecked)
             check.setToolTip('Udział w statystyce; nie usuwa sygnału.' if record['eligible'] else record['qc_detail'])
             self.table.setItem(row, 0, check)
-            vals = [sid, record['name'], record.get('group',''), self.ppm(record['ppm']), number(record['D']), number(record['SE']),
+            vals = [sid, record.get('group',''), self.ppm(record['ppm']), number(record['D']), number(record['SE']),
                     f"{record['R2']:.5f}" if record['R2'] is not None else '—', record['qc']]
             for col, value in enumerate(vals, 1):
                 item = QtWidgets.QTableWidgetItem(value); item.setToolTip(record['qc_detail'])
+                if col == 1 and record['name'] != sid:
+                    item.setToolTip(f"{record['name']}\n{record['qc_detail']}")
                 self.table.setItem(row, col, item)
         self.source_label.setText(f"{exp['source_name']} · {exp.get('experiment',{}).get('sequence','DOSY')} · SHA256: {exp.get('source_sha256') or 'brak'} · oddzielna seria wyników")
         self._updating = False

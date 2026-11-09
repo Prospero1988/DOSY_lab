@@ -7,7 +7,7 @@ import tempfile,time,unittest
 import numpy as np
 from PySide6 import QtCore,QtGui,QtWidgets,QtTest
 import pyqtgraph as pg
-from ui import Window, INTEGRAL_COLUMN
+from ui import Window, GROUP_COLUMN, INTEGRAL_COLUMN
 from spectrum_settings import SpectrumAppearance, SpectrumSettingsDialog
 from core import default_options
 from test_dosy_lab import STE,synthetic
@@ -148,7 +148,7 @@ class InterfaceTests(unittest.TestCase):
         x=w.dataset.ppm;mask=(x>=5.65)&(x<=6.35)
         self.assertLess(np.std(w.dataset.spectrum[0,mask].real),1.)
 
-    def test_mouse_ROI_then_edit_bounds_name_and_group(self):
+    def test_mouse_ROI_then_type_and_reuse_group(self):
         w=self.w;view=w.spectrum.getViewBox();viewport=w.spectrum.viewport()
         w.roi_button.click()
         a=w.spectrum.mapFromScene(view.mapViewToScene(QtCore.QPointF(3.60,0)))
@@ -158,10 +158,25 @@ class InterfaceTests(unittest.TestCase):
         settle(w)
         self.assertEqual(len(w.entries),1)
         self.assertTrue(w.results[0]['fit']['ok'])
-        w.roi_table.item(0,1).setText('H-test');w.roi_table.item(0,2).setText('Sacharoza');settle(w)
-        self.assertEqual(w.entries[0]['name'],'H-test');self.assertEqual(w.entries[0]['group'],'Sacharoza')
+        table=w.roi_table
+        table.editItem(table.item(0,GROUP_COLUMN))
+        editor=table.findChild(QtWidgets.QComboBox)
+        self.assertTrue(editor.isEditable())
+        QtTest.QTest.keyClicks(editor.lineEdit(),'Sacharoza')
+        QtTest.QTest.keyClick(editor.lineEdit(),QtCore.Qt.Key.Key_Return)
+        settle(w)
+        self.assertEqual(w.entries[0]['group'],'Sacharoza')
         w.region_items[w.active_id].setRegion((3.605,3.675));settle(w)
         np.testing.assert_allclose(w.entries[0]['bounds'],[3.605,3.675])
+        w.add_roi([5.26,5.33]);settle(w)
+        table.editItem(table.item(1,GROUP_COLUMN))
+        editor=table.findChild(QtWidgets.QComboBox)
+        self.assertEqual([editor.itemText(i) for i in range(editor.count())],['Sacharoza'])
+        editor.setCurrentIndex(0)
+        editor.activated.emit(0)
+        settle(w)
+        self.assertEqual(w.entries[1]['group'],'Sacharoza')
+        self.assertEqual([table.item(i,0).text() for i in range(2)],['S1','S2'])
 
     def test_modify_and_split_integral_with_live_preview(self):
         w=self.w
