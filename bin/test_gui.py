@@ -3,12 +3,13 @@ from dataclasses import replace
 import os
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from pathlib import Path
+from threading import Event
 from unittest.mock import patch
 import tempfile,time,unittest
 import numpy as np
 from PySide6 import QtCore,QtGui,QtWidgets,QtTest
 import pyqtgraph as pg
-from ui import Window, GROUP_COLUMN, INTEGRAL_COLUMN
+from ui import Window, GROUP_COLUMN, INTEGRAL_COLUMN, ILT_COLUMN
 from spectrum_settings import SpectrumAppearance, SpectrumSettingsDialog
 from core import default_options
 from test_dosy_lab import STE,synthetic
@@ -332,6 +333,101 @@ class InterfaceTests(unittest.TestCase):
         expected=process_fids(w.raw,w.processing.options())
         np.testing.assert_array_equal(w.dataset.phased,expected.phased)
         np.testing.assert_array_equal(w.raw.fid,raw)
+
+    def test_ilt_button_uses_cached_signed_data_and_exports_plots(self):
+        w = self.w
+        w.add_roi([3.60, 3.68], group='Sacharoza')
+        settle(w)
+        w.point_table.item(0, 0).setCheckState(QtCore.Qt.CheckState.Unchecked)
+        settle(w)
+        dataset, results = w.dataset, w.results
+        fit = results[0]['fit']
+
+        def wait_for(predicate):
+            end = time.monotonic() + 10
+            while not predicate() and time.monotonic() < end:
+                QtTest.QTest.qWait(15)
+            self.assertTrue(predicate(), dialog.status.text())
+
+        self.assertIsNone(w.ilt_window)
+        with patch('ui.analyze', side_effect=AssertionError('ILT must not redo the mono fit')):
+            w.roi_table.cellWidget(0, ILT_COLUMN).click()
+            dialog = w.ilt_window
+            self.assertTrue(dialog.isVisible())
+            wait_for(lambda: dialog.result is not None)
+            np.testing.assert_array_equal(dialog.b, dataset.b)
+            np.testing.assert_array_equal(dialog.y, results[0]['result']['corrected_integral'])
+            np.testing.assert_array_equal(dialog.mask, fit['fit_mask'])
+            self.assertFalse(dialog.mask[0])
+            self.assertIs(dialog.fit, fit)
+            dialog.slider.setValue(-63)
+            dialog.slider.setValue(-55)
+            dialog.lambda_edit.setText('0.000024137')
+            dialog.lambda_changed()
+            dialog.points.setCurrentIndex(dialog.points.findData(50))
+            wait_for(lambda: dialog.solved_parameters.regularization == .000024137)
+            self.assertEqual(dialog.solved_parameters.points, 50)
+            self.assertTrue(dialog.distribution.getAxis('bottom').logMode)
+            result = dialog.result
+            dialog.log_axis.setChecked(False)
+            self.assertFalse(dialog.distribution.getAxis('bottom').logMode)
+            self.assertIs(dialog.result, result)
+            dialog.log_axis.setChecked(True)
+            dialog.distribution.fullscreen_controller.open()
+            self.assertIsNotNone(dialog.distribution.fullscreen_controller.window)
+            dialog.distribution.fullscreen_controller.close()
+            APP.processEvents()
+
+            with tempfile.TemporaryDirectory() as folder:
+                single = Path(folder)/'distribution.png'
+                combined = Path(folder)/'ilt.png'
+                with patch.object(QtWidgets.QFileDialog, 'getSaveFileName', side_effect=[(str(single), ''), (str(combined), '')]):
+                    dialog.export_png((dialog.distribution,), 'distribution')
+                    dialog.combined_export.click()
+                self.assertGreaterEqual(QtGui.QImage(str(single)).width(), 1600)
+                self.assertGreater(QtGui.QImage(str(combined)).height(), QtGui.QImage(str(single)).height())
+            dialog.close()
+            self.assertIsNone(w.ilt_window)
+            self.assertIs(w.dataset, dataset)
+            self.assertIs(w.results, results)
+            self.assertTrue(w.valid)
+
+    def test_ilt_discards_running_solution_when_parameters_change(self):
+        from ilt import solve_ilt
+
+        w = self.w
+        w.add_roi([3.60, 3.68])
+        settle(w)
+        started, release = Event(), Event()
+        solved_parameters = []
+
+        def solve(b, intensity, parameters, **kwargs):
+            solved_parameters.append(parameters)
+            started.set()
+            if not release.wait(10):
+                raise RuntimeError('Test did not release worker')
+            return solve_ilt(b, intensity, parameters, **kwargs)
+
+        with patch('ilt_window.solve_ilt', side_effect=solve):
+            w.roi_table.cellWidget(0, ILT_COLUMN).click()
+            dialog = w.ilt_window
+            try:
+                end = time.monotonic()+8
+                while not started.is_set() and time.monotonic() < end:
+                    QtTest.QTest.qWait(15)
+                self.assertTrue(started.is_set())
+                dialog.slider.setValue(-60)
+                dialog.slider.setValue(-70)
+                self.assertFalse(dialog.combined_export.isEnabled())
+            finally:
+                release.set()
+            end = time.monotonic()+8
+            while dialog.result is None and time.monotonic() < end:
+                QtTest.QTest.qWait(15)
+            self.assertIsNotNone(dialog.result)
+            self.assertEqual([p.regularization for p in solved_parameters], [1e-5, 1e-7])
+            self.assertEqual(dialog.solved_parameters.regularization, 1e-7)
+            dialog.close()
 
     def test_reference_click_assigns_ppm_and_preserves_phase_and_integrals(self):
         w = self.w

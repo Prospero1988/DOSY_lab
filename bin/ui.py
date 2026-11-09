@@ -16,6 +16,7 @@ from storage import DATA, PROJECTS, PROJECT_FILTER, choose_save_file, dialog_dir
 from plot_export import save_light_plot
 from d_statistics import build_snapshot,number
 from fullscreen_plot import enable_fullscreen
+from ilt_window import ILTWindow
 from exports import export_bundle,save_project,read_project
 from spectrum_view import SpectrumBox
 from phase_window import PhaseWindow
@@ -36,6 +37,7 @@ GROUP_COLUMN = 1
 LOWER_PPM_COLUMN = 2
 UPPER_PPM_COLUMN = 3
 INTEGRAL_COLUMN = 4
+ILT_COLUMN = 9
 
 
 class GroupDelegate(QtWidgets.QStyledItemDelegate):
@@ -87,6 +89,7 @@ class Window(QtWidgets.QMainWindow):
         self.signal_labels = {}
         self.info_window = None
         self.map_window = None
+        self.ilt_window = None
         self.worker=None;self.job_callback=None;self.pending=False;self.revision=0;self.job_revision=0
         self.valid=False;self._updating=False;self.close_pending=False;self.statistics_window=None;self.phase_window=None
         self.experiment_id=uuid.uuid4().hex;self.region_items={};self.base_items=[];self.next_id=1
@@ -179,8 +182,8 @@ class Window(QtWidgets.QMainWindow):
         left=QtWidgets.QWidget();ll=QtWidgets.QVBoxLayout(left);bottom.addWidget(left)
         bar=QtWidgets.QHBoxLayout();ll.addLayout(bar)
         self.button(tr('Dopasuj / odśwież'),self.request_calculation,bar,tr('Przelicz widma, całki i dopasowania D z bieżących ustawień.'))
-        self.roi_table=QtWidgets.QTableWidget(0,9)
-        self.roi_table.setHorizontalHeaderLabels(['ID',tr('Grupa / związek'),tr('Od ppm'),tr('Do ppm'),tr('Całka'),'D / 10⁻¹⁰','SE(D) / 10⁻¹⁰','R²','QC'])
+        self.roi_table=QtWidgets.QTableWidget(0,10)
+        self.roi_table.setHorizontalHeaderLabels(['ID',tr('Grupa / związek'),tr('Od ppm'),tr('Do ppm'),tr('Całka'),'D / 10⁻¹⁰','SE(D) / 10⁻¹⁰','R²','QC','ILT'])
         self.roi_table.setItemDelegateForColumn(GROUP_COLUMN, GroupDelegate(self))
         self.roi_table.horizontalHeaderItem(6).setToolTip(
             tr('Błąd standardowy oszacowania D z dopasowania zaniku, w 10⁻¹⁰ m²/s.'))
@@ -625,6 +628,13 @@ class Window(QtWidgets.QMainWindow):
                 if j==INTEGRAL_COLUMN:
                     item.setToolTip(tr('Wpisz wartość odniesienia. Wszystkie całki przy widmie i w tej kolumnie zmienią się w tej samej proporcji.'))
                 self.roi_table.setItem(i,j,item)
+            if fit.get('ok') and self.valid:
+                if self.roi_table.cellWidget(i, ILT_COLUMN) is None:
+                    button = QtWidgets.QPushButton(tr('Analizuj ILT'))
+                    button.clicked.connect(lambda _, row=i: self.show_ilt(self.entries[row]['id']))
+                    self.roi_table.setCellWidget(i, ILT_COLUMN, button)
+            else:
+                self.roi_table.removeCellWidget(i, ILT_COLUMN)
             if e['id']==self.active_id:self.roi_table.setCurrentCell(i,0)
         self._updating=False
     def roi_edited(self,item):
@@ -771,6 +781,22 @@ class Window(QtWidgets.QMainWindow):
         if self.dataset is None:return
         if self.statistics_window is None:self.statistics_window=StatisticsWindow(self)
         self.statistics_window.update_live(self.snapshot());self.statistics_window.show();self.statistics_window.raise_()
+
+    def show_ilt(self, sid):
+        if not self.valid or self.dataset is None or self.dataset.b is None:
+            return
+        entry = next((row for row in self.results if row['id'] == sid and row['fit'].get('ok')), None)
+        if entry is None:
+            return
+        if self.ilt_window is not None:
+            self.ilt_window.close()
+        self.ilt_window = ILTWindow(self, self.dataset.name, self.dataset.b, entry)
+        self.ilt_window.finished.connect(self.ilt_closed)
+        self.ilt_window.show()
+
+    def ilt_closed(self):
+        self.ilt_window = None
+
     def show_map(self):
         if not self.valid:return
         if self.map_window is None:self.map_window=DosyMapWindow(self)
@@ -858,6 +884,7 @@ class Window(QtWidgets.QMainWindow):
         if self.worker is not None and self.worker.isRunning():self.close_pending=True;event.ignore();return
         if self.statistics_window is not None:self.statistics_window.close()
         if self.map_window is not None:self.map_window.close()
+        if self.ilt_window is not None:self.ilt_window.close()
         if self.info_window is not None:self.info_window.close()
         super().closeEvent(event)
 

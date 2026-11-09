@@ -62,6 +62,7 @@ The [user guide](INSTRUKCJA.md) walks through opening data, processing, phase an
 - [Interactive phase correction](INSTRUKCJA.md#3-phase-correction)
 - [Where b values come from](INSTRUKCJA.md#6-b-values)
 - [D statistics and fit diagnostics](INSTRUKCJA.md#8-d-statistics)
+- [Experimental inverse Laplace analysis](ILT.md)
 - [Project files and exports](INSTRUKCJA.md#9-projects-and-exports)
 - [2D DOSY map from integrals](INSTRUKCJA.md#11-2d-dosy-map)
 

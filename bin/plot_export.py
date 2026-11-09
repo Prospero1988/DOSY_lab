@@ -24,6 +24,7 @@ def light_plot(source):
         axis.setTextPen('k')
         axis.setLabel(original.labelText, units=original.labelUnits, color='#000000')
         axis.setStyle(showValues=original.style['showValues'])
+        axis.setLogMode(original.logMode)
         axis.enableAutoSIPrefix(original.autoSIPrefix)
         axis.setGrid(original.grid)
     plot.getAxis('left').setWidth(source.getAxis('left').width())
@@ -50,7 +51,7 @@ def _light_item(item):
             return None
         return pg.PlotDataItem(x, y, pen=_colored_pen(item.opts['pen'], NAVY),
                                symbol=item.opts['symbol'], symbolSize=item.opts['symbolSize'],
-                               symbolPen=None, symbolBrush=NAVY)
+                               symbolPen=None, symbolBrush=NAVY, name=item.name())
     if isinstance(item, pg.ScatterPlotItem):
         spots = [
             dict(pos=point.pos(), size=point.size(), symbol=point.symbol(), pen=pg.mkPen(NAVY),
@@ -74,11 +75,13 @@ def _light_item(item):
     return None
 
 
-def save_light_plot(source, path, *, bottom_ticks=None):
+def save_light_plot(source, path, *, bottom_ticks=None, legend=False, dpi=None):
     path = Path(path)
     plot = light_plot(source)
     plot.setAttribute(QtCore.Qt.WidgetAttribute.WA_DontShowOnScreen)
     try:
+        if legend:
+            plot.addLegend(labelTextColor='k', brush='w')
         if bottom_ticks is not None:
             plot.getAxis('bottom').setTicks([bottom_ticks])
         for item in source.plotItem.items:
@@ -87,6 +90,8 @@ def save_light_plot(source, path, *, bottom_ticks=None):
             copy = _light_item(item)
             if copy is not None:
                 copy.setZValue(item.zValue())
+                if legend and isinstance(item, pg.InfiniteLine) and getattr(item, 'label', None) is not None:
+                    pg.InfLineLabel(copy, text=item.label.format, position=item.label.orthoPos, color='k')
                 plot.addItem(copy)
         plot.resize(max(source.width(), 600), max(source.height(), 300))
         plot.show()
@@ -97,7 +102,14 @@ def save_light_plot(source, path, *, bottom_ticks=None):
         elif path.suffix.lower() == '.png':
             exporter = ImageExporter(plot.plotItem)
             exporter.parameters()['width'] = 1600
-            exporter.export(str(path))
+            if dpi is None:
+                exporter.export(str(path))
+            else:
+                image = exporter.export(toBytes=True)
+                image.setDotsPerMeterX(round(dpi / .0254))
+                image.setDotsPerMeterY(round(dpi / .0254))
+                if not image.save(str(path), 'PNG'):
+                    raise OSError(f'Could not save PNG: {path}')
         else:
             raise ValueError('Wybierz rozszerzenie PNG lub SVG.')
     finally:
