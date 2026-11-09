@@ -7,6 +7,7 @@ from jeol import RawData,read_jdf,manual_b,validate_b,factory_b,parameters,GAMMA
 from core import (default_options,process_fids,signed_integrals,integrate,fit_decay,analyze,
                   baseline_fit,save_profile,load_profile,initial_dataset)
 from d_statistics import build_snapshot,descriptive_statistics,summarize,diagnostic_points,export_statistics,import_statistics
+from dosy_map import roi_bands
 from exports import export_bundle,save_project,read_project
 from examples.generate_demo import demo_bytes, encode_fixture
 
@@ -242,6 +243,27 @@ class ProcessingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             o=default_options(synthetic());o['phase1_deg']=7200;p=Path(d)/'profile.json';save_profile(p,o)
             self.assertEqual(load_profile(p),o)
+
+
+class DosyMapTests(unittest.TestCase):
+    def test_reference_profile_masks_overlap_and_excludes_invalid_fits(self):
+        ppm = np.arange(7.)
+        reference = np.array([1., -4., 3., -2., 7., 9., -5.])
+        rows = [
+            {'id': 'S1', 'bounds': (0, 4), 'fit': {'ok': True, 'D_m2_s': 3e-10}},
+            {'id': 'S2', 'bounds': (2, 6), 'fit': {'ok': True, 'D_m2_s': 8e-10}},
+            {'id': 'S3', 'bounds': (0, 6), 'fit': {'ok': True, 'D_m2_s': float('nan')}},
+            {'id': 'S4', 'bounds': (0, 6), 'fit': {'ok': False, 'D_m2_s': 9e-10}},
+        ]
+        bands, overlap = roi_bands(ppm, reference, rows)
+        self.assertTrue(overlap)
+        self.assertEqual([band.diffusion for band in bands], [3e-10, 8e-10])
+        np.testing.assert_array_equal(bands[0].ppm, [0., 1., 2., 3.])
+        np.testing.assert_array_equal(bands[0].intensity, [1., -4., 0., 0.])
+        np.testing.assert_array_equal(bands[1].intensity, [0., 0., 7., 9.])
+        bands, overlap = roi_bands(ppm, reference, rows, {'S2'})
+        self.assertFalse(overlap)
+        np.testing.assert_array_equal(bands[0].intensity, reference[:4])
 
 
 class FitStatisticsExportTests(unittest.TestCase):

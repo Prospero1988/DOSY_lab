@@ -11,6 +11,7 @@ from core import process_fids,initial_dataset,analyze
 from jeol import read_jdf,manual_b
 from processing_panel import ProcessingPanel,BDialog
 from statistics_window import StatisticsWindow
+from dosy_map import DosyMapWindow
 from d_statistics import build_snapshot,number
 from fullscreen_plot import enable_fullscreen
 from exports import export_bundle,save_project,read_project
@@ -78,6 +79,7 @@ class Window(QtWidgets.QMainWindow):
         self.integral_labels = {}
         self.signal_labels = {}
         self.info_window = None
+        self.map_window = None
         self.worker=None;self.job_callback=None;self.pending=False;self.revision=0;self.job_revision=0
         self.valid=False;self._updating=False;self.close_pending=False;self.statistics_window=None;self.phase_window=None
         self.experiment_id=uuid.uuid4().hex;self.region_items={};self.base_items=[];self.next_id=1
@@ -126,6 +128,9 @@ class Window(QtWidgets.QMainWindow):
         self.clear_baseline_button = self.button('Wyczyść bazę',self.clear_baseline,spectrum_tools,
                                                  'Usuń wszystkie niebieskie obszary bazy i wyłącz jej odejmowanie.')
         self.clear_baseline_button.setEnabled(False)
+        self.map_button = self.button('Mapa DOSY 2D', self.show_map, spectrum_tools,
+                                      'Pokaż mapę ppm × D z całek i aktualnych dopasowań.')
+        self.map_button.setEnabled(False)
         self.mode_buttons['zoom'].setChecked(True)
         spectrum_tools.addStretch()
         self.button('Processing', lambda:self.processing.setVisible(not self.processing.isVisible()), spectrum_tools,
@@ -231,6 +236,7 @@ class Window(QtWidgets.QMainWindow):
 
     def start_job(self,fn,callback):
         self.valid=False;self.export_button.setEnabled(False);self.open_button.setEnabled(False)
+        self.invalidate_map()
         self.statusBar().showMessage('Obliczanie w tle. Widok odświeży się po zakończeniu.')
         self.job_callback=callback;self.worker=Job(fn,self)
         self.worker.completed.connect(self.job_success);self.worker.failed.connect(self.job_error);self.worker.finished.connect(self.job_finished)
@@ -264,6 +270,11 @@ class Window(QtWidgets.QMainWindow):
     def request_calculation(self,*args):
         if self.raw is None or self._updating:return
         self.revision+=1;self.valid=False;self.export_button.setEnabled(False);self.timer.start(180)
+        self.invalidate_map()
+
+    def invalidate_map(self):
+        self.map_button.setEnabled(False)
+        if self.map_window is not None:self.map_window.invalidate()
 
     def start_calculation(self):
         if self.raw is None:return
@@ -282,6 +293,7 @@ class Window(QtWidgets.QMainWindow):
 
     def accepted(self):
         self.valid=True;self.export_button.setEnabled(True)
+        self.map_button.setEnabled(True)
         meta=self.raw.metadata
         delay=self.dataset.options['filter_delay_samples']
         self.layer.blockSignals(True)
@@ -293,6 +305,8 @@ class Window(QtWidgets.QMainWindow):
         if self.info_window is not None and self.info_window.isVisible():
             self.info_window.set_dataset(self.dataset,self.integral_scale)
         if self.statistics_window is not None:self.statistics_window.update_live(self.snapshot())
+        if self.map_window is not None and self.map_window.isVisible():
+            self.map_window.update_data(self.experiment_id,self.dataset,self.results)
         self.statusBar().showMessage('; '.join(self.dataset.diagnostics['warnings']) or 'Gotowe. Zmiana wyboru widma lub ROI nie zmienia danych pomiarowych.')
         if meta.get('digital_filter') and not delay and abs(self.dataset.options['phase1_deg'])<1:
             self.statusBar().showMessage('Brak zastosowanej korekcji opóźnienia filtra. Sprawdź fazę; falowanie może pochodzić z filtra cyfrowego.')
@@ -641,6 +655,12 @@ class Window(QtWidgets.QMainWindow):
         if self.dataset is None:return
         if self.statistics_window is None:self.statistics_window=StatisticsWindow(self)
         self.statistics_window.update_live(self.snapshot());self.statistics_window.show();self.statistics_window.raise_()
+    def show_map(self):
+        if not self.valid:return
+        if self.map_window is None:self.map_window=DosyMapWindow(self)
+        self.map_window.show()
+        self.map_window.update_data(self.experiment_id,self.dataset,self.results)
+        self.map_window.raise_()
     def edit_spectrum_settings(self):
         dialog = SpectrumSettingsDialog(self.appearance, self)
         if dialog.exec() != QtWidgets.QDialog.DialogCode.Accepted:
@@ -701,6 +721,7 @@ class Window(QtWidgets.QMainWindow):
         self.timer.stop()
         if self.worker is not None and self.worker.isRunning():self.close_pending=True;event.ignore();return
         if self.statistics_window is not None:self.statistics_window.close()
+        if self.map_window is not None:self.map_window.close()
         if self.info_window is not None:self.info_window.close()
         super().closeEvent(event)
 

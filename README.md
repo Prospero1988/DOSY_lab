@@ -13,6 +13,7 @@ DOSY Lab to aplikacja desktopowa do analizy klasycznych eksperymentów dyfuzyjny
 - Wybrać fragmenty tła do korekcji linii bazowej. Dodawać, przesuwać, dzielić i kalibrować całki na widmie.
 - Sprawdzić pochodzenie wartości **b** lub wczytać własną listę. Obejrzeć zanik całki, model i reszty dla każdego sygnału. Ręcznie decydować o udziale poszczególnych warstw w dopasowaniu.
 - Porównać wartości **D** w obrębie wskazanej grupy sygnałów oraz zestawić podsumowania osobnych eksperymentów.
+- Zbudować mapę **DOSY 2D** z wybranych całek i ich dopasowanych wartości **D**. Widmo referencyjne nad mapą ma wspólną oś ppm, a aktywny widok można zapisać do PNG.
 - Zapisać projekt, wyeksportować tabele do CSV i XLSX, wykresy do PNG i SVG oraz dane zespolone do NPZ.
 
 ## Pierwsze uruchomienie na Windows
@@ -60,6 +61,7 @@ Plik można też wybrać w aplikacji przez **Otwórz DOSY**. Dla szybkiej próby
 - [Pochodzenie b i ręczny import](docs/INSTRUKCJA.md#6-wartości-b)
 - [Statystyka D i diagnostyka](docs/INSTRUKCJA.md#8-statystyka-d)
 - [Projekty i pliki eksportu](docs/INSTRUKCJA.md#9-projekty-i-eksport)
+- [Mapa DOSY 2D z całek](docs/INSTRUKCJA.md#11-mapa-dosy-2d)
 
 ## Format danych i zakres obsługi
 
@@ -76,6 +78,7 @@ Plik można też wybrać w aplikacji przez **Otwórz DOSY**. Dla szybkiej próby
 | `jeol.py`, `core.py` | Odczyt JDF, model **b**, processing, całkowanie i dopasowanie |
 | `phase_window.py`, `processing_panel.py`, `spectrum_settings.py` | Fazowanie, ustawienia processingu i wygląd widma |
 | `d_statistics.py`, `statistics_window.py`, `statistics_svg.py` | Statystyka, diagnostyka ROI i wykresy |
+| `dosy_map.py` | Mapa ppm × D z całek i widma referencyjnego |
 | `exports.py`, `experiment_info.py`, `fullscreen_plot.py` | Projekty i eksport, metadane oraz widoki wykresów |
 | `examples/generate_demo.py`, `test_*.py` | Syntetyczny JDF i testy obliczeń oraz interfejsu |
 

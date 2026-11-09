@@ -12,6 +12,7 @@
 8. [Statystyka D](#8-statystyka-d)
 9. [Projekty i eksport](#9-projekty-i-eksport)
 10. [Najczęstsze problemy](#10-najczęstsze-problemy)
+11. [Mapa DOSY 2D](#11-mapa-dosy-2d)
 
 ## 1. Otwarcie danych
 
@@ -168,3 +169,19 @@ Pakiet eksportu może zawierać pełne dane pomiarowe i treść osadzonej sekwen
 | Statystyka pokazuje N = 0 | Sprawdź grupę **Związek**, pole **Uwzględnij** i QC sygnałów. |
 | Projekt nie znajduje JDF | Sprawdź ścieżkę do oryginalnego pliku w projekcie i jego dostępność. |
 | Skrypt startowy zamyka się lub brakuje bibliotek | Spróbuj [instalacji ręcznej](../README.md#pierwsze-uruchomienie-na-windows) i uruchom `app.py` z tego samego środowiska. |
+
+## 11. Mapa DOSY 2D
+
+![Mapa DOSY 2D z połączonym widmem 1D, listą całek i prowadnicami](images/mapa-dosy-2d.png)
+
+*Dane syntetyczne. Cztery całki grupy A tworzą pasmo w pobliżu 3,9 × 10⁻¹⁰ m²/s. Prowadnice wskazują sygnał grupy B przy 4,70 ppm.*
+
+1. Wyznacz całki i poczekaj na zakończenie dopasowań. Nad widmem, obok **Wyczyść bazę**, kliknij **Mapa DOSY 2D**.
+2. Z prawej strony wybierz, które całki mają się znaleźć na mapie. Dostępne są całki z poprawnie zakończonym dopasowaniem i dodatnim, skończonym **D**. Wybór dotyczy mapy i nie zmienia projektu ani statystyki.
+3. Przeciągnij prostokąt w trybie **Zoom**. Zmiana zakresu ppm na mapie od razu zmienia zakres widma 1D nad nią. **Przesuwaj** włącza przesuwanie, a **Cały zakres** lub dwuklik przywraca widok wszystkich wyświetlanych sygnałów.
+4. Włącz **Punkt / prowadnice** i kliknij mapę. Linie pokazują pozycję ppm oraz współrzędną **D** kursora. Pionowa prowadnica pojawia się też na widmie 1D. Odczyt dotyczy miejsca kliknięcia, bez przyciągania do najbliższego piku.
+5. Rolka nad **1D** zmienia wysokość widma. Rolka nad **2D** zmienia podłogę intensywności. Im wyższa podłoga, tym mniej słabych punktów widać. **Zapisz widok PNG** zachowuje oba aktualne wykresy z zoomem, skalą intensywności i prowadnicami.
+
+Mapa umieszcza rzeczywistą część sfazowanego widma referencyjnego w granicach każdej całki przy współczynniku **D** z jej zapisanego dopasowania. Turkus oznacza dodatnią intensywność, a pomarańcz ujemną. Jeśli wybrane całki się nakładają, ich wspólne punkty są pomijane. Wyłączenie jednej z nich przywraca wspólny fragment w drugiej.
+
+**Szerokość pasma D** steruje graficznym rozmyciem w pionie jako FWHM w procentach największego widocznego **D**. Położenie pasma wynika z fitu. Każda całka ma jedno przypisane **D**, więc mapa nie rozdziela związków, których sygnały leżą w tym samym ROI.

@@ -342,6 +342,61 @@ class InterfaceTests(unittest.TestCase):
                 self.assertTrue((folder/name).exists(),name)
                 self.assertGreater((folder/name).stat().st_size,50)
 
+    def test_dosy_map_navigation_coordinates_floor_and_export(self):
+        w = self.w
+        w.add_roi([3.60, 3.68])
+        w.add_roi([5.26, 5.33])
+        settle(w)
+        with patch('ui.analyze', side_effect=AssertionError('Mapa nie może ponawiać fitu.')):
+            w.map_button.click()
+            APP.processEvents()
+            window = w.map_window
+            self.assertTrue(window.isVisible())
+            self.assertEqual(len(window.images), 2)
+            layer = w.dataset.options['reference_layer']
+            np.testing.assert_array_equal(window.trace.getData()[1], w.dataset.spectrum[layer].real)
+            plot, view = window.plot, window.map_view
+            original = np.array(view.viewRange())
+            def point(x, y):
+                pos = original[:,0] + np.array([x, y])*np.ptp(original, axis=1)
+                return plot.mapFromScene(view.mapViewToScene(QtCore.QPointF(*pos)))
+            drag(plot.viewport(), point(.2,.25), point(.75,.75))
+            self.assertLess(np.ptp(view.viewRange()[0]), .7*np.ptp(original[0]))
+            np.testing.assert_allclose(window.reference_view.viewRange()[0], view.viewRange()[0], atol=.005)
+            QtTest.QTest.mouseDClick(plot.viewport(), QtCore.Qt.MouseButton.LeftButton, pos=plot.viewport().rect().center())
+            np.testing.assert_allclose(view.viewRange(), original, atol=.005)
+            window.tools.button(1).click()
+            drag(plot.viewport(), point(.4,.4), point(.58,.45))
+            self.assertGreater(abs(view.viewRange()[0][0] - original[0,0]), .1)
+            window.reset_view()
+            window.tools.button(2).click()
+            QtTest.QTest.mouseClick(plot.viewport(), QtCore.Qt.MouseButton.LeftButton, pos=point(.5,.5))
+            self.assertTrue(window.ppm_guide.isVisible())
+            self.assertAlmostEqual(window.ppm_guide.value(), original[0].mean(), delta=.02)
+            self.assertAlmostEqual(window.diffusion_guide.value(), original[1].mean(), delta=.02)
+            self.assertIn('m²/s', window.coordinate.text())
+            def wheel(widget):
+                viewport = widget.viewport()
+                pos = viewport.rect().center()
+                APP.sendEvent(viewport, QtGui.QWheelEvent(
+                    QtCore.QPointF(pos), QtCore.QPointF(viewport.mapToGlobal(pos)),
+                    QtCore.QPoint(), QtCore.QPoint(0,120), QtCore.Qt.MouseButton.NoButton,
+                    QtCore.Qt.KeyboardModifier.NoModifier, QtCore.Qt.ScrollPhase.ScrollUpdate, False))
+            floor = window.floor.value()
+            wheel(plot)
+            self.assertGreater(window.floor.value(), floor)
+            np.testing.assert_allclose(view.viewRange(), original)
+            height = np.ptp(window.reference_view.viewRange()[1])
+            wheel(window.projection)
+            self.assertLess(np.ptp(window.reference_view.viewRange()[1]), height)
+            window.rois.item(1).setCheckState(QtCore.Qt.CheckState.Unchecked)
+            self.assertEqual(len(window.images), 1)
+            with tempfile.TemporaryDirectory() as directory:
+                png = Path(directory)/'map.png'
+                self.assertTrue(window.save_view(png))
+                self.assertFalse(QtGui.QImage(str(png)).isNull())
+                np.testing.assert_allclose(view.viewRange(), original)
+
     def test_calibration_rescales_cached_integrals_and_round_trips_project(self):
         w = self.w
         w.add_roi([3.60,3.68])
