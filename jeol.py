@@ -193,11 +193,27 @@ def factory_b(params,context,g):
         return None,info
 
 
-def infer_filter_delay(params, first_point, npoints):
+def _has_full_filter_band(params, first_point, npoints, sweep, clipped_sweep):
+    """Resolve a TRUE clipping flag only when the stored FID matches the full acquisition."""
+    if first_point != 0 or not 0 < clipped_sweep < sweep:
+        return False
+    try:
+        acquired = number(params, 'x_points')
+        requested = number(params, 'x_points_input')
+        duration = number(params, 'x_acq_duration', 28)
+    except (KeyError, TypeError, ValueError):
+        return False
+    return (0 < requested < npoints == acquired
+            and abs(npoints * clipped_sweep / sweep - requested) <= 1
+            and abs(duration * sweep - npoints) <= 1)
+
+
+def infer_filter_delay(params, first_point, npoints, *, full_filter_band=False):
     """Infer a linear-phase decimation delay for the supported raw JEOL metadata."""
     value=lambda key:params.get(key,{}).get('value')
+    unclipped = value('clipped') == 'FALSE' or (value('clipped') == 'TRUE' and full_filter_band)
     if (first_point!=0 or value('digital_filter')!='TRUE'
-            or value('clipped')!='FALSE' or value('digital_filter_status')!='Np'):
+            or not unclipped or value('digital_filter_status')!='Np'):
         return None
     try:
         stages,*taps=map(int,value('orders').split())
@@ -266,6 +282,12 @@ def read_jdf(path):
                 'pulse_program':model['pulse_program'],'calibrated':False}
     sw=number(params,'x_sweep',13);freq=number(params,'x_freq',13);off=number(params,'x_offset',26)
     if min(sw,freq)<=0:raise ValueError('Nieprawidłowa częstotliwość lub szerokość widma.')
+    clipped_sw=number(params,'x_sweep_clipped',13) if 'x_sweep_clipped' in params else sw
+    clip_flag=params.get('clipped',{}).get('value')=='TRUE'
+    digital_filter=params.get('digital_filter',{}).get('value')=='TRUE'
+    filter_status=params.get('digital_filter_status',{}).get('value')
+    full_band=(clip_flag and digital_filter and filter_status=='Np'
+               and _has_full_filter_band(params,starts[0],fid.shape[1],sw,clipped_sw))
     # Report encoding and spoilers separately; never use spoiler amplitudes as g.
     body=context.split('\nbegin\n',1)[-1].split('end pulse;',1)[0]
     events=[]
@@ -277,10 +299,9 @@ def read_jdf(path):
           'sequence':model['sequence'],'pulse_program':model['pulse_program'],
           'b_source':model,'gradient_axis_source':axis_kind or 'source_or_missing',
           'gradient_events':events,'x_sweep_Hz':sw,'x_frequency_Hz':freq,'offset_ppm':off,
-          'x_sweep_clipped_Hz':number(params,'x_sweep_clipped',13) if 'x_sweep_clipped' in params else sw,
-          'digital_filter':params.get('digital_filter',{}).get('value')=='TRUE',
-          'already_clipped':params.get('clipped',{}).get('value')=='TRUE',
-          'filter_delay_model':infer_filter_delay(params,starts[0],fid.shape[1]),
+          'x_sweep_clipped_Hz':clipped_sw,'digital_filter':digital_filter,
+          'already_clipped':clip_flag and not full_band,'full_fid_despite_clip_flag':full_band,
+          'filter_delay_model':infer_filter_delay(params,starts[0],fid.shape[1],full_filter_band=full_band),
           'complex_convention':'section_0 - 1j*section_1','stored_shape':list(pts[::-1]),
           'valid_shape':list(fid.shape),'context':context,
           'limitations':['Oś ppm z x_offset i x_freq; odnośnik chemiczny wymaga potwierdzenia.',

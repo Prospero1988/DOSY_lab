@@ -27,8 +27,10 @@ def encode_fixture(fid, gradients, parameters, context, *, edge=4, little=True, 
         record = bytearray(64)
         if name in ('delta', 'delta_large', 'tau', 'tau_1', 'tau_2', 'st_coef'):
             record[6:8] = bytes((0x11, 28))
-        elif name in ('x_sweep', 'x_freq'):
+        elif name in ('x_sweep', 'x_sweep_clipped', 'x_freq'):
             record[6:8] = bytes((1, 13))
+        elif name == 'x_acq_duration':
+            record[6:8] = bytes((1, 28))
         elif name == 'x_offset':
             record[6:8] = bytes((1, 26))
         if isinstance(value, str):

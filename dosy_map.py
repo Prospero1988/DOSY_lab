@@ -181,6 +181,11 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             plot.addItem(guide, ignoreBounds=True)
             guide.setZValue(10)
             guide.hide()
+        self.d_label = pg.TextItem(color='#facc15', fill=pg.mkBrush('#101827'))
+        self.d_label.setZValue(11)
+        self.plot.addItem(self.d_label, ignoreBounds=True)
+        self.d_label.hide()
+        self.map_view.sigRangeChanged.connect(self.position_d_label)
         self.trace = self.projection.plot(pen=pg.mkPen(self.trace_color))
         self.map_color_action.triggered.connect(lambda: self.choose_color(map_color=True))
         self.trace_color_action.triggered.connect(lambda: self.choose_color(map_color=False))
@@ -234,7 +239,21 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                              (self.diffusion_guide, diffusion)):
             guide.setPos(value)
             guide.show()
-        self.coordinate.setText(f'δ = {ppm:.2f} ppm    ·    D = {diffusion*self.D_SCALE:.3e} m²/s')
+        value = f'D = {diffusion*self.D_SCALE:.3e} m²/s'
+        self.coordinate.setText(f'δ = {ppm:.2f} ppm    ·    {value}')
+        self.d_label.setText(value)
+        self.position_d_label()
+        self.d_label.show()
+        self.d_label.updateTransform(force=True)
+
+    def position_d_label(self):
+        ppm, diffusion = self.ppm_guide.value(), self.diffusion_guide.value()
+        (left, right), (bottom, top) = self.map_view.viewRange()
+        # The ppm axis runs from high to low, so small ppm is near the right edge.
+        x_anchor = 1.04 if ppm < left + .25*(right-left) else -.04
+        y_anchor = -.12 if diffusion > top - .15*(top-bottom) else 1.12
+        self.d_label.setAnchor((x_anchor, y_anchor))
+        self.d_label.setPos(ppm, diffusion)
 
     def update_data(self, experiment_id, dataset, results):
         new_experiment = self.experiment_id != experiment_id
@@ -245,6 +264,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             self.excluded.clear()
             for guide in (self.projection_guide, self.ppm_guide, self.diffusion_guide):
                 guide.hide()
+            self.d_label.hide()
             self.coordinate.setText('Włącz Punkt / prowadnice, aby odczytać współrzędne.')
         self.reference = dataset.spectrum[dataset.options['reference_layer']].real
         self.trace.setData(dataset.ppm, self.reference)
@@ -420,6 +440,12 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                     line = pg.InfiniteLine(pos=guide.value(), angle=guide.angle, pen=pen)
                     line.setZValue(10)
                     plot.addItem(line, ignoreBounds=True)
+            if self.d_label.isVisible():
+                label = pg.TextItem(self.d_label.toPlainText(), color='k', anchor=self.d_label.anchor,
+                                    fill=pg.mkBrush('w'))
+                label.setPos(self.d_label.pos())
+                label.setZValue(11)
+                map_plot.addItem(label, ignoreBounds=True)
             canvas.resize(self.graphics.width(), layout.sizeHint().height())
             canvas.show()
             for source, plot in ((self.projection, spectrum), (self.plot, map_plot)):

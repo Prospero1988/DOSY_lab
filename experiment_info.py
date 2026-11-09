@@ -90,12 +90,14 @@ class ExperimentInfo(QtWidgets.QDialog):
         delay_text = f'{delay:.6g} próbki'
         if delay and delay_model and abs(delay-delay_model['samples'])<1e-6:
             delay_text += ' (model JDF)'
+        filter_band = 'Pełny FID mimo flagi clipped w JDF' if meta.get('full_fid_despite_clip_flag') else 'Zgodnie z metadanymi JDF'
         self.processing.setHtml(section('Widmo i integracja',[
             ('Rozmiar FFT',dataset.diagnostics['nfft']),('Warstwa referencyjna',o['reference_layer']+1),
             ('LB',f"{o['lb_Hz']:g} Hz"),('Gauss',f"{o['gaussian_FWHM_Hz']:g} Hz"),
             ('PH0',f"{o['phase0_deg']:.6g}°"),('PH1',f"{o['phase1_deg']:.6g}° / SW"),
             ('Pivot',f"{o['pivot_ppm']:.6g} ppm"),
             ('Korekcja opóźnienia filtra',delay_text),
+            ('Pasmo filtra',filter_band),
             ('Korekcja bazy','Włączona' if o['baseline_enabled'] else 'Wyłączona'),
             ('Mnożnik wyświetlanych całek',f'{integral_scale:.9g}'),
         ]))

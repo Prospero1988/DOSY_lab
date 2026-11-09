@@ -144,6 +144,29 @@ class ReaderTests(unittest.TestCase):
 
 
 class ProcessingTests(unittest.TestCase):
+    def test_true_clip_flag_with_full_fid_metadata_still_corrects_filter(self):
+        raw=synthetic(nlayers=4,npoints=128)
+        params=dict(x_domain='Proton',x_sweep=1000.,x_sweep_clipped=750.,x_freq=600e6,
+                    x_offset=4.5,x_points=128,x_points_input=96,x_acq_duration=.128,
+                    digital_filter='TRUE',clipped='TRUE',digital_filter_status='Np',
+                    orders='2 28 73',factors='4 2',filter_factor=8)
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'filter.jdf'
+            def load(options):
+                path.write_bytes(encode_fixture(raw.fid,raw.gradients,options,'begin\nend pulse;'))
+                return read_jdf(path)
+            full=load(params)
+            self.assertTrue(full.metadata['full_fid_despite_clip_flag'])
+            self.assertFalse(full.metadata['already_clipped'])
+            dataset=initial_dataset(full)
+            self.assertEqual(dataset.options['filter_delay_samples'],19.6875)
+            self.assertEqual(len(dataset.ppm),96)
+            self.assertEqual(len(process_fids(full,dict(dataset.options,crop_filter=False)).ppm),128)
+            for change in (dict(x_points_input=128),dict(x_acq_duration=.096),dict(digital_filter_status='other')):
+                ambiguous=load(dict(params,**change))
+                self.assertTrue(ambiguous.metadata['already_clipped'])
+                self.assertIsNone(ambiguous.metadata['filter_delay_model'])
+
     def test_filter_delay_requires_supported_raw_metadata(self):
         p={key:{'value':value} for key,value in dict(digital_filter='TRUE',clipped='FALSE',
             digital_filter_status='Np',orders='2 54 73',factors='8 2',filter_factor=16).items()}

@@ -48,7 +48,7 @@ Gdy zatrzymasz kursor na przycisku głównego okna, pojawi się krótka podpowie
 | **PH0, PH1, Pivot** | Wspólna faza opisana w następnym rozdziale. |
 | **Referencja: przesunięcie ppm** | Dodaje wspólne przesunięcie osi chemicznej. Po zmianie sprawdź położenie zapisanych granic ROI. |
 | **Opóźnienie filtra [próbki]** | Stosuje oddzielną rampę fazową do korekcji opóźnienia filtra cyfrowego. Zero wyłącza tę korekcję. |
-| **Przytnij pasmo filtra według JDF** | Korzysta z rozpoznanych metadanych JDF, aby ograniczyć wyświetlane pasmo. |
+| **Przytnij pasmo filtra według JDF** | Ogranicza pasmo do wartości zapisanej w JDF. Program uwzględnia liczbę próbek i czas akwizycji, gdy plik zgłasza przycięcie, a metadane wskazują na pełny FID. |
 | **Warstwa referencyjna** | Ustala punkt startowy podglądu fazowania i warstwę wskazywaną przyciskiem **Pokaż referencję**. |
 | **Zapisz profil / Wczytaj profil** | Przenosi ustawienia processingu jako profil JSON. Po wczytaniu na innym widmie sprawdź zwłaszcza fazę, referencję i zakresy bazy. |
 
@@ -180,7 +180,7 @@ Pakiet eksportu może zawierać pełne dane pomiarowe i treść osadzonej sekwen
 1. Wyznacz całki i poczekaj na zakończenie dopasowań. Nad widmem, obok **Wyczyść bazę**, kliknij **Mapa DOSY 2D**.
 2. Z prawej strony wybierz, które całki mają się znaleźć na mapie. Dostępne są całki z poprawnie zakończonym dopasowaniem i dodatnim, skończonym **D**. Wybór dotyczy mapy i nie zmienia projektu ani statystyki.
 3. Przeciągnij prostokąt w trybie **Zoom**. Zmiana zakresu ppm na mapie od razu zmienia zakres widma 1D nad nią. **Przesuwaj** włącza przesuwanie, a **Cały zakres** lub dwuklik przywraca widok wszystkich wyświetlanych sygnałów.
-4. Włącz **Punkt / prowadnice** i kliknij mapę. Linie pokazują pozycję ppm oraz współrzędną **D** kursora. Pionowa prowadnica pojawia się też na widmie 1D. Odczyt dotyczy miejsca kliknięcia, bez przyciągania do najbliższego piku.
+4. Włącz **Punkt / prowadnice** i kliknij mapę. Wartość **D** pojawi się przy przecięciu linii i zostanie zapisana w PNG. Pionowa prowadnica pojawia się też na widmie 1D. Odczyt dotyczy miejsca kliknięcia, bez przyciągania do najbliższego piku.
 5. Rolka nad **1D** zmienia wysokość widma. Rolka nad **2D** zmienia **Podłogę**, czyli próg widoczności w procentach najsilniejszego sygnału. Aby uwidocznić słabsze sygnały, obniż podłogę i przesuń suwak **Wzmocnienie 2D**. Suwak rozjaśnia punkty powyżej progu, a najsilniejsze mogą osiągnąć maksymalną jasność.
 6. W menu **Widok** możesz osobno ustawić kolor mapy 2D i widma 1D. Przycisk **Siatka** włącza lub wyłącza siatkę obu wykresów.
 7. **Zapisz widok PNG** zachowuje aktualny zakres, intensywność, siatkę i prowadnice. Plik ma białe tło, czarne osie i opisy oraz granatowe widmo i sygnały. Eksport renderuje tę wersję w tle, z zachowaniem kolorystyki roboczej w aplikacji.

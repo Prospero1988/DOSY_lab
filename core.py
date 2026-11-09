@@ -102,7 +102,8 @@ def process_fids(raw,options=None,roi_bounds=()):
     z*=np.exp(1j*phase_radians(ppm,raw.metadata,o))[None,:]
     keep=np.ones(nfft,bool)
     if o['crop_filter'] and raw.metadata.get('digital_filter') and not raw.metadata.get('already_clipped'):
-        keep=abs(f)<=raw.metadata['x_sweep_clipped_Hz']/2
+        half_band=raw.metadata['x_sweep_clipped_Hz']/2
+        keep=(f>=-half_band)&(f<half_band)
     ppm=ppm[keep];z=z[:,keep]
     base=np.zeros(z.shape,float);diag={'nfft':nfft,'window':'exp(-pi*LB*t) * exp(-(pi*GB*t)^2/(4*ln(2)))',
                                      'baseline':None,'warnings':[]}
