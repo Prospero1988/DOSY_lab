@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+work/
+data/
+*.[jJ][dD][fF]
+DOSY_Lab_*/
+statystyka_D_*/
+DOSY_project.json
