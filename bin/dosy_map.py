@@ -10,6 +10,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from d_statistics import finite
 from plot_export import NAVY, light_plot
 from spectrum_view import SpectrumBox
+from storage import source_save_name
 
 
 @dataclass(frozen=True)
@@ -405,8 +406,9 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.reference_view.enableAutoRange(axis=pg.ViewBox.YAxis)
 
     def choose_save(self):
+        filename = source_save_name(self.dataset.name, '.png')
         path, _ = QtWidgets.QFileDialog.getSaveFileName(self, tr('Zapisz aktywny widok DOSY 2D'),
-                                                       'DOSY_mapa.png', 'PNG (*.png)')
+                                                       filename, 'PNG (*.png)')
         if path:
             if not path.lower().endswith('.png'):
                 path += '.png'

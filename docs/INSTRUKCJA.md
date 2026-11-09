@@ -29,13 +29,16 @@ Changing the visible layer preserves the ppm bounds of all ROIs. The decay fit u
 | Control | Action |
 | --- | --- |
 | Scroll over the spectrum | Adjust the vertical intensity scale. |
-| **Zoom**, then drag with the left button | Zoom into a ppm interval with live selection feedback. |
+| **Mouse integration [I]**, then drag with the left button | Mark the bounds of a new integral. |
+| **Zoom [Z]**, then drag with the left button | Zoom into a ppm interval with live selection feedback. |
 | Right-drag over the main spectrum | Zoom into a ppm interval while an integration tool is active. |
-| **Pan**, then drag | Move the spectrum horizontally or vertically. |
-| Double-click or **Full range** | Restore the full spectrum range. |
+| **Pan [P]**, then drag | Move the spectrum horizontally or vertically. |
+| Double-click or **Full range [F]** | Restore the full spectrum range. |
 | **Full screen** | Open a large spectrum view. Press **Esc** to return. |
 | **Save PNG** | Save the current spectrum view with a white background, black labels and a navy trace. |
 | **View** | Adjust line color, line width and grid visibility. |
+
+Press **I**, **Z**, **P** or **F** directly in the main window. While editing text, these keys type letters as usual.
 
 **Processing** shows the parameters shared by the gradient series. The order is FID apodization, zero filling, FFT, common phase correction, optional baseline subtraction and signed real-part integration.
 
@@ -45,11 +48,21 @@ Changing the visible layer preserves the ppm bounds of all ROIs. The decay fit u
 | **Gaussian FWHM [Hz]** | Gaussian apodization with `exp(−(π · GB · t)² / (4 ln 2))`. Both windows can be combined. Set either parameter to zero to disable its window. |
 | **Zero filling** | Pad to 1×, 2×, 4× or 8× the acquired point count. This increases the density of the FFT grid. The acquisition determines physical resolution. |
 | **PH0, PH1 and Pivot** | Shared phase settings. |
-| **Reference: ppm shift** | Apply a common chemical shift offset. Check your ROI bounds after changing it. |
+| **Target value / Reference from spectrum** | Assign a known ppm value to a point on the spectrum. See [Chemical shift reference](#chemical-shift-reference). |
+| **Reference: ppm shift** | Shows the offset applied to all layers. You can also enter an offset manually. Check the integral bounds after a manual edit. |
 | **Filter delay [samples]** | Set the separate phase ramp for digital filter delay. Zero disables the ramp. |
 | **Crop to the JDF filter passband** | Use the passband recorded in the JDF. Point counts and acquisition time help distinguish a full FID from already clipped data. |
 | **Reference layer** | Set the default phasing preview and the layer opened by **Show reference**. |
 | **Save profile / Load profile** | Save or restore a JSON processing profile with a `.list` extension. Both dialogs start in `processing`. Review the phase, ppm reference and baseline regions when applying a profile to another sample. |
+
+### Chemical shift reference
+
+1. Zoom in on a signal with a known chemical shift so you can click its center precisely.
+2. Open **Processing** and enter its known shift in **Target value**, for example `0.000000 ppm`.
+3. Click **Reference from spectrum**, then left-click the center of the signal. To cancel before choosing a point, click **Reference from spectrum** again.
+4. Check **Reference: ppm shift** for the calculated offset. For example, with an existing offset of `+0.03 ppm`, clicking at `0.08 ppm` and assigning `0.00 ppm` produces an offset of `−0.05 ppm`.
+
+The correction shifts all layers, the phase pivot, integral bounds and baseline regions together. Save the project to keep the corrected axis and integral bounds.
 
 ## 3. Phase correction
 
@@ -77,7 +90,7 @@ Keep the blue baseline intervals clear of all ROIs. The fit extrapolates outside
 
 An ROI is a ppm interval integrated in every layer. DOSY Lab integrates the signed real spectrum after common phasing and any applied baseline correction. Integrals have units of arbitrary intensity × ppm.
 
-- **Mouse integration** creates an ROI by dragging from one bound to the other. The shaded preview updates as you drag.
+- With **Mouse integration** active, the shaded preview shows the ROI bounds as you drag.
 - **Add integral manually** accepts two ppm bounds separated by a semicolon, for example `3.60; 3.68`. Decimal commas also work.
 - **Edit integral** moves a region by its center or changes a bound by dragging its edge.
 - **Split integral** divides an ROI where you release a dragged edge inside the region.
@@ -138,6 +151,8 @@ The summary includes the arithmetic mean, median, sample SD, CV, descriptive SEM
 ## 9. Projects and exports
 
 **Save project** and **Load project** start in `projects`. The `.proj` file stores JSON with processing, phase, manual b, ROI bounds, groups, fit masks, integral scaling and the source JDF path and SHA-256. If the JDF moves, DOSY Lab searches for the same filename next to the project and under `data`, `work` and `examples`, then verifies the checksum.
+
+When saving a project, processing profile or individual image, DOSY Lab suggests the source JDF filename with the appropriate output extension. In the statistics window the suggestion follows the selected experiment. You can edit the name in the save dialog.
 
 Older DOSY Lab project and processing JSON files can be opened after changing their extensions to `.proj` or `.list`, respectively. Statistics snapshots retain the `.json` extension.
 

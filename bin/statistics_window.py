@@ -13,6 +13,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 from fullscreen_plot import enable_fullscreen
 from plot_export import save_light_plot
+from storage import source_save_name
 
 from d_statistics import (SCIENTIFIC_NOTE, diagnostic_points, export_statistics,
                           finite, import_statistics, number, summarize, groups, included_records)
@@ -452,10 +453,12 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         save_light_plot(plot, path, bottom_ticks=self.d_ticks() if kind == 0 else None)
 
     def choose_plot_export(self, suffix):
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, tr('Zapisz wykres'), f'statystyka_D.{suffix}', tr(f'Wykres (*.{suffix})'))
+        source_name = (self.current or {}).get('source_name')
+        filename = source_save_name(source_name, '.' + suffix, 'statystyka_D')
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, tr('Zapisz wykres'), filename, tr(f'Wykres (*.{suffix})'))
         if path:
             try:
                 target = Path(path)
-                if not target.suffix: target = target.with_suffix('.'+suffix)
+                if target.suffix.lower() not in ('.png', '.svg'): target = target.with_name(target.name + '.' + suffix)
                 self.export_plot(target); self.statusBar().showMessage(tr(f'Zapisano wykres: {target}'))
             except Exception as e: QtWidgets.QMessageBox.warning(self, tr('Eksport wykresu'), str(e))

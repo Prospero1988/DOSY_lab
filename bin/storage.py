@@ -24,6 +24,10 @@ def require_extension(path, suffix):
     return path
 
 
+def source_save_name(source_name, suffix, fallback='DOSY'):
+    return (Path(source_name or '').stem or fallback) + suffix
+
+
 def choose_save_file(parent, caption, directory, filename, file_filter):
     from PySide6.QtWidgets import QFileDialog
 

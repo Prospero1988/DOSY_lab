@@ -57,6 +57,8 @@ The generator creates 16 layers and preserves existing files. Pass a different o
 
 The [user guide](INSTRUKCJA.md) walks through opening data, processing, phase and baseline correction, integration, fitting, statistics and exports.
 
+- [Keyboard shortcuts](INSTRUKCJA.md#2-navigation-and-processing)
+- [Chemical shift reference](INSTRUKCJA.md#chemical-shift-reference)
 - [Interactive phase correction](INSTRUKCJA.md#3-phase-correction)
 - [Where b values come from](INSTRUKCJA.md#6-b-values)
 - [D statistics and fit diagnostics](INSTRUKCJA.md#8-d-statistics)

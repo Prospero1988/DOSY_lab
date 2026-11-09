@@ -122,7 +122,7 @@ class SpectrumBox(pg.ViewBox):
             else:
                 self.setXRange(min(a,b), max(a,b), padding=.02)
                 self.sigRangeChangedManually.emit([True, False])
-        elif left and self.mode in ('pivot','modify'):
+        elif left and self.mode in ('pivot','modify','reference'):
             event.accept()
         else:
             super().mouseDragEvent(event, axis)
@@ -153,7 +153,7 @@ class SpectrumBox(pg.ViewBox):
 
     def mouseClickEvent(self, event):
         self.hide_selection_preview()
-        if self.mode == 'pivot' and event.button() == QtCore.Qt.MouseButton.LeftButton:
+        if self.mode in ('pivot', 'reference') and event.button() == QtCore.Qt.MouseButton.LeftButton:
             event.accept()
             self.clicked.emit(self.mapToView(event.pos()).x())
         else:

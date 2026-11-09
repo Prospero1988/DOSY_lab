@@ -12,7 +12,7 @@ from jeol import read_jdf,manual_b
 from processing_panel import ProcessingPanel,BDialog
 from statistics_window import StatisticsWindow
 from dosy_map import DosyMapWindow
-from storage import DATA, PROJECTS, PROJECT_FILTER, choose_save_file, dialog_directory
+from storage import DATA, PROJECTS, PROJECT_FILTER, choose_save_file, dialog_directory, source_save_name
 from plot_export import save_light_plot
 from d_statistics import build_snapshot,number
 from fullscreen_plot import enable_fullscreen
@@ -150,7 +150,7 @@ class Window(QtWidgets.QMainWindow):
                     tr('Pokaż ustawienia przetwarzania widma i korekcji bazy.'))
         self.phase_button = self.button(tr('Korekcja fazy'), self.show_phase, spectrum_tools, tr('Dostrój wspólną fazę wszystkich warstw za pomocą myszy.'))
         self.button(tr('Widok'), self.edit_spectrum_settings, spectrum_tools, tr('Ustaw kolor i grubość linii widma oraz widoczność siatki.'))
-        self.button(tr('Cały zakres'), lambda:self.spectrum.autoRange(), spectrum_tools, tr('Przywróć cały zakres widma. Działa też dwuklik.'))
+        full_range_button = self.button(tr('Cały zakres'), lambda:self.spectrum.autoRange(), spectrum_tools, tr('Przywróć cały zakres widma. Działa też dwuklik.'))
         self.fullscreen_button = self.button(tr('Pełny ekran'), lambda:self.spectrum.fullscreen_controller.open(), spectrum_tools,
                                              tr('Otwórz widmo na pełnym ekranie. Esc wraca do głównego okna.'))
         self.save_spectrum_button = self.button(tr('Zapisz PNG'), self.choose_spectrum_png, spectrum_tools,
@@ -158,11 +158,14 @@ class Window(QtWidgets.QMainWindow):
         self.save_spectrum_button.setEnabled(False)
         vertical=QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical);layout.addWidget(vertical,1)
         self.view=SpectrumBox();self.spectrum=pg.PlotWidget(viewBox=self.view);vertical.addWidget(self.spectrum)
+        for mode, key in (('roi', 'I'), ('zoom', 'Z'), ('pan', 'P')):
+            self.spectrum_shortcut(self.mode_buttons[mode], key, lambda mode=mode: self.set_mode(mode))
+        self.spectrum_shortcut(full_range_button, 'F', self.spectrum.autoRange)
         self.view.bind_selection_feedback(self.spectrum)
         self.spectrum.setLabel('bottom',tr('¹H — przesunięcie chemiczne'),units='ppm');self.spectrum.setLabel('left','Re / Im',units=tr('j.u.'))
         self.spectrum.invertX(True)
         self.appearance.apply_grid(self.spectrum)
-        self.view.selected.connect(self.range_selected);self.view.clicked.connect(self.pivot_clicked)
+        self.view.selected.connect(self.range_selected);self.view.clicked.connect(self.spectrum_clicked)
         self.view.split_requested.connect(self.split_roi)
         self.view.sigYRangeChanged.connect(self.position_integral_labels)
         self.spectrum.scene().sigMouseMoved.connect(self.mouse_moved)
@@ -216,6 +219,7 @@ class Window(QtWidgets.QMainWindow):
         self.tabs.addTab(self.roi_overlay,tr('Widma w aktywnym ROI'))
         vertical.setSizes([560,330]);bottom.setSizes([680,750])
         self.processing=ProcessingPanel(self);self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,self.processing)
+        self.mode_buttons['reference'] = self.processing.reference_button
         self.processing.changed.connect(self.request_calculation);self.processing.mode_requested.connect(self.set_mode)
         self.statusBar().showMessage(tr('Przeciągnięcie powiększa zakres. Rolka zmienia wysokość widma. Dwuklik przywraca cały zakres.'))
         context = lambda:html.escape(self.dataset.name) if self.dataset else ''
@@ -233,6 +237,13 @@ class Window(QtWidgets.QMainWindow):
         button.setCheckable(True)
         self.mode_buttons[key] = button
         return button
+
+    def spectrum_shortcut(self, button, key, action):
+        button.setText(f'{button.text()} [{key}]')
+        shortcut = QtGui.QShortcut(QtGui.QKeySequence(key), self)
+        shortcut.setAutoRepeat(False)
+        shortcut.activated.connect(action)
+
     @property
     def active(self):return next((e for e in self.entries if e['id']==self.active_id),None)
     @property
@@ -276,6 +287,7 @@ class Window(QtWidgets.QMainWindow):
 
     def loaded(self,payload):
         self.raw,self.dataset,self.entries,self.results,self.integral_scale=payload
+        self.processing.source_name = self.dataset.name
         self.experiment_id=uuid.uuid4().hex
         self.active_id=self.entries[0]['id'] if self.entries else None
         self.next_id=max([int(e['id'][1:]) for e in self.entries if e['id'].startswith('S') and e['id'][1:].isdigit()]+[0])+1
@@ -296,6 +308,7 @@ class Window(QtWidgets.QMainWindow):
 
     def invalidate_map(self):
         self.map_button.setEnabled(False)
+        self.processing.reference_button.setEnabled(False)
         if self.map_window is not None:self.map_window.invalidate()
 
     def start_calculation(self):
@@ -311,12 +324,17 @@ class Window(QtWidgets.QMainWindow):
         if rev!=self.revision:self.pending=True;return
         previous={e['id']:e.get('fit',{}).get('D_m2_s') for e in self.results}
         for e in results:e['previous_D']=previous.get(e['id'])
+        axis_shift = ds.options['ppm_shift'] - self.dataset.options['ppm_shift']
+        lo, hi = self.view.viewRange()[0]
         self.dataset=ds;self.results=results;self.accepted()
+        if axis_shift and not self.view.autoRangeEnabled()[0]:
+            self.spectrum.setXRange(lo + axis_shift, hi + axis_shift, padding=0.)
 
     def accepted(self):
         self.valid=True;self.export_button.setEnabled(True)
         self.save_spectrum_button.setEnabled(True)
         self.map_button.setEnabled(True)
+        self.processing.reference_button.setEnabled(True)
         meta=self.raw.metadata
         delay=self.dataset.options['filter_delay_samples']
         self.layer.blockSignals(True)
@@ -448,8 +466,14 @@ class Window(QtWidgets.QMainWindow):
             button.setChecked(mode==key)
         if self.view.mode==key:
             return
+        if self.view.mode == 'reference':
+            self.spectrum.viewport().unsetCursor()
+            self.statusBar().clearMessage()
         self.view.hide_selection_preview()
         self.view.mode=key
+        if key == 'reference':
+            self.spectrum.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
+            self.statusBar().showMessage(tr('Kliknij sygnał na widmie, aby przypisać mu wpisaną wartość ppm.'))
         self.render_spectrum()
 
     def clear_baseline(self):
@@ -459,6 +483,35 @@ class Window(QtWidgets.QMainWindow):
         else:
             self.render_spectrum()
     def pivot_clicked(self,value):self.processing.controls['pivot_ppm'].setValue(value)
+
+    def spectrum_clicked(self, ppm):
+        if self.view.mode == 'pivot':
+            self.pivot_clicked(ppm)
+        elif self.view.mode == 'reference' and self.valid:
+            self.set_chemical_reference(ppm)
+
+    def set_chemical_reference(self, ppm):
+        options = self.processing.options()
+        shift = self.processing.controls['ppm_shift']
+        pivot = self.processing.controls['pivot_ppm']
+        target = self.processing.reference_target.value()
+        new_shift = round(options['ppm_shift'] + target - ppm, shift.decimals())
+        delta = new_shift - options['ppm_shift']
+        new_pivot = options['pivot_ppm'] + delta
+        if not (shift.minimum() <= new_shift <= shift.maximum() and pivot.minimum() <= new_pivot <= pivot.maximum()):
+            self.statusBar().showMessage(tr('Wybrana wartość przekracza zakres przesunięcia ppm lub pivotu.'), 8000)
+            return
+        self.set_mode('zoom')
+        if not delta:
+            return
+        # Move all chemical-shift coordinates together to preserve phase and integration.
+        options.update(ppm_shift=new_shift, pivot_ppm=new_pivot,
+                       baseline_regions=[[lo + delta, hi + delta] for lo, hi in options['baseline_regions']])
+        for entry in self.entries:
+            entry['bounds'] = [value + delta for value in entry['bounds']]
+        self.processing.set_options(options, len(self.raw.fid))
+        self.request_calculation()
+
     def mouse_moved(self,pos):
         if self.spectrum.sceneBoundingRect().contains(pos):self.coordinate.setText(f'{self.view.mapSceneToView(pos).x():.5f} ppm')
     def range_selected(self,a,b):
@@ -734,7 +787,8 @@ class Window(QtWidgets.QMainWindow):
     def save_project(self):
         if self.dataset is None or not self.valid:return
         try:
-            path=choose_save_file(self,tr('Zapisz projekt'),PROJECTS,'DOSY.proj',tr(PROJECT_FILTER))
+            filename = source_save_name(self.dataset.name, '.proj')
+            path=choose_save_file(self,tr('Zapisz projekt'),PROJECTS,filename,tr(PROJECT_FILTER))
             if path:save_project(path,self.dataset,self.entries,integral_scale=self.integral_scale)
         except (OSError,ValueError) as exc:
             QtWidgets.QMessageBox.warning(self,tr('Zapisz projekt'),tr(str(exc)))
@@ -746,7 +800,8 @@ class Window(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.warning(self,tr('Wczytaj projekt'),str(exc))
 
     def choose_spectrum_png(self):
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, tr('Zapisz widmo 1D'), 'widmo_1D.png', 'PNG (*.png)')
+        filename = source_save_name(self.dataset.name, '.png')
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, tr('Zapisz widmo 1D'), filename, 'PNG (*.png)')
         if path:
             if not path.lower().endswith('.png'):
                 path += '.png'
@@ -768,6 +823,7 @@ class Window(QtWidgets.QMainWindow):
                 save = save_light_plot if plot is self.spectrum else self.export_plot
                 save(plot,Path(folder)/(name+'.png'));save(plot,Path(folder)/(name+'.svg'))
             self.valid=revision==self.revision;self.export_button.setEnabled(self.valid)
+            self.processing.reference_button.setEnabled(self.valid)
             self.statusBar().showMessage(tr('Zapisano eksport w ')+str(folder))
         self.start_job(lambda:export_bundle(path,d,entries,choices,integral_scale=scale),done)
     @staticmethod

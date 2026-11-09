@@ -8,7 +8,7 @@ import numpy as np
 from PySide6 import QtCore,QtWidgets
 from core import save_profile,load_profile
 from jeol import validate_b
-from storage import PROCESSING, PROFILE_FILTER, choose_save_file, dialog_directory
+from storage import PROCESSING, PROFILE_FILTER, choose_save_file, dialog_directory, source_save_name
 
 
 class ProcessingPanel(QtWidgets.QDockWidget):
@@ -17,13 +17,27 @@ class ProcessingPanel(QtWidgets.QDockWidget):
     def __init__(self,parent):
         super().__init__(tr('Processing 1D — wspólny dla warstw'),parent)
         self.controls={};self.regions=[];self._setting=False
+        self.source_name = None
         widget=QtWidgets.QWidget();self.setWidget(widget);layout=QtWidgets.QVBoxLayout(widget)
         form=QtWidgets.QFormLayout();layout.addLayout(form)
+        self.reference_target = QtWidgets.QDoubleSpinBox()
+        self.reference_target.setRange(-1000., 1000.)
+        self.reference_target.setDecimals(6)
+        self.reference_target.setSingleStep(.01)
+        self.reference_target.setSuffix(' ppm')
+        self.reference_button = QtWidgets.QPushButton(tr('Ustaw odniesienie z widma'))
+        self.reference_button.setCheckable(True)
+        self.reference_button.setEnabled(False)
+        self.reference_button.setToolTip(tr('Kliknij sygnał na widmie, aby przypisać mu wpisaną wartość ppm.'))
+        self.reference_button.clicked.connect(lambda checked: self.mode_requested.emit('reference' if checked else 'zoom'))
         for key,title,lo,hi,step,dec in [
             ('lb_Hz','LB [Hz]',0,100,.1,3),('gaussian_FWHM_Hz',tr('Gauss: FWHM [Hz]'),0,100,.1,3),
             ('phase0_deg','PH0 [°]',-3600,3600,.5,6),('phase1_deg',tr('PH1 [° / całe SW]'),-100000,100000,10,6),
             ('pivot_ppm','Pivot [ppm]',-1000,1000,.001,6),('ppm_shift',tr('Referencja: przesunięcie ppm'),-100,100,.001,6),
             ('filter_delay_samples',tr('Opóźnienie filtra [próbki]'),0,250,.01,6)]:
+            if key == 'ppm_shift':
+                form.addRow(tr('Docelowa wartość'), self.reference_target)
+                form.addRow('', self.reference_button)
             box=QtWidgets.QDoubleSpinBox();box.setRange(lo,hi);box.setSingleStep(step);box.setDecimals(dec)
             box.valueChanged.connect(self.emit_change);self.controls[key]=box;form.addRow(title,box)
         self.controls['gaussian_FWHM_Hz'].setToolTip(tr('Szerokość FWHM jądra Gaussa w Hz: exp(-(π GB t)²/(4 ln 2)). GB=0 wyłącza funkcję. Można łączyć z LB.'))
@@ -122,7 +136,8 @@ class ProcessingPanel(QtWidgets.QDockWidget):
 
     def save(self):
         try:
-            path=choose_save_file(self,tr('Zapisz profil'),PROCESSING,'processing.list',tr(PROFILE_FILTER))
+            filename = source_save_name(self.source_name, '.list', 'processing')
+            path=choose_save_file(self,tr('Zapisz profil'),PROCESSING,filename,tr(PROFILE_FILTER))
             if path:save_profile(path,self.options())
         except (OSError,ValueError) as exc:
             QtWidgets.QMessageBox.warning(self,tr('Profil processingu'),tr(str(exc)))

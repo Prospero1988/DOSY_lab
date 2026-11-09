@@ -244,6 +244,7 @@ class InterfaceTests(unittest.TestCase):
 
     def test_dialogs_start_in_workspace_folders_and_filter_extensions(self):
         w=self.w
+        stem=self.source.stem
         with patch.object(QtWidgets.QFileDialog,'getOpenFileName',return_value=('','')) as dialog:
             w.choose_file()
             self.assertEqual(dialog.call_args.args[2:],(str(DATA),'JEOL (*.jdf)'))
@@ -253,10 +254,27 @@ class InterfaceTests(unittest.TestCase):
             self.assertEqual(dialog.call_args.args[2:],(str(PROCESSING),PROFILE_FILTER))
         with patch('ui.choose_save_file',return_value=None) as dialog:
             w.save_project()
-            self.assertEqual(dialog.call_args.args[2:],(PROJECTS,'DOSY.proj',PROJECT_FILTER))
+            self.assertEqual(dialog.call_args.args[2:],(PROJECTS,f'{stem}.proj',PROJECT_FILTER))
         with patch('processing_panel.choose_save_file',return_value=None) as dialog:
             w.processing.save()
-            self.assertEqual(dialog.call_args.args[2:],(PROCESSING,'processing.list',PROFILE_FILTER))
+            self.assertEqual(dialog.call_args.args[2:],(PROCESSING,f'{stem}.list',PROFILE_FILTER))
+        w.show_map()
+        w.show_statistics()
+        s=w.statistics_window
+        with patch.object(QtWidgets.QFileDialog,'getSaveFileName',return_value=('','')) as dialog:
+            w.choose_spectrum_png()
+            self.assertEqual(dialog.call_args.args[2],f'{stem}.png')
+            w.map_window.choose_save()
+            self.assertEqual(dialog.call_args.args[2],f'{stem}.png')
+            s.choose_plot_export('png')
+            self.assertEqual(dialog.call_args.args[2],f'{stem}.png')
+
+            s.pin_current()
+            saved_id=next(key for key in s.experiments if key != s.live_id)
+            s.experiments[saved_id]['source_name']='Pomiar.02.JDF'
+            s.experiment_combo.setCurrentIndex(s.experiment_combo.findData(saved_id))
+            s.choose_plot_export('svg')
+            self.assertEqual(dialog.call_args.args[2],'Pomiar.02.svg')
 
     def test_switch_language_preserves_project_and_relabels_open_windows(self):
         w=self.w
@@ -314,6 +332,47 @@ class InterfaceTests(unittest.TestCase):
         expected=process_fids(w.raw,w.processing.options())
         np.testing.assert_array_equal(w.dataset.phased,expected.phased)
         np.testing.assert_array_equal(w.raw.fid,raw)
+
+    def test_reference_click_assigns_ppm_and_preserves_phase_and_integrals(self):
+        w = self.w
+        panel = w.processing
+        panel.show()
+        panel.controls['ppm_shift'].setValue(.25)
+        settle(w)
+        w.add_roi([3.85, 3.93])
+        panel.add_region([2.90, 3.20])
+        panel.add_region([5.90, 6.35])
+        panel.controls['baseline_enabled'].setChecked(True)
+        settle(w)
+        before = w.dataset
+        integrals = w.results[0]['result']['corrected_integral'].copy()
+        w.spectrum.setXRange(3.8, 4.0, padding=0.)
+        APP.processEvents()
+        x_range = np.array(w.view.viewRange()[0])
+        y = np.mean(w.view.viewRange()[1])
+        pos = w.spectrum.mapFromScene(w.view.mapViewToScene(QtCore.QPointF(3.89, y)))
+        clicked = w.view.mapSceneToView(w.spectrum.mapToScene(pos)).x()
+
+        panel.reference_target.setValue(1.25)
+        self.assertTrue(w.valid)
+        panel.reference_button.click()
+        self.assertEqual(w.view.mode, 'reference')
+        QtTest.QTest.mouseClick(w.spectrum.viewport(), QtCore.Qt.MouseButton.LeftButton, pos=pos)
+        settle(w)
+        self.assertEqual(w.view.mode, 'zoom')
+        self.assertFalse(panel.reference_button.isChecked())
+        expected_shift = round(.25 + 1.25 - clicked, 6)
+        self.assertEqual(panel.controls['ppm_shift'].value(), expected_shift)
+        delta = expected_shift - .25
+        self.assertAlmostEqual(clicked + delta, 1.25, places=6)
+        np.testing.assert_allclose(w.dataset.ppm, before.ppm + delta, atol=1e-12)
+        np.testing.assert_allclose(w.view.viewRange()[0], x_range + delta, atol=1e-9)
+        np.testing.assert_allclose(w.dataset.spectrum, before.spectrum, atol=1e-9)
+        np.testing.assert_allclose(w.entries[0]['bounds'], np.array([3.85, 3.93]) + delta)
+        np.testing.assert_allclose(w.dataset.options['baseline_regions'], np.array(before.options['baseline_regions']) + delta)
+        np.testing.assert_allclose(w.results[0]['result']['corrected_integral'], integrals, atol=1e-9)
+        w.language_button.click()
+        self.assertEqual(panel.reference_button.text(), 'Reference from spectrum')
 
     def test_baseline_preview_apply_and_undo(self):
         w=self.w;w.add_roi([3.60,3.68],group='Sacharoza');settle(w);original=w.dataset.spectrum.copy()
@@ -603,6 +662,9 @@ class InterfaceTests(unittest.TestCase):
             w.save_project()
         w.open_path(path, project=True)
         settle(w)
+        with patch('ui.choose_save_file', return_value=None) as dialog:
+            w.save_project()
+            self.assertEqual(dialog.call_args.args[3], f'{self.source.stem}.proj')
         self.assertEqual(w.roi_table.item(0, INTEGRAL_COLUMN).text(), '1,00')
         self.assertEqual(w.integral_labels['S1'].textItem.toPlainText(), '1,00')
         self.assertEqual(w.signal_labels['S1'].textItem.toPlainText(), 'S1')
@@ -674,6 +736,50 @@ class InterfaceTests(unittest.TestCase):
         drag(viewport,point(3.61),point(3.66));APP.processEvents()
         self.assertEqual(len(w.entries),1);self.assertEqual(w.entries[0]['bounds'],bounds)
         self.assertLess(np.ptp(view.viewRange()[0]),.1)
+
+    def test_spectrum_shortcuts_select_tools_reset_range_and_preserve_text_input(self):
+        w = self.w
+        w.activateWindow()
+        w.spectrum.setFocus()
+        APP.processEvents()
+        for key, mode in (('i', 'roi'), ('i', 'roi'), ('p', 'pan'), ('z', 'zoom')):
+            QtTest.QTest.keyClicks(w.spectrum, key)
+            self.assertEqual(w.view.mode, mode)
+            self.assertTrue(w.mode_buttons[mode].isChecked())
+            self.assertTrue(w.mode_buttons[mode].text().endswith(f'[{key.upper()}]'))
+
+        buttons = w.findChildren(QtWidgets.QPushButton)
+        full_range = next(button for button in buttons if button.text() == 'Cały zakres [F]')
+        narrow = dict(xRange=(3.6, 3.7), yRange=(0., 1.), padding=0.)
+        w.spectrum.setRange(**narrow)
+        full_range.click()
+        full = w.view.viewRange()
+        w.spectrum.setRange(**narrow)
+        QtTest.QTest.keyClicks(w.spectrum, 'f')
+        np.testing.assert_allclose(w.view.viewRange(), full)
+        self.assertGreater(np.ptp(full[0]), 1.)
+
+        w.add_roi([3.60, 3.68])
+        settle(w)
+        w.roi_table.setFocus()
+        QtTest.QTest.keyClicks(w.roi_table, 'p')
+        self.assertEqual(w.view.mode, 'pan')
+        w.roi_table.editItem(w.roi_table.item(0, GROUP_COLUMN))
+        editor = w.roi_table.findChild(QtWidgets.QComboBox).lineEdit()
+        editor.setFocus()
+        QtTest.QTest.keyClicks(editor, 'izpf')
+        self.assertEqual(editor.text(), 'izpf')
+        self.assertEqual(w.view.mode, 'pan')
+        QtTest.QTest.keyClick(editor, QtCore.Qt.Key.Key_Return)
+        settle(w)
+        self.assertEqual(w.entries[0]['group'], 'izpf')
+
+        w.language_button.click()
+        self.assertEqual(w.roi_button.text(), 'Mouse integration [I]')
+        self.assertEqual(w.mode_buttons['pan'].text(), 'Pan [P]')
+        self.assertEqual(full_range.text(), 'Full range [F]')
+        w.language_button.click()
+        self.assertEqual(w.mode_buttons['pan'].text(), 'Przesuwaj [P]')
 
     def test_selection_feedback_visible_on_press_and_tracks_drag_before_commit(self):
         w=self.w;view=w.view;viewport=w.spectrum.viewport()
