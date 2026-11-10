@@ -7,7 +7,7 @@ from scipy.integrate import trapezoid
 
 from core import fit_decay
 from d_statistics import quality
-from dosy_alignment import ilt_profiles, profile_residual
+from dosy_alignment import exploratory_profiles, ilt_profiles, profile_residual
 from dosy_map import roi_bands
 from roi_quality import qualify_roi
 
@@ -64,6 +64,13 @@ class QCMapTests(unittest.TestCase):
         self.assertEqual(rejected,('R1',))
         self.assertEqual(details['R1']['reason'],'peak_mismatch')
         self.assertGreater(details['R1']['peak_rms'],details['R1']['peak_limit'])
+        row['fit']['measurement_findings'] = [dict(kind='phase',severity='warning')]
+        recovered, records = exploratory_profiles(b,ppm,spectra,0,[row],('R1',),solution)
+        self.assertEqual(records['R1']['reason'],'assigned')
+        rate, trace = recovered['R1'][0]
+        self.assertEqual(rate,1.9e-9)  # this column has zero support at the shared maximum
+        np.testing.assert_allclose(trace,profile[:-1],rtol=1e-10)
+
 
     def test_unresolved_overlap_cannot_be_attributed_to_an_assigned_roi(self):
         ppm = np.arange(9.)
@@ -96,3 +103,43 @@ class QCMapTests(unittest.TestCase):
         self.assertAlmostEqual(diagnostics['R1']['omitted_fraction'],a[-1]/sum(a))
         self.assertGreater(diagnostics['R1']['unexplained_positive_fraction'],.02)
         self.assertLess(sum(v[160] for _,v in profiles['R1']),spectra[0,160]*.5)
+
+    def test_exploratory_retains_weak_overlap_with_its_own_reference_mass(self):
+        b = np.linspace(0,4e10,28)
+        ppm = np.linspace(0,1,161)
+        diffusion = np.array([2.,15.])*1e-10
+        shapes = np.array([np.exp(-((ppm-.44)/.13)**2),.03*np.exp(-((ppm-.52)/.13)**2)])
+        spectra = np.exp(-np.outer(b,diffusion)) @ shapes
+        area = trapezoid(shapes[:,:-1],x=ppm[:-1],axis=1)
+        y = np.exp(-np.outer(b,diffusion)) @ area
+        row = dict(id='A',bounds=(0.,1.),result={'corrected_integral':y},fit=fit_decay(b,y))
+        result = SimpleNamespace(converged=True,diffusion=np.r_[1e-10,diffusion,2e-9],
+            weights=np.r_[0.,area,0.][:,None],intervals=((0,2),(2,4)),components=(1,2),
+            scales=np.array([1.]),rms=np.array([0.]))
+        strict, rejected = ilt_profiles(b,ppm,spectra,0,[row],('A',),result)
+        self.assertFalse(strict)
+        self.assertEqual(rejected,('A',))
+        exploratory, details = exploratory_profiles(b,ppm,spectra,0,[row],('A',),result)
+        np.testing.assert_allclose([d for d,_ in exploratory['A']],diffusion,atol=0,rtol=1e-12)
+        np.testing.assert_allclose([x for _,x in exploratory['A']],shapes[:,:-1],atol=1e-13)
+        np.testing.assert_allclose(details['A']['mapped_reference_area'],area,atol=1e-13)
+        self.assertAlmostEqual(details['A']['unexplained_positive_fraction'],0.)
+        result.converged = False
+        failed, status = exploratory_profiles(b,ppm,spectra,0,[row],('A',),result)
+        self.assertFalse(failed)
+        self.assertFalse(status['A']['solved'])
+
+    def test_exploratory_does_not_fill_unexplained_reference(self):
+        b = np.linspace(0,3e10,26)
+        ppm = np.linspace(0,1,121)
+        diffusion = 4e-10
+        trace = np.exp(-((ppm-.5)/.15)**2)
+        spectra = np.exp(-b*diffusion)[:,None]*trace
+        y = trapezoid(spectra[:,:-1],x=ppm[:-1],axis=1)
+        row = dict(id='A',bounds=(0.,1.),result={'corrected_integral':y},fit=fit_decay(b,y))
+        result = SimpleNamespace(converged=True,diffusion=np.array([1e-10,diffusion,1e-9]),
+            weights=np.array([[0.],[y[0]*.75],[0.]]),intervals=((0,3),),components=(1,),
+            scales=np.array([1.]),rms=np.array([0.]))
+        profiles, details = exploratory_profiles(b,ppm,spectra,0,[row],('A',),result)
+        np.testing.assert_allclose(profiles['A'][0][1],.75*trace[:-1],atol=1e-13)
+        self.assertAlmostEqual(details['A']['unexplained_positive_fraction'],.25)

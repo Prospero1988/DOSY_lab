@@ -12,6 +12,8 @@ from ilt_tools import ILTPlotTools, SolveJob
 
 
 class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
+    solution_changed = QtCore.Signal(object)
+
     def __init__(self, parent, source, b, entry):
         super().__init__(parent, ILT_WINDOW_FLAGS)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -207,6 +209,7 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.render_distribution()
         self.status.setText(' '.join(map(tr, self.result.warnings)))
         self.show_sensitivity(trials)
+        self.solution_changed.emit(self.result)
         for button in self.export_buttons:
             button.setEnabled(True)
 

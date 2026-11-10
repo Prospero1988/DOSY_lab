@@ -95,6 +95,7 @@ class Window(QtWidgets.QMainWindow):
         self.ilt_window = None
         self.global_ilt_window = None
         self.map_ilt = None
+        self.map_individual = {}
         self.worker=None;self.job_callback=None;self.pending=False;self.revision=0;self.job_revision=0
         self.valid=False;self._updating=False;self.close_pending=False;self.statistics_window=None;self.phase_window=None
         self.experiment_id=uuid.uuid4().hex;self.region_items={};self.base_items=[];self.next_id=1
@@ -308,6 +309,7 @@ class Window(QtWidgets.QMainWindow):
     def loaded(self,payload):
         self.raw,self.dataset,self.entries,self.results,self.integral_scale=payload
         self.set_map_ilt(self.dataset, (), None)
+        self.clear_map_individual()
         self.roi_table.clearSelection()
         self.processing.source_name = self.dataset.name
         self.experiment_id=uuid.uuid4().hex
@@ -327,6 +329,7 @@ class Window(QtWidgets.QMainWindow):
         if self.raw is None or self._updating:return
         self.revision+=1;self.valid=False;self.export_button.setEnabled(False);self.timer.start(180)
         self.set_map_ilt(self.dataset, (), None)
+        self.clear_map_individual()
         self.invalidate_map()
 
     def invalidate_map(self):
@@ -868,6 +871,9 @@ class Window(QtWidgets.QMainWindow):
         if self.ilt_window is not None:
             self.ilt_window.close()
         self.ilt_window = ILTWindow(self, self.dataset.name, self.dataset.b, entry)
+        dataset, revision = self.dataset, self.revision
+        self.ilt_window.solution_changed.connect(
+            lambda result: self.cache_individual_map(dataset,revision,sid,result))
         self.ilt_window.finished.connect(self.ilt_closed)
         self.ilt_window.show()
 
@@ -916,12 +922,25 @@ class Window(QtWidgets.QMainWindow):
         if self.map_window is not None:
             self.map_window.alignment.set_snapshot(self.map_ilt)
 
+    def cache_individual_map(self, dataset, revision, sid, result):
+        if dataset is self.dataset and revision == self.revision:
+            self.map_individual = {**self.map_individual,sid:result}
+            if self.map_window is not None:
+                self.map_window.alignment.set_individual(self.map_individual)
+
+    def clear_map_individual(self):
+        if self.map_individual:
+            self.map_individual = {}
+            if self.map_window is not None:
+                self.map_window.alignment.set_individual(self.map_individual)
+
     def show_map(self):
         if not self.valid:return
         if self.map_window is None:self.map_window=DosyMapWindow(self)
         self.map_window.show()
         self.map_window.update_data(self.experiment_id,self.dataset,self.results)
         self.map_window.alignment.set_snapshot(self.map_ilt)
+        self.map_window.alignment.set_individual(self.map_individual)
         self.map_window.raise_()
     def edit_spectrum_settings(self):
         dialog = SpectrumSettingsDialog(self.appearance, self)

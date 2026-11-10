@@ -667,5 +667,22 @@
   "efekt": "effect",
   "skala porównawcza": "screening scale",
   "Zakres fazy": "Phase range",
-  "Skala szumu fazy": "Phase noise scale"
+  "Skala szumu fazy": "Phase noise scale",
+  "Indywidualne ILT · profile w ROI": "Individual ILT · ROI profiles",
+  "Tylko profile na mapie": "Map profiles only",
+  "Eksploracyjna": "Exploratory",
+  "Filtrowana QC": "QC-filtered",
+  "Filtr QC": "QC filter",
+  "Odniesienie monoeksponencjalne": "Mono-fit reference",
+  "Polityka wizualizacji ILT": "ILT map display policy",
+  "Próba ILT": "ILT attempted",
+  "Maksima przedziałów ILT": "ILT interval maxima",
+  "Pominięta składowa": "Omitted component",
+  "Zbieżne numerycznie": "Numerically converged",
+  "ROI pomijane przez filtr QC": "ROIs omitted by QC filter",
+  "ROI na mapie": "ROIs on map",
+  "Profil pokazany w widoku eksploracyjnym.": "Profile shown in Exploratory view.",
+  "Niezależne ILT dla ROI poza zgodną grupą.": "Independent ILT for an ROI outside compatible groups.",
+  "Eksploracyjna względna reszta widmowa": "Exploratory relative spectral residual",
+  "Odtworzone składowe nie mają dodatniego pola na warstwie referencyjnej.": "Reconstructed components have no positive area in the reference layer."
 }

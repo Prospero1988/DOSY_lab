@@ -466,8 +466,19 @@ class InterfaceTests(unittest.TestCase):
                     dialog.combined_export.click()
                 self.assertGreaterEqual(QtGui.QImage(str(single)).width(), 1600)
                 self.assertGreater(QtGui.QImage(str(combined)).height(), QtGui.QImage(str(single)).height())
+            from dosy_alignment_panel import INDIVIDUAL
             dialog.close()
             self.assertIsNone(w.ilt_window)
+            w.show_map()
+            map_window = w.map_window
+            self.assertTrue(map_window.alignment.mode.model().item(INDIVIDUAL).isEnabled())
+            map_window.alignment.mode.setCurrentIndex(INDIVIDUAL)
+            end = time.monotonic()+10
+            while not map_window.alignment.ready and time.monotonic() < end:
+                APP.processEvents()
+                time.sleep(.02)
+            self.assertTrue(map_window.alignment.ready,map_window.alignment.error)
+            self.assertEqual(set(map_window.represented_peaks),{'S1'})
             self.assertIs(w.dataset, dataset)
             self.assertIs(w.results, results)
             self.assertTrue(w.valid)
@@ -1003,9 +1014,16 @@ class InterfaceTests(unittest.TestCase):
             group = panel.tree.topLevelItem(0)
             panel.tree.setCurrentItem(group)
             self.assertEqual(panel.highlighted, {'S1','S2'})
+            from dosy_map import EXPLORATORY, QC_FILTERED
+            self.assertEqual(window.policy.currentIndex(),EXPLORATORY)
+            self.assertIn('S3',window.represented_peaks)
+            self.assertEqual(set(window.represented_peaks),set(panel.exploratory))
+            revision = panel.revision
+            window.policy.setCurrentIndex(QC_FILTERED)
+            self.assertEqual(panel.revision,revision)
             self.assertTrue(window.unresolved_curves)
             self.assertNotIn('S3',window.represented_peaks)
-            self.assertEqual(set(window.represented_peaks), set(panel.profiles))
+            self.assertEqual(set(window.represented_peaks),set(panel.profiles))
             self.assertIn('rozdzielenia', panel.profile_detail('S3'))
             group.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
             self.assertFalse({'S1','S2'} & set(window.represented_peaks))
@@ -1021,6 +1039,7 @@ class InterfaceTests(unittest.TestCase):
 
     def test_ilt_unresolved_profiles_and_native_reference_export(self):
         from dosy_alignment_panel import ADAPTIVE
+        from dosy_map import EXPLORATORY, MONO_REFERENCE, QC_FILTERED
 
         w = self.w
         w.add_roi([3.60,3.68])
@@ -1034,9 +1053,17 @@ class InterfaceTests(unittest.TestCase):
         row = w.results[0]
         start,stop = np.searchsorted(w.dataset.ppm,row['bounds'])
         panel.profiles = {'S1':((row['fit']['D_m2_s'],window.reference[start:stop]),)}
+        second = w.results[1]
+        lo,hi = np.searchsorted(w.dataset.ppm,second['bounds'])
+        panel.exploratory = {**panel.profiles,'S2':((second['fit']['D_m2_s'],window.reference[lo:hi]),)}
+        panel.exploratory_diagnostics = {sid:dict(reason='assigned',solved=True) for sid in panel.exploratory}
         panel.profile_diagnostics = {'S1':dict(reason='assigned'), 'S2':dict(reason='peak_mismatch')}
         panel.ready = True
         window.render_map()
+        self.assertEqual(window.policy.currentIndex(),EXPLORATORY)
+        self.assertEqual(set(window.represented_peaks),{'S1','S2'})
+        self.assertIn('Zanik',window.rois.item(1).toolTip())
+        window.policy.setCurrentIndex(QC_FILTERED)
         self.assertEqual(len(window.images),1)
         self.assertEqual(len(window.unresolved_curves),1)
         self.assertFalse(window.native_guides)
@@ -1055,6 +1082,15 @@ class InterfaceTests(unittest.TestCase):
             image = QtGui.QImage(str(path))
             self.assertIn('Adaptive Local ILT',image.text('DOSY reconstruction'))
             self.assertIn('tylko odniesienie',image.text('DOSY reconstruction'))
+            self.assertIn('Filtrowana QC',image.text('DOSY reconstruction'))
+            window.policy.setCurrentIndex(MONO_REFERENCE)
+            self.assertFalse(window.unresolved_curves)
+            self.assertFalse(window.native_guides)
+            self.assertEqual(set(window.represented_peaks),{'S1','S2'})
+            self.assertTrue(window.save_view(path))
+            metadata = QtGui.QImage(str(path)).text('DOSY reconstruction')
+            self.assertIn('Odniesienie monoeksponencjalne',metadata)
+            self.assertNotIn('ILT',metadata)
 
     def test_dosy_map_navigation_coordinates_floor_and_export(self):
         w = self.w

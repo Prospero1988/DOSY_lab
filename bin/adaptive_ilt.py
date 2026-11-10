@@ -4,7 +4,8 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from dosy_alignment import cluster_diffusion, fit_shared_group, ilt_profiles
+from dosy_alignment import (cluster_diffusion, exploratory_profiles, fit_shared_group,
+                            ilt_profiles, individual_map_solution)
 from global_ilt import GlobalParameters, SolveCancelled, identify_components, solve_global_ilt
 from ilt import ILTParameters, MIN_DISTINCT_B, solve_ilt
 from roi_quality import estimate_spectral_noise
@@ -30,6 +31,8 @@ class LocalResult:
     membership: dict  # group IDs -> (ROI, D) components matched from a separate mixed ROI
     withheld: dict = field(default_factory=dict)
     diagnostics: dict = field(default_factory=dict)
+    exploratory: dict = field(default_factory=dict)
+    exploratory_diagnostics: dict = field(default_factory=dict)
 
 
 def amplitude_weights(amplitude, snr, limit):
@@ -105,16 +108,11 @@ def grid_for(rows, regularization):
     return ILTParameters(d.min()/20, d.max()*20, regularization=regularization, order=0)
 
 
-def separate_mixed_roi(dataset, row, regularization):
+def separate_mixed_roi(dataset, row, regularization, fitted, y, mask, sigma):
     """Only retain a split when two penalties support similar interior maxima."""
-    y, mask, sigma = fit_inputs([row])
-    y, mask = y[:,0], mask[:,0]
-    sigma = sigma[:,0] if sigma is not None else None
     grid = grid_for([row], regularization)
     probe = 2*regularization if regularization <= 50. else regularization/2
-    results = [solve_ilt(dataset.b, y, replace(grid, regularization=lam), include=mask, sigma=sigma)
-               for lam in (regularization, probe)]
-    fitted, check = results
+    check = solve_ilt(dataset.b, y, replace(grid, regularization=probe), include=mask, sigma=sigma)
     weights = fitted.weights[:, None]
     peaks, intervals = identify_components(weights)
     check_peaks, _ = identify_components(check.weights[:, None])
@@ -138,6 +136,7 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
                and (info := reference_quality(row, reference)) is not None
                and len(np.unique(dataset.b[row['fit']['fit_mask']])) >= MIN_DISTINCT_B}
     profiles, groups, attempted, withheld = {}, [], set(), {}
+    exploratory, exploration = {}, {}
     noise = estimate_spectral_noise(dataset.phased) if hasattr(dataset,'phased') else None
     diagnostics = {sid:dict(reason='insufficient_attenuation_information', optimized=False)
                    for sid in by_id if sid not in quality and sid not in excluded}
@@ -150,6 +149,12 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
         return ilt_profiles(dataset.b, dataset.ppm, dataset.spectrum.real, reference, rows, ids,
                             solution, conserve_reference=True, withheld=withheld,
                             diagnostics=diagnostics, noise_sigma=noise)
+
+    def explore(ids, solution):
+        recovered, records = exploratory_profiles(dataset.b,dataset.ppm,dataset.spectrum.real,
+                                                   reference,rows,ids,solution)
+        exploratory.update(recovered)
+        exploration.update(records)
 
     for group in compatible_groups(dataset.b, [by_id[sid] for sid in quality], tolerance):
         check_cancelled()
@@ -164,27 +169,48 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
                                         include=mask, sigma=sigma, cancelled=cancelled,
                                         roi_weights=amplitude_weights(amplitude, snr, balance))
             recovered, rejected = project(ids, solution)
+            explore(ids, solution)
         except SolveCancelled:
             raise
         except (ValueError, RuntimeError, np.linalg.LinAlgError):
             solution, recovered, rejected = None, {}, ids
             diagnostics.update({sid:dict(reason='solver_failed',optimized=True) for sid in ids})
+            exploration.update({sid:dict(reason='solver_failed',optimized=True,solved=False) for sid in ids})
         dominant = (solution.diffusion[np.argmax(solution.aggregate)] if solution is not None and solution.components else None)
         rms = (float(np.sqrt(np.mean((solution.rms/solution.scales)**2))) if solution is not None else None)
         groups.append(LocalGroup(ids, (min(d), max(d)), dominant, float(amplitude.max()/amplitude.min()),
                                  rms, solution is not None and solution.converged, rejected))
         profiles.update(recovered)
 
-    # An ungrouped ROI may have useful independent evidence for a mixture.
-    # Each ROI is reconstructed at most once, with no duplication across local solves.
-    for sid in sorted(set(quality)-attempted):
+    # Singletons have an independent exploratory inversion. A strict local split
+    # still requires the original compatibility, residual and stability checks.
+    for sid in sorted(set(by_id)-attempted-set(excluded)):
         check_cancelled()
         row = by_id[sid]
-        if row['fit']['RMSE'] < .003*quality[sid][0]:
+        fit = row.get('fit') or {}
+        if not fit.get('ok') or not (np.isfinite(fit['D_m2_s']) and fit['D_m2_s'] > 0):
+            continue
+        y, mask, sigma = fit_inputs([row])
+        y, mask = y[:,0], mask[:,0]
+        sigma = sigma[:,0] if sigma is not None else None
+        if np.unique(dataset.b[mask]).size < MIN_DISTINCT_B or not np.any(y[mask]>0):
+            continue
+        try:
+            fitted = solve_ilt(dataset.b,y,grid_for([row],regularization),include=mask,sigma=sigma)
+            explore((sid,),individual_map_solution(fitted))
+            exploration[sid]['independent'] = True
+        except (ValueError, RuntimeError, np.linalg.LinAlgError):
+            exploration[sid] = dict(reason='solver_failed',optimized=True,solved=False)
+            if sid in quality:
+                diagnostics[sid] = dict(reason='solver_failed',optimized=True)
+            continue
+        if sid not in quality:
+            continue
+        if fit['RMSE'] < .003*quality[sid][0]:
             diagnostics[sid] = dict(reason='no_group_or_independent_split_evidence',optimized=False)
             continue
         try:
-            solution = separate_mixed_roi(dataset, row, regularization)
+            solution = separate_mixed_roi(dataset,row,regularization,fitted,y,mask,sigma)
             if solution is None:
                 diagnostics[sid] = dict(reason='no_stable_independent_split',optimized=True)
                 continue
@@ -195,7 +221,7 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
         if sid in recovered and len(recovered[sid]) < 2:
             diagnostics[sid]['reason'] = 'no_stable_independent_split'
         if sid in recovered and len(recovered[sid]) >= 2:
-            d = row['fit']['D_m2_s']
+            d = fit['D_m2_s']
             groups.append(LocalGroup((sid,), (d,d), float(solution.diffusion[np.argmax(solution.weights)]),
                                      1., solution.rms[0]/solution.scales[0], True, (), independent=True))
             profiles.update(recovered)
@@ -211,4 +237,5 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
             if len(matches) == 1:
                 membership.setdefault(matches[0].ids, []).append((sid, d))
     return LocalResult(tuple(groups), profiles, tuple(sorted(set(by_id)-set(profiles)-set(excluded))),
-                       {key: tuple(value) for key, value in membership.items()}, withheld, diagnostics)
+                       {key: tuple(value) for key, value in membership.items()}, withheld, diagnostics,
+                       exploratory, exploration)

@@ -1,11 +1,13 @@
 """Diffusion grouping and optional spectral profiles for the experimental map."""
 from dataclasses import dataclass
+from types import SimpleNamespace
 
 import numpy as np
 from scipy.optimize import minimize_scalar, nnls
 from scipy.integrate import trapezoid
 
 from d_statistics import finite
+from global_ilt import component_intervals
 from ilt import D_UNIT, _kernel
 
 
@@ -159,6 +161,10 @@ def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution, *, conse
         record = dict(optimized=True, omitted_fraction=omitted, component_min_fraction=.05,
                       candidate_D=tuple(float(solution.diffusion[k]) for k in peaks),
                       spectral_limit=MAX_PROFILE_RELATIVE_RESIDUAL)
+        if omitted:
+            record['omitted_components'] = tuple(
+                (float(solution.diffusion[peak]), float(mass/masses.sum()))
+                for peak,mass,retained in zip(solution.components,masses,keep) if mass>0 and not retained)
         diagnostics[sid] = record
 
         def reject(reason):
@@ -267,3 +273,79 @@ def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution, *, conse
         record.update(reason='assigned', unexplained_positive_fraction=float(remaining/area) if area>0 else None)
         profiles[sid] = tuple((solution.diffusion[peak], values) for peak,values in zip(peaks,coeff))
     return profiles, tuple(rejected)
+
+
+def individual_map_solution(result):
+    """Adapt the solved individual distribution without changing its maxima."""
+    peaks = tuple(sorted(result.peaks))
+    return SimpleNamespace(converged=True, diffusion=result.diffusion, weights=result.weights[:,None],
+                           components=peaks, intervals=component_intervals(result.weights, peaks),
+                           scales=np.array([result.scale]), rms=np.array([result.rms]))
+
+
+def exploratory_profiles(b, ppm, spectra, reference_layer, rows, ids, solution):
+    """Project all positive intervals of a converged solution onto measured spectral bins."""
+    profiles = {}
+    diagnostics = {sid: dict(reason='solver_not_converged', optimized=True, solved=False) for sid in ids}
+    if not solution.converged:
+        return profiles, diagnostics
+    kernel = _kernel(b, solution.diffusion)
+    columns = dict(zip(ids, range(len(ids))))
+    for row in rows:
+        sid = row['id']
+        if sid not in columns:
+            continue
+        column = columns[sid]
+        record = diagnostics[sid] = dict(reason='no_component', optimized=True, solved=True)
+        weights = solution.weights[:,column]
+        prediction = np.column_stack([kernel[:,lo:hi] @ weights[lo:hi] for lo,hi in solution.intervals]
+                                     or [np.zeros(len(b))])
+        ref_masses = prediction[reference_layer]
+        keep = ref_masses > 0
+        if not keep.any():
+            continue
+        masses = ref_masses[keep]*solution.scales[column]
+        intervals = [bounds for bounds, active in zip(solution.intervals,keep) if active]
+        peaks = [lo + np.argmax(weights[lo:hi]) for lo,hi in intervals]
+        rates = solution.diffusion[peaks]
+        record.update(candidate_D=tuple(map(float,rates)), model_reference_area=tuple(map(float,masses)),
+                      boundary_peak=any(k in (0,len(weights)-1) for k in peaks))
+        start, stop = np.searchsorted(ppm, row['bounds'])
+        mask = np.asarray(row['fit']['fit_mask'], dtype=bool)
+        basis = prediction[mask][:,keep]/ref_masses[keep]
+        target = spectra[mask,start:stop]
+        trace = np.maximum(spectra[reference_layer,start:stop],0.)
+        target_scale = np.max(abs(target),initial=0.)
+        if stop-start < 2 or not target_scale or not trace.any():
+            record['reason'] = 'insufficient_profile'
+            continue
+        try:
+            singular = np.linalg.svd(basis,compute_uv=False)
+            tolerance = singular[0]*max(basis.shape)*np.finfo(basis.dtype).eps
+            if np.count_nonzero(singular > tolerance) < len(peaks):
+                record['reason'] = 'ill_conditioned_basis'
+                continue
+            record['basis_condition'] = float(singular[0]/singular[-1])
+            if len(peaks) == 1:
+                coeff = np.maximum(0., (basis.T @ target)/np.sum(basis**2))
+            else:
+                coeff = np.array([nnls(basis, signal)[0] for signal in (target/target_scale).T]).T*target_scale
+        except (RuntimeError, ValueError, np.linalg.LinAlgError):
+            record['reason'] = 'spectral_solver_failed'
+            continue
+        axis = ppm[start:stop]
+        area = trapezoid(coeff,x=axis,axis=1)
+        # Cap component area by ILT's reference prediction and summed bin intensity
+        # by the positive measured reference. Never scale amplitudes upward.
+        coeff *= np.divide(np.minimum(area,masses),area,out=np.zeros_like(area),where=area>0)[:,None]
+        total = coeff.sum(axis=0)
+        coeff *= np.divide(np.minimum(total,trace),total,out=np.zeros_like(total),where=total>0)
+        area = trapezoid(coeff,x=axis,axis=1)
+        record.update(profile_residual(target,basis@coeff),
+                      mapped_reference_area=tuple(map(float,area)),
+                      unexplained_positive_fraction=float(np.clip(1-area.sum()/trapezoid(trace,x=axis),0.,1.)))
+        active = area > 0
+        record['reason'] = 'assigned' if active.any() else 'no_positive_reconstructed_profile'
+        if active.any():
+            profiles[sid] = tuple(zip(rates[active],coeff[active]))
+    return profiles, diagnostics

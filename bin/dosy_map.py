@@ -7,11 +7,15 @@ import numpy as np
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from d_statistics import finite
-from dosy_alignment_panel import ADAPTIVE, ILT, AlignmentPanel, MODE_NAMES, ORIGINAL
+from d_statistics import finite, quality
+from dosy_alignment_panel import AlignmentPanel, ILT_MODES, MODE_NAMES, ORIGINAL
 from plot_export import NAVY, light_plot
 from spectrum_view import SpectrumBox
 from storage import source_save_name
+
+
+EXPLORATORY, QC_FILTERED, MONO_REFERENCE = range(3)
+POLICY_NAMES = ('Eksploracyjna', 'Filtrowana QC', 'Odniesienie monoeksponencjalne')
 
 
 @dataclass(frozen=True)
@@ -123,7 +127,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.stale = True
         self.peak_intensity = 0.
         self.full_range = None
-        self.rendered_mode = ORIGINAL
+        self.rendered_mode = (ORIGINAL, EXPLORATORY)
         self.settings = parent.settings
         self.map_color = self.saved_color('dosy_map/color', '#fb923c')
         self.trace_color = self.saved_color('dosy_map/trace_color', '#67e8f9')
@@ -290,8 +294,14 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.rois.itemClicked.connect(lambda item: self.statusBar().showMessage(
             item.toolTip().replace('\n',' · ')))
         sidebar_layout.addWidget(self.rois, 1)
+        self.policy = QtWidgets.QComboBox()
+        self.policy.addItems([tr(label) for label in POLICY_NAMES])
+        self.policy.setToolTip(tr('Polityka wizualizacji ILT'))
+        self.policy.currentIndexChanged.connect(self.refresh_alignment)
+        self.policy.hide()
+        alignment_toolbar.addWidget(self.policy)
         self.overlay = QtWidgets.QComboBox()
-        self.overlay.addItems([tr('Tylko zaakceptowane składowe ILT'),
+        self.overlay.addItems([tr('Tylko profile na mapie'),
                                tr('ILT + nierozdzielone ROI na 1D'),
                                tr('ILT + nierozdzielone ROI i odniesienia mono D')])
         self.overlay.setCurrentIndex(1)
@@ -427,7 +437,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.render_map()
         if new_experiment or first_map:
             self.reset_view()
-            self.rendered_mode = self.alignment.mode.currentIndex()
+            self.rendered_mode = (self.alignment.mode.currentIndex(), self.policy.currentIndex())
 
     def invalidate(self):
         self.stale = True
@@ -452,7 +462,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
 
     def refresh_alignment(self):
         self.render_map()
-        mode = self.alignment.mode.currentIndex()
+        mode = self.alignment.mode.currentIndex(), self.policy.currentIndex()
         if self.alignment.ready and self.full_range is not None and mode != self.rendered_mode:
             self.plot.setYRange(*self.full_range[1], padding=0.)
             self.rendered_mode = mode
@@ -473,20 +483,26 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         ppm = self.dataset.ppm
         layer = self.dataset.options['reference_layer'] + 1
         visible = [result for result in self.results if result.get('group') not in self.excluded_groups]
-        overrides, hidden, profiles = self.alignment.map_data()
         mode = self.alignment.mode.currentIndex()
-        ilt_mode = mode in (ILT, ADAPTIVE)
-        self.overlay.setVisible(ilt_mode)
+        policy = self.policy.currentIndex()
+        ilt_mode = mode in ILT_MODES
+        mono_reference = ilt_mode and policy == MONO_REFERENCE
+        reconstruct = ilt_mode and not mono_reference
+        self.policy.setVisible(ilt_mode)
+        self.overlay.setVisible(reconstruct)
+        overrides, hidden, profiles = self.alignment.map_data(exploratory=reconstruct and policy==EXPLORATORY)
+        if mono_reference:
+            overrides, profiles = {}, {}
         selected = [r for r in visible if r['id'] not in self.excluded | hidden
-                    and (not ilt_mode or profiles.get(r['id']) != ())]
+                    and (not reconstruct or profiles.get(r['id']) != ())]
         bands, overlaps = roi_bands(ppm, self.reference, selected, overrides=overrides,
-                                    profiles=profiles, reconstructed_only=ilt_mode)
+                                    profiles=profiles, reconstructed_only=reconstruct)
         bands = [band for band in bands if np.any(band.intensity > 0)]
         for band in bands:
             self.represented_peaks[band.sid] = max(self.represented_peaks.get(band.sid,0.),
                                                   float(np.max(band.intensity)))
-        if ilt_mode and self.alignment.ready:
-            self.render_ilt_overlays(selected, set(self.represented_peaks), profiles, overlaps)
+        if ilt_mode and (self.alignment.ready or mono_reference):
+            self.render_ilt_overlays(selected, set(self.represented_peaks), profiles, overlaps, policy)
         else:
             warnings = {row['id']: '\n'.join((row.get('fit') or {}).get('warnings', []))
                         for row in self.results}
@@ -495,12 +511,15 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                     item = self.rois.item(index)
                     item.setToolTip(warnings.get(item.data(QtCore.Qt.ItemDataRole.UserRole), ''))
         self.peak_intensity = max((np.max(band.intensity) for band in bands), default=0.)
-        self.save_button.setEnabled(bool(bands or self.unresolved_curves) and not self.stale and self.alignment.ready)
+        self.save_button.setEnabled(bool(bands or self.unresolved_curves) and not self.stale
+                                    and (self.alignment.ready or mono_reference))
         if not bands:
             self.diffusion_trace.setData([], [])
             upper = max((record[2] for record in self.native_guides),default=.95)
             self.full_range = ((ppm[0], ppm[-1]), (0., 1.05*upper))
-            note = self.map_legend if self.alignment.ready else tr('Obliczanie rekonstrukcji ILT…')
+            note = self.map_legend or self.alignment.error
+            if not note and not self.alignment.ready:
+                note = tr('Obliczanie rekonstrukcji ILT…')
             self.note.setText(note or tr('Brak dodatnich sygnałów do wyświetlenia. Sprawdź dopasowania D, fazę i wybór ROI.'))
             return
         maximum = max(band.diffusion for band in bands) / self.D_SCALE
@@ -538,7 +557,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             tr(f'Widmo 1D: warstwa {layer} (referencja). Mapa: kształt widma w ROI przy jego D. '
             'Kolor pokazuje dodatnie intensywności. Szerokość w D jest ustawieniem graficznym.')
             + (tr(' Wspólne punkty nakładających się ROI są pominięte.') if overlaps else ''))
-        if mode != ORIGINAL:
+        if mode != ORIGINAL and not mono_reference:
             detail = self.map_legend if ilt_mode else tr('Poza zaakceptowanymi grupami lub profilami zachowano oryginalne D.')
             if self.alignment.error:
                 detail = tr('Błąd wyrównania') + ' · ' + tr(self.alignment.error)
@@ -547,9 +566,17 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             self.note.setText(tr(MODE_NAMES[self.alignment.mode.currentIndex()]) + ' · ' + detail)
         self.update_intensity()
 
-    def render_ilt_overlays(self, selected, represented, profiles, overlap):
+    def render_ilt_overlays(self, selected, represented, profiles, overlap, policy):
         ids = {row['id'] for row in selected}
         unassigned = ids-represented
+        explored = self.alignment.exploratory
+        filtered = self.alignment.profiles
+        records = self.alignment.exploratory_diagnostics
+        analyzed = sum(bool(records.get(sid,{}).get('solved')) for sid in ids)
+        attempted = sum(bool(records.get(sid,{}).get('optimized')) for sid in ids)
+        quality_exclusions = (set(explored)-set(filtered)) & ids
+        unresolved = unassigned-quality_exclusions if policy==QC_FILTERED else unassigned
+        by_id = {row['id']:row for row in selected}
         with QtCore.QSignalBlocker(self.rois):
             for index in range(self.rois.count()):
                 item = self.rois.item(index)
@@ -558,12 +585,16 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                     detail = tr('ROI wyłączone z widoku.')
                 else:
                     detail = self.alignment.profile_detail(sid)
+                    fit = by_id[sid]['fit']
+                    _, level, explanation = quality(fit)
+                    if explanation:
+                        detail += '\n' + tr(level) + ' · ' + tr(explanation)
                     if sid in unassigned and sid in profiles:
                         detail += '\n' + tr('Profil nie daje dodatniej mapy po maskowaniu wspólnych binów.')
                 item.setToolTip(detail)
         for row in selected:
             sid = row['id']
-            if sid not in unassigned or not self.overlay.currentIndex():
+            if policy == MONO_REFERENCE or sid not in unassigned or not self.overlay.currentIndex():
                 continue
             lo, hi = sorted(row['bounds'])
             mask = (self.dataset.ppm>=lo)&(self.dataset.ppm<=hi)
@@ -580,15 +611,18 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                 item = self.plot.plot([lo,hi],[d,d],pen=pg.mkPen('#c084fc',width=2,
                     style=QtCore.Qt.PenStyle.DashLine))
                 self.overlay_items.append((self.plot,item))
-        represented_label, unresolved_label, excluded_label = map(tr,(
-            'ROI w rekonstrukcji ILT','nierozdzielone / bez przypisania','wyłączone z widoku'))
-        self.map_legend = (f'{represented_label}: {len(represented)} · {unresolved_label}: {len(unassigned)}'
-                           f' · {excluded_label}: {len(self.results)-len(ids)}')
-        self.map_legend += ' · ' + tr('Kolor mapy = zaakceptowane profile ILT')
-        if self.overlay.currentIndex():
-            self.map_legend += ' · ' + tr('Bursztyn na 1D = zmierzony profil bez przypisania')
-        if self.overlay.currentIndex()==2:
-            self.map_legend += ' · ' + tr('Fioletowa kreska = pozycja mono D, tylko odniesienie')
+        if policy == MONO_REFERENCE:
+            self.map_legend = tr('Odniesienie monoeksponencjalne') + f" · {tr('ROI na mapie')}: {len(represented)}/{len(self.results)}"
+        else:
+            self.map_legend = ' · '.join(f'{tr(label)}: {count}' for label,count in (
+                ('Wszystkie ROI',len(self.results)), ('Próba ILT',attempted), ('Zbieżne numerycznie',analyzed),
+                ('ROI w rekonstrukcji ILT',len(represented)), ('ROI pomijane przez filtr QC',len(quality_exclusions)),
+                ('nierozdzielone / bez przypisania',len(unresolved)), ('wyłączone z widoku',len(self.results)-len(ids))))
+            self.map_legend = tr(POLICY_NAMES[policy]) + ' · ' + self.map_legend
+            if self.overlay.currentIndex():
+                self.map_legend += ' · ' + tr('Bursztyn na 1D = zmierzony profil bez przypisania')
+            if self.overlay.currentIndex()==2:
+                self.map_legend += ' · ' + tr('Fioletowa kreska = pozycja mono D, tylko odniesienie')
         if overlap:
             self.map_legend += ' · ' + tr('Wspólne biny pominięto w macierzy.')
         self.map_legend += ' · ' + tr('Wybierz ROI z listy, aby odczytać przyczynę.')
@@ -601,7 +635,11 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         for image in self.images:
             image.setLevels((threshold, saturation))
         if self.map_legend:
-            self.note.setText(tr(MODE_NAMES[self.alignment.mode.currentIndex()]) + ' · ' + self.ilt_legend())
+            self.note.setText(self.reconstruction_title() + self.ilt_legend())
+
+    def reconstruction_title(self):
+        mode = self.alignment.mode.currentIndex()
+        return '' if mode in ILT_MODES and self.policy.currentIndex()==MONO_REFERENCE else tr(MODE_NAMES[mode])+' · '
 
     def ilt_legend(self):
         threshold = self.peak_intensity*self.floor.value()/100
@@ -667,7 +705,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
 
     def save_view(self, path):
         # Render a separate copy so export never changes the live plots or settings.
-        if self.stale or not self.alignment.ready:
+        mono_reference = self.alignment.mode.currentIndex() in ILT_MODES and self.policy.currentIndex()==MONO_REFERENCE
+        if self.stale or (not self.alignment.ready and not mono_reference):
             return False
         canvas = QtWidgets.QWidget()
         canvas.setAttribute(QtCore.Qt.WidgetAttribute.WA_DontShowOnScreen)
@@ -678,8 +717,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         try:
             mode = self.alignment.mode.currentIndex()
             title = tr(MODE_NAMES[mode])
-            if mode in (ILT, ADAPTIVE):
-                title += '\n' + self.ilt_legend()
+            if mode in ILT_MODES:
+                title = self.reconstruction_title() + self.ilt_legend()
             elif mode != ORIGINAL:
                 overrides, _, profiles = self.alignment.map_data()
                 title += f' · {tr("Przetworzone ROI")} {len(overrides) + len(profiles)}'
