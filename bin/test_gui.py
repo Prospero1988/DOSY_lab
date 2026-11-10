@@ -906,6 +906,18 @@ class InterfaceTests(unittest.TestCase):
         original, d = window.diffusion_trace.getData()
         self.assertGreater(np.max(original), 0.)
         self.assertEqual(len(original), len(d))
+        before_x, before_d = window.diffusion_plot.getViewBox().viewRange()
+        viewport = window.diffusion_plot.viewport()
+        center = viewport.rect().center()
+        for delta, factor in [(120, 1/1.2), (-120, 1.)]:
+            event = QtGui.QWheelEvent(QtCore.QPointF(center), QtCore.QPointF(viewport.mapToGlobal(center)),
+                                      QtCore.QPoint(), QtCore.QPoint(0, delta), QtCore.Qt.MouseButton.NoButton,
+                                      QtCore.Qt.KeyboardModifier.NoModifier, QtCore.Qt.ScrollPhase.NoScrollPhase, False)
+            APP.sendEvent(viewport, event)
+            APP.processEvents()
+            x_range, d_range = window.diffusion_plot.getViewBox().viewRange()
+            self.assertAlmostEqual(np.ptp(x_range), factor*np.ptp(before_x), places=7)
+            np.testing.assert_allclose(d_range, before_d)
         window.floor.setValue(25.)
         window.gain.setValue(10)
         np.testing.assert_array_equal(window.diffusion_trace.getData()[0], original)
@@ -936,6 +948,12 @@ class InterfaceTests(unittest.TestCase):
         window.activateWindow()
         window.plot.setFocus()
         APP.processEvents()
+        QtTest.QTest.keyClicks(window.plot, 'p')
+        self.assertTrue(window.tools.button(1).isChecked())
+        QtTest.QTest.keyClicks(window.plot, 'z')
+        self.assertTrue(window.tools.button(0).isChecked())
+        QtTest.QTest.keyClicks(window.plot, 'f')
+        np.testing.assert_allclose(window.plot.getViewBox().viewRange()[1], window.full_range[1])
         with tempfile.TemporaryDirectory() as folder:
             marked, cleared = [Path(folder)/name for name in ('marked.png', 'cleared.png')]
             self.assertTrue(window.save_view(marked))
@@ -950,6 +968,47 @@ class InterfaceTests(unittest.TestCase):
             self.assertGreater(np.count_nonzero(a[:, :width] != b[:, :width]), 20)
         window.diffusion_button.click()
         self.assertFalse(window.diffusion_plot.isVisible())
+
+    def test_adaptive_local_ilt_uses_cached_rows_and_updates_mode(self):
+        from dosy_alignment_panel import ADAPTIVE
+
+        w = self.w
+        for bounds in ([3.60,3.68], [5.26,5.33], [4.66,4.74]):
+            w.add_roi(bounds)
+        settle(w)
+        original = w.results
+        with patch('ui.analyze', side_effect=AssertionError('Adaptive map must preserve independent fits')):
+            w.show_map()
+            window = w.map_window
+            panel = window.alignment
+            self.assertFalse(panel.adaptive_controls.isVisible())
+            panel.tolerance.setValue(20.)
+            panel.mode.setCurrentIndex(ADAPTIVE)
+            self.assertTrue(panel.adaptive_controls.isVisible())
+
+            def wait():
+                end = time.monotonic()+8
+                while not panel.ready and not panel.error and time.monotonic() < end:
+                    QtTest.QTest.qWait(15)
+                self.assertTrue(panel.ready, panel.error)
+
+            wait()
+            self.assertIn(('S1','S2'), [group.ids for group in panel.local_groups])
+            group = panel.tree.topLevelItem(0)
+            panel.tree.setCurrentItem(group)
+            self.assertEqual(panel.highlighted, {'S1','S2'})
+            self.assertTrue(any(image.opacity() < 1. for image in window.images))
+            group.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+            self.assertLess(len(window.images), 3)
+            panel.balance.setValue(3.)
+            panel.regularization.setText('2e-6')
+            panel.recalculate()
+            wait()
+            self.assertIs(w.results, original)
+            panel.reset_defaults()
+            wait()
+            self.assertEqual(panel.balance.value(), 10.)
+            self.assertEqual(panel.regularization.text(), '1e-6')
 
     def test_dosy_map_navigation_coordinates_floor_and_export(self):
         w = self.w

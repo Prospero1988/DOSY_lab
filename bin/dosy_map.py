@@ -8,7 +8,7 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from d_statistics import finite
-from dosy_alignment_panel import AlignmentPanel, MODE_NAMES, ORIGINAL
+from dosy_alignment_panel import ADAPTIVE, AlignmentPanel, MODE_NAMES, ORIGINAL
 from plot_export import NAVY, light_plot
 from spectrum_view import SpectrumBox
 from storage import source_save_name
@@ -19,6 +19,7 @@ class Band:
     ppm: np.ndarray
     intensity: np.ndarray
     diffusion: float
+    sid: str = ''
 
 
 def diffusion_projection(bands, offset, kernel, diffusion_scale):
@@ -42,11 +43,12 @@ def fitted_diffusion(result):
 
 def roi_bands(ppm, reference, results, excluded=(), *, overrides=None, profiles=None):
     """Use each FFT bin at most once. Mask ambiguous bins in overlapping ROIs."""
+    overrides, profiles = overrides or {}, profiles or {}
     intervals = []
     coverage = np.zeros(len(ppm) + 1, dtype=int)
     for result in results:
         diffusion = fitted_diffusion(result)
-        if diffusion is None or result['id'] in excluded:
+        if diffusion is None or result['id'] in excluded or profiles.get(result['id']) == ():
             continue
         start, stop = np.searchsorted(ppm, result['bounds'])
         if start < stop:
@@ -55,13 +57,12 @@ def roi_bands(ppm, reference, results, excluded=(), *, overrides=None, profiles=
             coverage[stop] -= 1
     shared = np.cumsum(coverage[:-1]) > 1
     bands = []
-    overrides, profiles = overrides or {}, profiles or {}
     for start, stop, sid, diffusion in intervals:
         mask = shared[start:stop]
         if mask.all():
             continue
         for center, intensity in profiles.get(sid, ((overrides.get(sid, diffusion), reference[start:stop]),)):
-            bands.append(Band(ppm[start:stop], np.where(mask, 0., intensity), center))
+            bands.append(Band(ppm[start:stop], np.where(mask, 0., intensity), center, sid))
     return bands, bool(shared.any())
 
 
@@ -90,6 +91,13 @@ class MapViewBox(pg.ViewBox):
             event.accept()
         else:
             super().mouseClickEvent(event)
+
+
+class DiffusionProjectionBox(pg.ViewBox):
+    def wheelEvent(self, event, axis=None):
+        factor = float(np.exp(np.clip(-event.delta()/120*np.log(1.2), -4, 4)))
+        self.scaleBy(x=factor, center=QtCore.QPointF(0, 0))
+        event.accept()
 
 
 class DosyMapWindow(QtWidgets.QMainWindow):
@@ -121,8 +129,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         layout.addLayout(toolbar)
         self.tools = QtWidgets.QButtonGroup(self)
         for index, (name, tip) in enumerate((
-            ('Zoom', tr('Przeciągnij prostokąt na mapie lub zakres ppm nad widmem 1D.')),
-            (tr('Przesuwaj'), tr('Przeciągnij, aby przesunąć widok.')),
+            ('Zoom [Z]', tr('Przeciągnij prostokąt na mapie lub zakres ppm nad widmem 1D.')),
+            (tr('Przesuwaj [P]'), tr('Przeciągnij, aby przesunąć widok.')),
             (tr('Punkt / prowadnice'), tr('Kliknij mapę, aby odczytać ppm i D. Delete usuwa prowadnice.')),
         )):
             button = QtWidgets.QPushButton(name)
@@ -132,9 +140,13 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             toolbar.addWidget(button)
         self.tools.button(0).setChecked(True)
         self.tools.idClicked.connect(self.set_tool)
-        reset = QtWidgets.QPushButton(tr('Cały zakres'))
+        reset = QtWidgets.QPushButton(tr('Cały zakres [F]'))
         reset.clicked.connect(self.reset_view)
         toolbar.addWidget(reset)
+        for key, callback in [('Z', self.tools.button(0).click), ('F', self.reset_view), ('P', self.tools.button(1).click)]:
+            shortcut = QtGui.QShortcut(QtGui.QKeySequence(key), self)
+            shortcut.setAutoRepeat(False)
+            shortcut.activated.connect(callback)
         fullscreen = QtWidgets.QPushButton(tr('Pełny ekran'))
         fullscreen.clicked.connect(self.toggle_fullscreen)
         toolbar.addWidget(fullscreen)
@@ -183,6 +195,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
 
         alignment_toolbar = QtWidgets.QHBoxLayout()
         layout.addLayout(alignment_toolbar)
+        adaptive_toolbar = QtWidgets.QHBoxLayout()
+        layout.addLayout(adaptive_toolbar)
         content = QtWidgets.QSplitter()
         layout.addWidget(content, 1)
         self.graphics = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
@@ -192,7 +206,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.reference_view.bind_selection_feedback(self.projection)
         self.map_view = MapViewBox()
         self.plot = pg.PlotWidget(viewBox=self.map_view)
-        self.diffusion_plot = pg.PlotWidget()
+        self.diffusion_plot = pg.PlotWidget(viewBox=DiffusionProjectionBox(enableMenu=False))
         self.diffusion_plot.setFixedWidth(185)
         self.diffusion_spacer = QtWidgets.QWidget()
         self.diffusion_spacer.setFixedWidth(self.diffusion_plot.width())
@@ -268,7 +282,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.rois.setToolTip(tr('Odznacz ROI, aby wyłączyć je tylko z mapy.'))
         self.rois.itemChanged.connect(self.roi_toggled)
         sidebar_layout.addWidget(self.rois, 1)
-        self.alignment = AlignmentPanel(self, alignment_toolbar, sidebar_layout)
+        self.alignment = AlignmentPanel(self, alignment_toolbar, adaptive_toolbar, sidebar_layout)
         content.addWidget(sidebar)
         content.setSizes([1040, 250])
         content.setStretchFactor(0, 1)
@@ -455,7 +469,6 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         offset = np.linspace(-2*fwhm, 2*fwhm, 81)
         kernel = np.exp(-4 * np.log(2) * (offset / fwhm)**2)
         self.diffusion_trace.setData(*diffusion_projection(bands, offset, kernel, self.D_SCALE))
-        self.diffusion_plot.enableAutoRange(axis=pg.ViewBox.XAxis)
         d_step = offset[1] - offset[0]
         ppm_step = ppm[1] - ppm[0]
         for band in bands:
@@ -463,6 +476,9 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             image = pg.ImageItem(axisOrder='row-major')
             image.setImage((kernel[:, None] * band.intensity).astype(np.float32), autoLevels=False)
             image.setLookupTable(self.lookup_table)
+            if (self.alignment.highlighted and band.sid not in self.alignment.highlighted
+                    and (band.sid, band.diffusion) not in self.alignment.highlighted_components):
+                image.setOpacity(.25)
             image.setRect(QtCore.QRectF(band.ppm[0]-ppm_step/2, center+offset[0]-d_step/2,
                                        len(band.ppm)*ppm_step, len(offset)*d_step))
             self.plot.addItem(image)
@@ -483,7 +499,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         if self.alignment.mode.currentIndex() != ORIGINAL:
             detail = tr('Poza zaakceptowanymi grupami lub profilami zachowano oryginalne D.')
             if self.alignment.rejected:
-                detail += ' · ' + tr('Odrzucone profile ILT') + ' ' + ', '.join(self.alignment.rejected)
+                label = 'ROI z zachowanym oryginalnym D' if self.alignment.mode.currentIndex() == ADAPTIVE else 'Odrzucone profile ILT'
+                detail += ' · ' + tr(label) + ' ' + ', '.join(self.alignment.rejected)
             if self.alignment.error:
                 detail = tr('Błąd wyrównania') + ' · ' + tr(self.alignment.error)
             elif not self.alignment.ready:
@@ -544,6 +561,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.plot.setRange(xRange=x, yRange=y, padding=0)
         self.projection.setXRange(*x, padding=0)
         self.reference_view.enableAutoRange(axis=pg.ViewBox.YAxis)
+        self.diffusion_plot.enableAutoRange(axis=pg.ViewBox.XAxis)
 
     def choose_save(self):
         filename = source_save_name(self.dataset.name, '.png')
@@ -604,6 +622,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                 copy = pg.ImageItem(axisOrder='row-major')
                 copy.setImage(image.image, levels=image.getLevels(), lut=lookup)
                 copy.setTransform(image.transform())
+                copy.setOpacity(image.opacity())
                 map_plot.addItem(copy)
             pen = pg.mkPen('k', style=QtCore.Qt.PenStyle.DashLine)
             for plot, guide in guides:

@@ -586,5 +586,21 @@
   "Odrzucone profile ILT": "Rejected ILT profiles",
   "Błąd wyrównania": "Alignment error",
   "Przetworzone ROI": "Processed ROIs",
-  "Obliczanie wyrównania. Tymczasowo wyświetlana jest mapa oryginalna.": "Calculating alignment. The original map is shown while waiting."
+  "Obliczanie wyrównania. Tymczasowo wyświetlana jest mapa oryginalna.": "Calculating alignment. The original map is shown while waiting.",
+  "Balans amplitud": "Amplitude balance",
+  "Stosunek największej do słabszej amplitudy. Słabsze ROI otrzymują niższą wagę tylko przy gorszym S/N.": "Ratio of strongest to weaker amplitude. A weak ROI is downweighted only when its S/N is lower.",
+  "Lokalne λ": "Local λ",
+  "Grupy lokalne": "Local groups",
+  "Diagnostyka grup": "Group diagnostics",
+  "Niezależne rozdzielenie ROI": "Independent ROI decomposition",
+  "Brak zbieżności": "Did not converge",
+  "Zakres D [m²/s]": "D range [m²/s]",
+  "Stosunek amplitud": "Amplitude ratio",
+  "Nierozdzielone": "Unresolved",
+  "ROI z zachowanym oryginalnym D": "ROIs retaining original D",
+  "Nieprawidłowe wagi ROI.": "Invalid ROI weights.",
+  "Nieprawidłowe parametry Adaptive Local ILT.": "Invalid Adaptive Local ILT parameters.",
+  "składowa": "component",
+  "Składowa rozdzielona niezależnie. Dopasowanie do grupy dotyczy widoku.": "Independently resolved component. Its group match affects the view only.",
+  "Grupa": "Group"
 }

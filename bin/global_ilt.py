@@ -105,7 +105,7 @@ def identify_components(weights):
 
 
 def solve_global_ilt(b, intensity, parameters, *, include=None, sigma=None,
-                     cancelled: Callable[[], bool] | None = None):
+                     cancelled: Callable[[], bool] | None = None, roi_weights=None):
     """Accelerated proximal gradient on one coupled convex objective."""
     p = parameters
     if p.grid.order != 0 or not (np.isfinite(p.sparsity) and 0 <= p.sparsity <= 100
@@ -114,6 +114,11 @@ def solve_global_ilt(b, intensity, parameters, *, include=None, sigma=None,
         raise ValueError('Nieprawidłowe parametry solvera Global ILT.')
     diffusion = diffusion_grid(p.grid)
     b, y, mask, scales, w2 = prepare_attenuation(b, intensity, include, sigma)
+    if roi_weights is not None:
+        weights = np.asarray(roi_weights, dtype=float)
+        if weights.shape != scales.shape or not np.isfinite(weights).all() or np.any((weights <= 0) | (weights > 1)):
+            raise ValueError('Nieprawidłowe wagi ROI.')
+        w2 *= weights
     kernel = _kernel(b, diffusion)
     ridge = p.grid.regularization * p.grid.points  # L = sqrt(P) I
     group = p.sparsity * np.sqrt(y.shape[1])

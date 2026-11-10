@@ -192,9 +192,9 @@ An export bundle can contain complete measurement data and the embedded pulse pr
 
 1. Define integrals and complete their fits. Click **2D DOSY map** next to **Clear baseline**.
 2. Use **Groups / compounds** to hide an entire group or **Signals** to hide individual ROIs. Turning a group back on preserves individual selections. A displayed ROI must have a successful fit with finite, positive D. The checkboxes affect the map only.
-3. Use **Zoom** to drag a rectangle, **Pan** to move, or **Full range** to reset. The ppm zoom is linked to the 1D spectrum above.
+3. Use **Zoom [Z]** to drag a rectangle, **Pan [P]** to move, or **Full range [F]** to reset. The ppm zoom is linked to the 1D spectrum above.
 4. Use **Point / crosshair** to read ppm and D. The vertical guide extends into the proton spectrum. Enable **D projection** to sum the positive map intensity across ppm for each D and show the horizontal guide on the left. The sum uses the displayed ROIs before the visual floor and gain are applied. Press **Delete** to clear the guides and label. PNG export includes the projection and guides when visible.
-5. Scroll over the 1D spectrum to adjust its height. Scroll over the 2D map to change the **Threshold** relative to the strongest positive signal. Increase **2D gain** to brighten weak signals above the threshold.
+5. Scroll over the 1D spectrum to adjust its height, or over **D projection** to adjust its horizontal intensity scale while retaining its D range. Scroll over the 2D map to change the **Threshold** relative to the strongest positive signal. Increase **2D gain** to brighten weak signals above the threshold.
 6. Use **View** for separate spectrum and map colors and **Grid** to toggle the grid. **Save view as PNG** exports the current zoom, intensity, grid and guides in a light color scheme.
 
 The map places each ROI’s positive real reference spectrum at its fitted D. Orange is the default signal color. Shared points of overlapping selected ROIs are omitted until the overlap is resolved. **D band width** controls the vertical display broadening as a percentage of the largest visible D. Each ROI contributes one fitted coefficient, so mixed signals within an ROI are represented by an apparent D.

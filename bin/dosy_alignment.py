@@ -99,7 +99,7 @@ def alignment_plan(b, rows, tolerance, excluded, shared=False):
     return groups
 
 
-def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution):
+def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution, *, conserve_reference=False):
     """Estimate nonnegative ppm profiles using component decay bases fixed by ILT."""
     profiles, rejected = {}, []
     if not solution.converged:
@@ -143,5 +143,17 @@ def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution):
                 or np.max(np.abs(weights/weights.sum()-masses[keep]/masses[keep].sum())) > .2):
             rejected.append(sid)
             continue
+        if conserve_reference:
+            reference = np.maximum(spectra[reference_layer,start:stop]/target_scale, 0.)
+            total = coeff.sum(axis=0)
+            if reference[total == 0].sum() > .01*reference.sum() or not reference.any():
+                rejected.append(sid)
+                continue
+            coeff *= np.divide(reference, total, out=np.zeros_like(total), where=total > 0)
+            weights = trapezoid(coeff, x=ppm[start:stop], axis=1)
+            if (np.linalg.norm(basis@coeff-target)/np.linalg.norm(target) > .15 or weights.sum() <= 0
+                    or np.max(np.abs(weights/weights.sum()-masses[keep]/masses[keep].sum())) > .2):
+                rejected.append(sid)
+                continue
         profiles[sid] = tuple((solution.diffusion[peak], trace*target_scale) for peak, trace in zip(peaks, coeff))
     return profiles, tuple(rejected)
