@@ -15,7 +15,7 @@ from dosy_map import DosyMapWindow
 from storage import (DATA, PROJECTS, PROJECT_FILTER, INTEGRALS, INTEGRALS_FILTER,
                      choose_save_file, dialog_directory, source_save_name)
 from plot_export import save_light_plot
-from d_statistics import build_snapshot,number
+from d_statistics import build_snapshot,number,quality
 from fullscreen_plot import enable_fullscreen
 from ilt_window import ILTWindow
 from global_ilt_window import GlobalILTWindow
@@ -95,6 +95,7 @@ class Window(QtWidgets.QMainWindow):
         self.ilt_window = None
         self.global_ilt_window = None
         self.map_ilt = None
+        self.map_individual = {}
         self.worker=None;self.job_callback=None;self.pending=False;self.revision=0;self.job_revision=0
         self.valid=False;self._updating=False;self.close_pending=False;self.statistics_window=None;self.phase_window=None
         self.experiment_id=uuid.uuid4().hex;self.region_items={};self.base_items=[];self.next_id=1
@@ -308,6 +309,7 @@ class Window(QtWidgets.QMainWindow):
     def loaded(self,payload):
         self.raw,self.dataset,self.entries,self.results,self.integral_scale=payload
         self.set_map_ilt(self.dataset, (), None)
+        self.clear_map_individual()
         self.roi_table.clearSelection()
         self.processing.source_name = self.dataset.name
         self.experiment_id=uuid.uuid4().hex
@@ -327,6 +329,7 @@ class Window(QtWidgets.QMainWindow):
         if self.raw is None or self._updating:return
         self.revision+=1;self.valid=False;self.export_button.setEnabled(False);self.timer.start(180)
         self.set_map_ilt(self.dataset, (), None)
+        self.clear_map_individual()
         self.invalidate_map()
 
     def invalidate_map(self):
@@ -637,17 +640,21 @@ class Window(QtWidgets.QMainWindow):
         for i,e in enumerate(self.entries):
             fit=fits.get(e['id'],{}).get('fit') or {}
             integral=self.integral_value(e,fits.get(e['id']))
+            _, qc, detail = quality(fit, fits.get(e['id'],{}).get('error',''))
             values=[e['id'],e['group'],*[f'{x:.6f}' for x in e['bounds']],
                     self.format_integral(integral),
                     f"{fit['D_m2_s']/1e-10:.5f}" if fit.get('ok') else '—',
                     f"{fit['D_standard_error_m2_s']/1e-10:.5f}" if fit.get('D_standard_error_m2_s') is not None else '—',
                     f"{fit['R2']:.6f}" if fit.get('R2') is not None else '—',
-                    (tr('UWAGA') if fit.get('warnings') else 'OK') if fit.get('ok') else tr('BRAK FITU')]
+                    tr(qc)]
             for j,value in enumerate(values):
                 item=QtWidgets.QTableWidgetItem(value)
                 editable = j in (GROUP_COLUMN,LOWER_PPM_COLUMN,UPPER_PPM_COLUMN) or (j==INTEGRAL_COLUMN and integral is not None)
                 if not editable:item.setFlags(item.flags()&~QtCore.Qt.ItemFlag.ItemIsEditable)
                 if j==0 and e['name']!=e['id']:item.setToolTip(e['name'])
+                if j==len(values)-1:
+                    diagnostics = fits.get(e['id'],{}).get('result',{}).get('profile_diagnostics',{})
+                    item.setToolTip('\n'.join([tr(detail),*self.qc_metrics(diagnostics)]))
                 if j==GROUP_COLUMN:
                     item.setToolTip(tr('Dwuklik otwiera edycję. Wpisz nową grupę lub wybierz istniejącą z listy.'))
                 if j==INTEGRAL_COLUMN:
@@ -673,6 +680,36 @@ class Window(QtWidgets.QMainWindow):
         flags = QtCore.QItemSelectionModel.SelectionFlag
         self.roi_table.selectionModel().select(selection, flags.ClearAndSelect | flags.Rows)
         self._updating=False
+    @staticmethod
+    def qc_metrics(diagnostic):
+        if not diagnostic:
+            return []
+        lines = []
+        count = len(diagnostic.get('diagnostic_layers',()))
+        total = len(diagnostic.get('active_layers',()))
+        lines.append(f"{tr('Warstwy diagnostyczne')}: {count}/{total}")
+        for key, label in (('shape','Kształt'),('phase','Faza'),('baseline','Baza')):
+            check = diagnostic.get('checks',{}).get(key)
+            if check:
+                lines.append(f"{tr(label)}: {tr('efekt')} {check['effect']:.3g}, "
+                             f"p≈{check['p_heuristic']:.3g} / {check['p_threshold']:.3g}")
+            comparison = diagnostic.get('D_comparisons',{}).get(key,{})
+            if comparison.get('status')=='compared':
+                bound = number(comparison.get('screening_bound'),3)
+                lines.append(f"{tr(label)}: ΔD={comparison['D_change']:.3e} m²/s · "
+                             f"{tr('skala porównawcza')}={bound} m²/s")
+        snr = np.asarray(diagnostic.get('snr_lower_estimate',()))
+        snr = snr[np.isfinite(snr)]
+        if snr.size:
+            lines.append(f"S/N ≈ {snr.min():.2f}–{snr.max():.2f} · {tr('próg')}: {diagnostic['min_snr']:g}")
+        phase = np.asarray(diagnostic.get('relative_phase_deg',()))
+        precision = np.asarray(diagnostic.get('phase_noise_deg',()))
+        if phase.size:
+            lines.append(f"{tr('Zakres fazy')}: {phase.min():.2f}–{phase.max():.2f}°")
+        if precision.size:
+            lines.append(f"{tr('Skala szumu fazy')}: {np.nanmax(precision):.2f}°")
+        return lines
+
     def roi_edited(self,item):
         if self._updating:return
         e=self.entries[item.row()]
@@ -753,6 +790,13 @@ class Window(QtWidgets.QMainWindow):
                 info+=tr(fit.get('message','Brak poprawnego fitu.'))
                 if d.b is None:
                     info+='\n'+tr(d.metadata['b_source']['description'])
+            if fit.get('measurement_warnings'):
+                info+='\n' + tr('Jakość pomiaru ROI') + ' · ' + ' '.join(map(tr,fit['measurement_warnings']))
+            diagnostic = result.get('profile_diagnostics',{})
+            if diagnostic.get('status') == 'insufficient':
+                info+='\n' + tr('Za mało informacji do oceny zmian profilu między warstwami.')
+            if 'baseline_relative_rms' in diagnostic:
+                info+='\n' + tr('RMS korekty bazy / RMS całek przed korektą') + f": {diagnostic['baseline_relative_rms']:.2%}"
             self.fit_info.setText(info)
         self._updating=False
 
@@ -827,6 +871,9 @@ class Window(QtWidgets.QMainWindow):
         if self.ilt_window is not None:
             self.ilt_window.close()
         self.ilt_window = ILTWindow(self, self.dataset.name, self.dataset.b, entry)
+        dataset, revision = self.dataset, self.revision
+        self.ilt_window.solution_changed.connect(
+            lambda result: self.cache_individual_map(dataset,revision,sid,result))
         self.ilt_window.finished.connect(self.ilt_closed)
         self.ilt_window.show()
 
@@ -875,12 +922,25 @@ class Window(QtWidgets.QMainWindow):
         if self.map_window is not None:
             self.map_window.alignment.set_snapshot(self.map_ilt)
 
+    def cache_individual_map(self, dataset, revision, sid, result):
+        if dataset is self.dataset and revision == self.revision:
+            self.map_individual = {**self.map_individual,sid:result}
+            if self.map_window is not None:
+                self.map_window.alignment.set_individual(self.map_individual)
+
+    def clear_map_individual(self):
+        if self.map_individual:
+            self.map_individual = {}
+            if self.map_window is not None:
+                self.map_window.alignment.set_individual(self.map_individual)
+
     def show_map(self):
         if not self.valid:return
         if self.map_window is None:self.map_window=DosyMapWindow(self)
         self.map_window.show()
         self.map_window.update_data(self.experiment_id,self.dataset,self.results)
         self.map_window.alignment.set_snapshot(self.map_ilt)
+        self.map_window.alignment.set_individual(self.map_individual)
         self.map_window.raise_()
     def edit_spectrum_settings(self):
         dialog = SpectrumSettingsDialog(self.appearance, self)

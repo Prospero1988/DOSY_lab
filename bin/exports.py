@@ -105,7 +105,7 @@ def read_project(path,*,with_integral_scale=False):
     if packet.get('schema')!='dosy_lab_project' or packet.get('version')!=1:raise ValueError('Nieobsługiwany projekt DOSY Lab.')
     raw=_project_source(path,packet)
     if packet['b_source'].get('kind')=='manual':raw=manual_b(raw,packet['b'],packet['b_source']['description'])
-    elif packet['b'] is not None:
+    elif packet['b'] is not None and raw.metadata['b_source']['kind'] != 'conflict':
         if raw.b is None or not np.allclose(raw.b,packet['b'],rtol=1e-12,atol=0):raise ValueError('Lista b projektu różni się od ponownie odczytanego JDF.')
     options=validate_options(packet['processing'],len(raw.fid));seen=set()
     for e in packet['rois']:

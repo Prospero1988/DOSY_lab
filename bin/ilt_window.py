@@ -1,5 +1,4 @@
 """On-demand ILT diagnostics for a snapshot of one DOSY integral."""
-from functools import partial
 
 import numpy as np
 import pyqtgraph as pg
@@ -7,12 +6,16 @@ from PySide6 import QtCore, QtWidgets
 
 from d_statistics import number
 from i18n import tr
-from ilt import D_UNIT, GRID_SIZES, ILTParameters, solve_ilt
+from ilt import D_UNIT, GRID_SIZES, ILTParameters, sensitivity_trials, solve_ilt
 from ilt_help import ILT_HELP, ILT_WINDOW_FLAGS, add_ilt_info
 from ilt_tools import ILTPlotTools, SolveJob
+from ilt_regularization import SweepInput, has_systematic_warning, supplied_noise
+from ilt_regularization_window import RegularizationControls
 
 
 class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
+    solution_changed = QtCore.Signal(object)
+
     def __init__(self, parent, source, b, entry):
         super().__init__(parent, ILT_WINDOW_FLAGS)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -24,6 +27,9 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.fit = entry['fit']  # the accepted fit is a snapshot, read only
         self.mask = np.array(self.fit['fit_mask'], dtype=bool, copy=True)
         self.sigma = np.array(entry['sigma'], dtype=float) if self.fit['weighted'] else None
+        self.noise_sigma = supplied_noise([entry])[:,0]
+        self.systematic = has_systematic_warning([entry])
+        self.sweep_ids = (entry['id'],)
         self.scale = float(np.max(np.abs(self.y[self.mask])))
         center = self.fit['D_m2_s'] or 1 / np.ptp(self.b[self.mask])
         center = float(np.clip(center, 1e-15, 1e-5))
@@ -46,6 +52,10 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.summary = QtWidgets.QLabel()
         self.summary.setWordWrap(True)
         root.addWidget(self.summary)
+        self.stability_summary = QtWidgets.QLabel(textFormat=QtCore.Qt.TextFormat.PlainText)
+        self.stability_summary.setWordWrap(True)
+        self.stability_summary.hide()
+        root.addWidget(self.stability_summary)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
         root.addWidget(splitter, 1)
@@ -103,6 +113,9 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.log_axis = QtWidgets.QCheckBox(tr('Logarytmiczna oś D'))
         self.log_axis.toggled.connect(self.render_distribution)
         actions.addWidget(self.log_axis)
+        self.stability = QtWidgets.QCheckBox(tr('Sprawdź wrażliwość ILT'))
+        self.stability.toggled.connect(self.queue_solve)
+        actions.addWidget(self.stability)
         for label, callback in [('Przywróć ustawienia', self.reset_parameters), ('Przelicz ILT', self.recalculate)]:
             button = QtWidgets.QPushButton(tr(label))
             button.clicked.connect(callback)
@@ -113,6 +126,8 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.combined_export.clicked.connect(lambda: self.export_png(self.plot_list, 'ILT'))
         actions.addWidget(self.combined_export)
         self.export_buttons = [self.combined_export]
+        self.auto_lambda = RegularizationControls(self,actions,self.lambda_snapshot,lambda: self.revision,
+                                                  self.apply_lambda,self.set_lambda)
 
     def reset_parameters(self):
         p = self.defaults
@@ -155,22 +170,48 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.start_solve()
 
     def queue_solve(self, *_):
+        self.auto_lambda.manual_override()
         self.revision += 1
+        self.stability_summary.hide()
         for button in self.export_buttons:
             button.setEnabled(False)
         self.show_error('Oczekiwanie na rozwiązanie ILT…')
         self.timer.start()
 
+    def parameters(self):
+        return ILTParameters(self.minimum.value()*D_UNIT,self.maximum.value()*D_UNIT,
+                             self.points.currentData(),self.spacing.currentData(),self.lambda_value(),self.order.currentData())
+
+    def lambda_snapshot(self):
+        source = SweepInput(self.b,self.y,self.mask,self.parameters(),self.sigma,self.noise_sigma,
+                            systematic=self.systematic)
+        return self.revision,source.current,lambda: {self.sweep_ids:source},self.context
+
+    def set_lambda(self,value):
+        self.lambda_edit.setText(f'{value:.12g}')
+        self.lambda_changed()
+
+    def apply_lambda(self,recommendations):
+        previous = self.lambda_value()
+        self.set_lambda(recommendations[self.sweep_ids].recommendation)
+        return previous
+
     def start_solve(self):
         if self.closed or self.job is not None:
             return
         try:
-            p = ILTParameters(self.minimum.value()*D_UNIT, self.maximum.value()*D_UNIT,
-                              self.points.currentData(), self.spacing.currentData(), self.lambda_value(), self.order.currentData())
+            p = self.parameters()
         except ValueError as exc:
             self.show_error(str(exc))
             return
-        compute = partial(solve_ilt, self.b, self.y, include=self.mask, sigma=self.sigma)
+        b, y, mask, sigma = self.b, self.y, self.mask, self.sigma
+        check_stability = self.stability.isChecked()
+
+        def compute(settings):
+            result = solve_ilt(b,y,settings,include=mask,sigma=sigma)
+            trials = sensitivity_trials(b,y,settings,result,include=mask,sigma=sigma) if check_stability else ()
+            return result,trials
+
         self.job = SolveJob(self.revision, p, compute)
         self.job.signals.finished.connect(self.solved)
         QtCore.QThreadPool.globalInstance().start(self.job)
@@ -187,12 +228,35 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         if error:
             self.show_error(error)
             return
-        self.result, self.solved_parameters = result, parameters
+        self.result, trials = result
+        self.solved_parameters = parameters
         self.render_comparison()
         self.render_distribution()
-        self.status.setText(' '.join(map(tr, result.warnings)))
+        self.status.setText(' '.join(map(tr, self.result.warnings)))
+        self.show_sensitivity(trials)
+        self.solution_changed.emit(self.result)
         for button in self.export_buttons:
             button.setEnabled(True)
+
+    def show_sensitivity(self, trials):
+        if not trials:
+            self.stability_summary.hide()
+            return
+        lines = [tr('Próby wrażliwości · maksima i przedział zawierający środkowe 90% masy [m²/s]. To nie jest przedział ufności.')]
+        for trial in trials:
+            p = trial['parameters']
+            spacing = tr('Logarytmiczna') if p.spacing == 'log' else tr('Liniowa')
+            label = f'λ={p.regularization:.4g} · {spacing}'
+            if trial.get('error'):
+                lines.append(f"{label} · {tr(trial['error'])}")
+                continue
+            peaks = ', '.join(f'{value:.3e}' for value in trial['peaks']) or '—'
+            mass = ' – '.join(f'{value:.3e}' for value in trial['mass_interval']) or '—'
+            lines.append(f"{label} · {tr('Maksima')} ({len(trial['peaks'])}): {peaks} · "
+                         f"{tr('Masa 90%')}: {mass} · RMS/Iₛ={trial['rms']:.3g}"
+                         + (' · ' + ' '.join(map(tr, trial['warnings'])) if trial['warnings'] else ''))
+        self.stability_summary.setText('\n'.join(lines))
+        self.stability_summary.show()
 
     def show_error(self, error):
         suffix = ' ' + tr('Wykresy pokazują poprzednie rozwiązanie.') if self.result is not None else ''
@@ -268,6 +332,7 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.summary.setText(text)
 
     def done(self, result):
+        self.auto_lambda.dismiss()
         self.closed = True
         self.timer.stop()
         super().done(result)

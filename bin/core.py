@@ -9,6 +9,7 @@ from scipy.stats import t as student_t
 from scipy.signal import find_peaks
 from jeol import RawData,read_jdf,validate_b,reference_layer
 from storage import require_extension
+from roi_quality import estimate_spectral_noise, qualify_roi
 
 
 def default_options(raw):
@@ -201,19 +202,74 @@ def fit_decay(b,intensity,fit_mask=None,sigma=None):
     if not np.isfinite(y).all():return bad('Całki zawierają NaN/Inf; nie usuwamy ich automatycznie.')
     if n<3 or len(np.unique(b[mask]))<3:return bad('Potrzeba co najmniej 3 aktywnych, różnych wartości b.')
     if np.max(y[mask])<=0:return bad('Całki są niedodatnie; sprawdź fazowanie i bazę.')
-    scale=float(np.max(abs(y[mask])));x=b/1e9;yn=y/scale;weights=None
+    scale=float(np.max(abs(y[mask])))
+    b_reference=float(b[mask].min())
+    b_span=float(np.ptp(b[mask]))
+    x=(b-b_reference)/b_span
+    yn=y/scale;weights=None
     if sigma is not None:
         se=np.asarray(sigma,dtype=float)
         if se.shape!=y.shape or not np.isfinite(se[mask]).all() or (se[mask]<=0).any():return bad('Wagi wymagają dodatnich, skończonych niepewności aktywnych całek.')
         weights=se[mask]/scale
-    model=lambda x,a,d:a*np.exp(-x*d)
+    def model(x,a,d):
+        with np.errstate(over='ignore', invalid='ignore'):
+            return a*np.exp(-x*d)
+
+    def jacobian(x,a,d):
+        kernel=np.exp(-x*d)
+        return np.column_stack((kernel,-x*a*kernel))
+
     try:
-        popt,pcov=curve_fit(model,x[mask],yn[mask],p0=[max(yn[mask].max(),.1),.5],
-                           bounds=([0,0],[np.inf,np.inf]),sigma=weights,absolute_sigma=weights is not None,maxfev=20000)
-        prediction=model(x,*popt)*scale;residual=y-prediction
-        ss=float(np.sum(residual[mask]**2));den=float(np.sum((y[mask]-np.mean(y[mask]))**2))
-        D=float(popt[1]*1e-9);Dse=float(np.sqrt(max(0,pcov[1,1]))*1e-9)
-        warnings=[];ci=None;ase=float(np.sqrt(max(0,pcov[0,0]))*scale)
+        active_x=x[mask]
+        # Search dimensionless decays from nearly flat through extinction at
+        # the closest nonreference point. Profile out the linear amplitude.
+        log_max=max(2., np.log10(36.)-np.log10(active_x[active_x>0].min()))
+        rates=np.r_[0., np.logspace(-6, min(300.,log_max), 96)]
+        with np.errstate(over='ignore'):
+            kernels=np.exp(-np.outer(active_x,rates))
+        w=np.ones(n) if weights is None else weights.min()/weights
+        design=kernels*w[:,None]
+        target=yn[mask]*w
+        norms=np.linalg.norm(design,axis=0)
+        if np.any(norms==0):
+            return bad('Wagi nie pozwalają numerycznie ocenić zaniku.')
+        unit=design/norms
+        projected=np.maximum(target@unit,0.)
+        start=int(projected.argmax())
+        if projected[start] <= 0:
+            return bad('Brak dodatniej amplitudy w modelu zaniku.')
+        popt,pcov=curve_fit(model,active_x,yn[mask],p0=[projected[start]/norms[start],rates[start]],
+                           jac=jacobian,bounds=([0,0],[np.inf,np.inf]),sigma=weights,
+                           absolute_sigma=weights is not None,maxfev=20000)
+        selected=model(active_x,*popt)
+        reference_error=np.linalg.norm(target-projected[start]*unit[:,start])
+        if (not np.isfinite(popt).all() or not np.isfinite(selected).all()
+                or np.linalg.norm(w*(yn[mask]-selected)) > reference_error+1e-10*np.linalg.norm(target)):
+            return bad('Solver nie uzyskał wiarygodnego minimum dopasowania.')
+        log_reference=np.log(popt[0])+np.log(scale)
+        def predict_at(weighting):
+            with np.errstate(over='ignore', invalid='ignore'):
+                values=np.exp(log_reference-(weighting-b_reference)/b_span*popt[1])
+            return np.where(np.isfinite(values),values,np.nan)
+
+        prediction=predict_at(b)
+        residual=y-prediction
+        ss=float(np.sum((yn[mask]-selected)**2))
+        den=float(np.sum((yn[mask]-np.mean(yn[mask]))**2))
+        D=float(popt[1]/b_span);Dse=float(np.sqrt(max(0,pcov[1,1]))/b_span)
+        if not np.isfinite(D):
+            return bad('Nie można przedstawić D w skali SI.')
+        warnings=[];ci=None
+        with np.errstate(over='ignore', invalid='ignore'):
+            extrapolation=b_reference/b_span
+            log_I0=log_reference+extrapolation*popt[1]
+            I0=np.exp(log_I0)
+            direction=np.array([1/popt[0],extrapolation])
+            ase=I0*np.sqrt(max(0.,float(direction@pcov@direction))) if np.isfinite(pcov).all() else np.nan
+        grid=np.linspace(float(b.min()),float(b.max()),240)
+        curve=predict_at(grid)
+        if not np.isfinite(I0) or not np.isfinite(prediction).all() or not np.isfinite(curve).all():
+            warnings.append('Ekstrapolacja poza aktywny zakres b nie mieści się w zakresie numerycznym.')
         if n<5:warnings.append('Mało aktywnych punktów; niepewności są słabo określone.')
         if np.any(y[mask]<=0):warnings.append('Uwzględniono niedodatnie całki bez przycinania i odrzucania.')
         reliable=np.isfinite(pcov).all() and np.linalg.cond(pcov)<1e12 and D>0
@@ -223,12 +279,13 @@ def fit_decay(b,intensity,fit_mask=None,sigma=None):
             else:warnings.append('Przybliżony przedział D obejmuje 0; nie podano fizycznego CI.')
         else:warnings.append('Dopasowanie słabo określone lub na granicy D=0; SE/CI wymagają ostrożności.')
         if den<=0 or (1-ss/den)<.95:warnings.append('Niska jakość monoeksponenty; obejrzyj reszty.')
-        grid=np.linspace(float(b.min()),float(b.max()),240)
         return {'ok':True,'D_m2_s':D,'D_standard_error_m2_s':Dse if np.isfinite(Dse) else None,
-                'D_CI95_m2_s':ci,'amplitude':float(popt[0]*scale),'amplitude_SE':ase if np.isfinite(ase) else None,
+                'D_CI95_m2_s':ci,'amplitude':float(I0) if np.isfinite(I0) else None,
+                'amplitude_SE':float(ase) if np.isfinite(ase) else None,
+                'amplitude_at_reference_b':float(popt[0]*scale),'amplitude_reference_b_s_m2':b_reference,
                 'prediction':prediction,'residuals':residual,'R2':1-ss/den if den>0 else None,
-                'RMSE':float(np.sqrt(ss/n)),'dof':n-2,'n_active':n,'fit_mask':mask,
-                'b_grid':grid,'curve':model(grid/1e9,*popt)*scale,'model':'I0 exp(-bD)',
+                'RMSE':float(np.sqrt(ss/n)*scale),'dof':n-2,'n_active':n,'fit_mask':mask,
+                'b_grid':grid,'curve':curve,'model':'I0 exp(-bD)',
                 'weighted':weights is not None,'warnings':warnings,
                 'uncertainty_note':'SE i CI95: lokalne przybliżenie z kowariancji, warunkowe względem modelu i processingu; bez błędu kalibracji b i korelacji ROI.'}
     except (ValueError,RuntimeError,FloatingPointError,np.linalg.LinAlgError) as exc:return bad('Nieudany fit: '+str(exc))
@@ -236,10 +293,25 @@ def fit_decay(b,intensity,fit_mask=None,sigma=None):
 
 def analyze(dataset,entries):
     rows=[]
+    noise = estimate_spectral_noise(dataset.phased) if dataset.b is not None and entries else None
     for entry in deepcopy(entries):
         try:
             result=integrate(dataset,entry['bounds'])
-            fit=fit_decay(dataset.b,result['corrected_integral'],entry.get('fit_mask'),entry.get('sigma') if entry.get('weighted') else None)
+            sigma = entry.get('sigma') if entry.get('weighted') else None
+            fit=fit_decay(dataset.b,result['corrected_integral'],entry.get('fit_mask'),sigma)
+            if dataset.b is not None and fit['fit_mask'].shape == dataset.b.shape:
+                try:
+                    diagnostic,findings = qualify_roi(dataset,entry['bounds'],fit,result,sigma,noise,fit_decay)
+                except np.linalg.LinAlgError:
+                    diagnostic = dict(status='unavailable')
+                    findings = [dict(kind='information',severity='info',
+                        message='Nie udało się ocenić spójności zespolonego profilu ROI.')]
+                result['profile_diagnostics'] = diagnostic
+                fit['measurement_findings'] = findings
+                fit['measurement_warnings'] = [finding['message'] for finding in findings]
+                if fit['ok']:
+                    fit['interpretation'] = ('apparent' if any(f['kind'] in ('shape','phase')
+                        and f['severity']=='warning' for f in findings) else 'conditional')
             rows.append(dict(entry,result=result,fit=fit,error=''))
         except Exception as exc:rows.append(dict(entry,result={},fit={'ok':False,'message':str(exc)},error=str(exc)))
     return rows

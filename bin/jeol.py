@@ -153,6 +153,52 @@ def _encoding_family(context):
     return None
 
 
+class DiffusionMetadataConflict(ValueError):
+    pass
+
+
+def timing_value(params, name):
+    try:
+        return number(params, name, 28)
+    except (TypeError, ValueError) as exc:
+        raise DiffusionMetadataConflict(str(exc)) from exc
+
+
+def check_diffusion_timing(params, delta, Delta, delays, *, presat_spoiler):
+    # These quantities are aliases or deterministic delays in the matched JXP.
+    # The tolerance is for unit conversion and floating-point serialization.
+    def check(name, expected):
+        if name in params and not np.isclose(timing_value(params, name), expected,
+                                             rtol=1e-9, atol=1e-12):
+            raise DiffusionMetadataConflict(f'Niespójny parametr czasu {name} w JDF.')
+
+    check('diffusion_time', Delta)
+    check('grad_1', delta/2)
+    if delta <= 0 or Delta <= 0 or min(delays) < 0:
+        raise DiffusionMetadataConflict('Nieprawidłowe czasy kodowania.')
+    storage = Delta / len(delays) - delta - 2*delays[0]
+    if 'x_pulse' in params:
+        rf = timing_value(params, 'x_pulse')
+        if rf <= 0:
+            raise DiffusionMetadataConflict('Nieprawidłowy czas impulsu x_pulse.')
+        storage -= 4*rf
+        check('large_t', storage)
+    if 'large_t' in params and 'x_pulse' not in params:
+        storage = timing_value(params, 'large_t')
+    second = storage - delays[0] + delays[-1]
+    led = timing_value(params, 't_e') if 't_e' in params else None
+    if params.get('spoiler_gradients', {}).get('value') == 'TRUE' and 'grad_spoil' in params:
+        spoiler = timing_value(params, 'grad_spoil')
+        if spoiler < 0:
+            raise DiffusionMetadataConflict('Nieprawidłowy czas spoilera.')
+        storage -= spoiler + (delays[0] if presat_spoiler else 0.)
+        second -= spoiler
+        if led is not None:
+            led -= spoiler
+    if min(storage, second) < -1e-12 or (led is not None and led < -1e-12):
+        raise DiffusionMetadataConflict('Ujemne opóźnienie w bloku kodowania lub LED.')
+
+
 def factory_b(params,context,g):
     identity=re.search(r'\bexperiment\s*=\s*"([^"]+)"',context,re.I)
     name=Path(identity[1].replace('\\','/')).name.lower() if identity else ''
@@ -162,35 +208,52 @@ def factory_b(params,context,g):
     if family is None:return None,info
     try:
         if params.get('x_domain',{}).get('value')!='Proton':raise ValueError('Model zweryfikowano dla kodowania ¹H.')
-        if not np.isfinite(g).all() or (g<0).any():raise ValueError('Brak wiarygodnej listy gradientów kodujących.')
         shape=params['grad_shape']['value']
         constants={'SQUARE':(1,1/3),'SINE':(4/np.pi**2,5/16),
                    'SQUARE_SINE':(.25,1/3-5/(16*np.pi**2)),
                    'TRAPEZOID':(.81,15817/48600),
                    'S_RECTANGLE':(.81,(6344*np.pi**2-207)/(19440*np.pi**2))}
         if shape not in constants:raise ValueError('Nierozpoznany kształt gradientu: '+str(shape))
-        delta=number(params,'delta',28);Delta=number(params,'delta_large',28)
-        if family=='BPP-DSTE-LED':
-            tau=number(params,'tau_1',28)+number(params,'tau_2',28);pair=2
-        else:tau=number(params,'tau',28);pair=1
+        delta=timing_value(params,'delta');Delta=timing_value(params,'delta_large')
+        delays = tuple(timing_value(params, name) for name in
+                       (('tau_1','tau_2') if family=='BPP-DSTE-LED' else ('tau',)))
+        presat_spoiler = family == 'BPP-STE-LED' and bool(
+            re.search(r'\blarge_t\s*-\s*grad_spoil\s*-\s*tau\s*;', context, re.I))
+        check_diffusion_timing(params, delta, Delta, delays, presat_spoiler=presat_spoiler)
         factor,correction=constants[shape]
-        expected=factor*(Delta-pair*correction*delta-.5*tau)
-        if delta<=0 or Delta<=pair*delta or expected<=0:raise ValueError('Nieprawidłowe czasy kodowania.')
+        expected=factor*(Delta-len(delays)*correction*delta-.5*sum(delays))
+        if expected<=0:raise DiffusionMetadataConflict('Nieprawidłowe czasy kodowania.')
         if 'st_coef' in params:
-            coefficient=number(params,'st_coef',28)
+            coefficient=timing_value(params,'st_coef')
             if coefficient<=0 or not np.isclose(coefficient,expected,rtol=3e-5,atol=1e-10):
-                raise ValueError('Zapisany st_coef nie zgadza się z rozpoznanym modelem fabrycznym.')
+                raise DiffusionMetadataConflict('Zapisany st_coef nie zgadza się z rozpoznanym modelem fabrycznym.')
             source='JDF st_coef, sprawdzony względem modelu '+family
         else:coefficient=expected;source='Model fabryczny '+family+' z zapisanych timingów'
+        if not np.isfinite(g).all() or (g<0).any():raise ValueError('Brak wiarygodnej listy gradientów kodujących.')
         b=(GAMMA_H*g*delta)**2*coefficient
         info.update(kind='factory',description=source,gradient_shape=shape,
                     delta_s=delta,Delta_s=Delta,coefficient_s=coefficient,
                     expected_coefficient_s=expected,gamma_rad_s_T=GAMMA_H,
                     note='Nominalne b; kalibracja amplitud/odpowiedzi gradientów nie jest weryfikowana przez program.')
         return validate_b(b,len(g)),info
+    except DiffusionMetadataConflict as exc:
+        info.update(kind='conflict', description=str(exc)+' Wprowadź udokumentowaną listę b.')
+        return None,info
     except (KeyError,TypeError,ValueError) as exc:
         info['description']=str(exc)+' Wprowadź własną listę b.'
         return None,info
+
+
+def resolve_b_sources(stored, inferred, model):
+    if model['kind'] == 'conflict':
+        return None, model
+    if stored is None:
+        return inferred, model
+    if inferred is not None and not np.allclose(stored, inferred, rtol=3e-5, atol=0.):
+        return None, dict(model, kind='conflict',
+                          description='Oś b w JDF nie zgadza się z modelem kodowania. Wprowadź udokumentowaną listę b.')
+    return stored, dict(model, kind='stored_axis', description='Jawna lista b z osi JDF [s/m²]',
+                        cross_checked=inferred is not None)
 
 
 def _has_full_filter_band(params, first_point, npoints, sweep, clipped_sweep):
@@ -277,9 +340,7 @@ def read_jdf(path):
         elif source is not None:g=source
         if axis_kind=='b_s_m2':b=validate_b(axis,ng)
     inferred,model=factory_b(params,context,g)
-    if b is None:b=inferred
-    else:model={'kind':'stored_axis','description':'Jawna lista b z osi JDF [s/m²]','sequence':model['sequence'],
-                'pulse_program':model['pulse_program'],'calibrated':False}
+    b,model=resolve_b_sources(b,inferred,model)
     sw=number(params,'x_sweep',13);freq=number(params,'x_freq',13);off=number(params,'x_offset',26)
     if min(sw,freq)<=0:raise ValueError('Nieprawidłowa częstotliwość lub szerokość widma.')
     clipped_sw=number(params,'x_sweep_clipped',13) if 'x_sweep_clipped' in params else sw

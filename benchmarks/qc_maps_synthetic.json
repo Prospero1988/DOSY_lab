@@ -1,0 +1,61 @@
+{
+  "seed": 2102,
+  "replicates": 80,
+  "result": {
+    "clean_low_noise": {
+      "old_flags": 5,
+      "new_warnings": 0,
+      "new_info": 8,
+      "new_ok": 72,
+      "phase_flags": 4,
+      "shape_flags": 4,
+      "old_map_reject": 5,
+      "new_map_reject": 0,
+      "median_layers_used": 15.0
+    },
+    "clean_late_noise": {
+      "old_flags": 2,
+      "new_warnings": 0,
+      "new_info": 80,
+      "new_ok": 0,
+      "phase_flags": 0,
+      "shape_flags": 0,
+      "old_map_reject": 80,
+      "new_map_reject": 0,
+      "median_layers_used": 6.0
+    },
+    "constant_phase": {
+      "old_flags": 5,
+      "new_warnings": 0,
+      "new_info": 10,
+      "new_ok": 70,
+      "phase_flags": 1,
+      "shape_flags": 9,
+      "old_map_reject": 5,
+      "new_map_reject": 0,
+      "median_layers_used": 10.0
+    },
+    "gradient_phase": {
+      "old_flags": 80,
+      "new_warnings": 74,
+      "new_info": 6,
+      "new_ok": 0,
+      "phase_flags": 80,
+      "shape_flags": 3,
+      "old_map_reject": 80,
+      "new_map_reject": 74,
+      "median_layers_used": 10.0
+    },
+    "overlap": {
+      "old_flags": 80,
+      "new_warnings": 79,
+      "new_info": 1,
+      "new_ok": 0,
+      "phase_flags": 80,
+      "shape_flags": 80,
+      "old_map_reject": 80,
+      "new_map_reject": 80,
+      "median_layers_used": 10.0
+    }
+  }
+}

@@ -1,5 +1,5 @@
 """Nonnegative Tikhonov inversion of a single measured DOSY attenuation."""
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 from scipy.linalg import svdvals
@@ -42,6 +42,29 @@ class ILTResult:
 
     def predict(self, b):
         return (_kernel(b, self.diffusion) @ self.weights) * self.scale
+
+
+def sensitivity_trials(b, y, parameters, baseline, *, include=None, sigma=None):
+    """Compare explicit perturbations without promoting one to the default."""
+    variants = [('current', parameters)]
+    for factor in (.1, 10.):
+        value = parameters.regularization*factor
+        if 1e-12 <= value <= 100:
+            variants.append(('regularization', replace(parameters, regularization=value)))
+    alternative = 'linear' if parameters.spacing == 'log' else 'log'
+    variants.append(('spacing', replace(parameters, spacing=alternative)))
+    trials = []
+    for kind, settings in variants:
+        try:
+            result = baseline if kind == 'current' else solve_ilt(b,y,settings,include=include,sigma=sigma)
+        except (ValueError, RuntimeError, np.linalg.LinAlgError) as exc:
+            trials.append(dict(kind=kind, parameters=settings, error=str(exc)))
+            continue
+        mass = np.cumsum(result.weights)
+        interval = tuple(result.diffusion[np.searchsorted(mass, np.array([.05,.95])*mass[-1])]) if mass[-1] > 0 else ()
+        trials.append(dict(kind=kind, parameters=settings, peaks=tuple(result.diffusion[list(result.peaks)]),
+                           mass_interval=interval, rms=result.rms/result.scale, warnings=result.warnings))
+    return tuple(trials)
 
 
 def _kernel(b, diffusion):

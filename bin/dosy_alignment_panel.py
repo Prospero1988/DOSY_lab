@@ -4,14 +4,19 @@ import math
 
 from PySide6 import QtCore, QtWidgets
 
-from adaptive_ilt import adaptive_local_ilt
-from dosy_alignment import alignment_plan, eligible_diffusion, ilt_profiles
+from adaptive_ilt import adaptive_local_ilt, local_sweep_inputs
+from dosy_alignment import (alignment_plan, eligible_diffusion, exploratory_profiles, ilt_profiles,
+                            individual_map_solution)
 from i18n import tr
 from ilt_tools import SolveJob
+from ilt_regularization_window import RegularizationControls
+from roi_quality import estimate_spectral_noise
 
 
-ORIGINAL, ALIGNED, SHARED, ILT, ADAPTIVE = range(5)
-MODE_NAMES = ('Oryginalna mapa DOSY', 'Wyrównanie D · tylko widok', 'Wspólny fit D', 'Global ILT · profile w ROI', 'Adaptive Local ILT')
+ORIGINAL, ALIGNED, SHARED, ILT, ADAPTIVE, INDIVIDUAL = range(6)
+ILT_MODES = (ILT, ADAPTIVE, INDIVIDUAL)
+MODE_NAMES = ('Oryginalna mapa DOSY', 'Wyrównanie D · tylko widok', 'Wspólny fit D', 'Global ILT · profile w ROI',
+              'Adaptive Local ILT', 'Indywidualne ILT · profile w ROI')
 CHECKED = QtCore.Qt.CheckState.Checked
 UNCHECKED = QtCore.Qt.CheckState.Unchecked
 USER_ROLE = QtCore.Qt.ItemDataRole.UserRole
@@ -23,7 +28,12 @@ class AlignmentPanel(QtCore.QObject):
     def __init__(self, owner, toolbar, adaptive_toolbar, sidebar):
         super().__init__(owner)
         self.dataset, self.rows, self.snapshot = None, (), None
+        self.individual = {}
+        self.group_regularizations = {}
         self.groups, self.profiles, self.rejected = (), {}, ()
+        self.withheld = {}
+        self.profile_diagnostics = {}
+        self.exploratory, self.exploratory_diagnostics = {}, {}
         self.local_groups = ()
         self.highlighted = set()
         self.highlighted_components = set()
@@ -40,6 +50,7 @@ class AlignmentPanel(QtCore.QObject):
         self.mode = QtWidgets.QComboBox()
         self.mode.addItems([tr(name) for name in MODE_NAMES])
         self.mode.model().item(ILT).setEnabled(False)
+        self.mode.model().item(INDIVIDUAL).setEnabled(False)
         self.mode.currentIndexChanged.connect(self.queue)
         toolbar.addWidget(self.mode)
         toolbar.addWidget(QtWidgets.QLabel(tr('Tolerancja D')))
@@ -87,7 +98,7 @@ class AlignmentPanel(QtCore.QObject):
         row.addWidget(QtWidgets.QLabel(tr('Lokalne λ')))
         self.regularization = QtWidgets.QLineEdit('1e-6')
         self.regularization.setMaximumWidth(90)
-        self.regularization.editingFinished.connect(self.queue)
+        self.regularization.editingFinished.connect(self.shared_lambda_changed)
         row.addWidget(self.regularization)
         self.group_count = QtWidgets.QLabel()
         row.addWidget(self.group_count)
@@ -97,6 +108,9 @@ class AlignmentPanel(QtCore.QObject):
         defaults = QtWidgets.QPushButton(tr('Przywróć ustawienia'))
         defaults.clicked.connect(self.reset_defaults)
         row.addWidget(defaults)
+        self.auto_lambda = RegularizationControls(owner,row,self.lambda_snapshot,lambda: self.revision,
+                                                  self.apply_group_lambdas,self.restore_group_lambdas,
+                                                  lambda: self.restore_group_lambdas({}))
         row.addStretch()
         self.tree_label = QtWidgets.QLabel(tr('Grupy wyrównania D'))
         self.tree = QtWidgets.QTreeWidget()
@@ -115,15 +129,18 @@ class AlignmentPanel(QtCore.QObject):
     def tolerance_changed(self, value):
         with QtCore.QSignalBlocker(self.slider):
             self.slider.setValue(round(10*value))
+        self.clear_group_lambdas()
         if self.mode.currentIndex() in (ALIGNED, SHARED, ADAPTIVE):
             self.queue()
 
     def balance_changed(self, value):
         with QtCore.QSignalBlocker(self.balance_slider):
             self.balance_slider.setValue(round(100*math.log10(value)))
+        self.clear_group_lambdas()
         self.queue()
 
     def reset_defaults(self):
+        self.clear_group_lambdas()
         self.tolerance.setValue(5.)
         self.balance.setValue(10.)
         self.regularization.setText('1e-6')
@@ -133,6 +150,7 @@ class AlignmentPanel(QtCore.QObject):
         if self.dataset is dataset and self.rows is rows:
             return
         self.dataset, self.rows = dataset, rows
+        self.clear_group_lambdas()
         if new_experiment:
             self.manual.clear()
             self.hidden.clear()
@@ -150,12 +168,23 @@ class AlignmentPanel(QtCore.QObject):
             else:
                 self.queue()
 
+    def set_individual(self, snapshot):
+        if self.individual is snapshot:
+            return
+        self.individual = snapshot
+        self.mode.model().item(INDIVIDUAL).setEnabled(bool(snapshot))
+        if self.mode.currentIndex() == INDIVIDUAL:
+            self.queue()
+
     def queue(self, *_, refresh_tree=True):
         self.revision += 1
         if self.cancel is not None:
             self.cancel.set()
         self.error = ''
         self.groups, self.profiles, self.rejected = (), {}, ()
+        self.withheld = {}
+        self.profile_diagnostics = {}
+        self.exploratory, self.exploratory_diagnostics = {}, {}
         self.local_groups = ()
         self.highlighted.clear()
         self.highlighted_components.clear()
@@ -169,6 +198,41 @@ class AlignmentPanel(QtCore.QObject):
             self.update_tree()
         self.changed.emit()
 
+    def local_lambda(self):
+        value = float(self.regularization.text().strip().replace(',', '.'))
+        if not 1e-12 <= value <= 100:
+            raise ValueError('λ musi mieścić się w zakresie 10⁻¹²–100.')
+        return value
+
+    def lambda_snapshot(self):
+        dataset, rows = self.dataset,self.rows
+        if dataset is None or dataset.b is None:
+            raise ValueError('Wczytaj widmo z wartościami b i przelicz całki.')
+        lam = self.local_lambda()
+        args = (dataset,rows,self.tolerance.value(),self.balance.value(),lam,set(self.manual),
+                dict(self.group_regularizations))
+        return self.revision,lam,lambda: local_sweep_inputs(*args),dataset.name + ' · Adaptive Local ILT'
+
+    def apply_group_lambdas(self,recommendations):
+        previous = self.group_regularizations
+        self.group_regularizations = {key:r.recommendation for key,r in recommendations.items()}
+        self.queue()
+        return previous
+
+    def restore_group_lambdas(self,values):
+        self.group_regularizations = values
+        self.queue()
+
+    def clear_group_lambdas(self):
+        self.auto_lambda.dismiss()
+        self.group_regularizations = {}
+        self.auto_lambda.previous = None
+        self.auto_lambda.manual_override()
+
+    def shared_lambda_changed(self):
+        self.clear_group_lambdas()
+        self.queue()
+
     def recalculate(self):
         self.queue()
         self.timer.stop()
@@ -180,26 +244,45 @@ class AlignmentPanel(QtCore.QObject):
             return
         dataset, rows = self.dataset, self.rows
         excluded, tolerance = set(self.manual), self.tolerance.value()
-        snapshot = self.snapshot
+        snapshot, individual = self.snapshot, self.individual
         try:
-            regularization = float(self.regularization.text().strip().replace(',', '.')) if mode == ADAPTIVE else 0.
+            regularization = self.local_lambda() if mode == ADAPTIVE else 0.
         except ValueError:
             self.error = tr('Wpisz prawidłową wartość liczbową.')
             self.changed.emit()
             return
         balance = self.balance.value()
+        group_lambdas = dict(self.group_regularizations)
         self.cancel = cancel = Event()
 
         def compute(_):
-            if mode == ILT and snapshot is not None:
-                ids, result = snapshot
-                profiles, rejected = ilt_profiles(dataset.b, dataset.ppm, dataset.spectrum.real,
-                                                  dataset.options['reference_layer'], rows, ids, result)
-                return (), profiles, rejected, (), {}
+            if mode in (ILT, INDIVIDUAL):
+                if mode == ILT:
+                    solutions = [snapshot] if snapshot is not None else []
+                else:
+                    solutions = [((sid,),individual_map_solution(result)) for sid,result in individual.items()]
+                withheld, diagnostics, explore_diagnostics = {}, {}, {}
+                profiles, exploratory, rejected = {}, {}, []
+                noise = estimate_spectral_noise(dataset.phased)
+                for ids, result in solutions:
+                    if cancel.is_set():
+                        break
+                    args = (dataset.b,dataset.ppm,dataset.spectrum.real,dataset.options['reference_layer'],
+                            rows,ids,result)
+                    accepted, missing = ilt_profiles(*args, withheld=withheld, diagnostics=diagnostics,
+                                                     noise_sigma=noise)
+                    recovered, records = exploratory_profiles(*args)
+                    profiles.update(accepted)
+                    rejected.extend(missing)
+                    exploratory.update(recovered)
+                    explore_diagnostics.update(records)
+                return (), profiles, tuple(rejected), (), {}, withheld, diagnostics, exploratory, explore_diagnostics
             if mode == ADAPTIVE:
-                local = adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, excluded, cancel.is_set)
-                return (), local.profiles, local.unresolved, local.groups, local.membership
-            return alignment_plan(dataset.b, rows, tolerance, excluded, shared=mode == SHARED), {}, (), (), {}
+                local = adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, excluded,
+                                           cancel.is_set, group_regularizations=group_lambdas)
+                return ((), local.profiles, local.unresolved, local.groups, local.membership, local.withheld,
+                        local.diagnostics, local.exploratory, local.exploratory_diagnostics)
+            return alignment_plan(dataset.b, rows, tolerance, excluded, shared=mode == SHARED), {}, (), (), {}, {}, {}, {}, {}
 
         self.job = SolveJob(self.revision, mode, compute)
         self.job.signals.finished.connect(self.solved)
@@ -215,7 +298,9 @@ class AlignmentPanel(QtCore.QObject):
             return
         self.error = error
         if not error:
-            self.groups, self.profiles, self.rejected, self.local_groups, self.component_membership = payload
+            (self.groups, self.profiles, self.rejected, self.local_groups,
+             self.component_membership, self.withheld, self.profile_diagnostics,
+             self.exploratory, self.exploratory_diagnostics) = payload
             self.ready = True
         self.update_tree()
         self.changed.emit()
@@ -226,7 +311,7 @@ class AlignmentPanel(QtCore.QObject):
             return group.representative
         return group.shared if not group.incompatible else None
 
-    def map_data(self):
+    def map_data(self, exploratory=False):
         overrides = {}
         hidden = set()
         for group in self.groups:
@@ -239,11 +324,74 @@ class AlignmentPanel(QtCore.QObject):
             if group.ids in self.hidden:
                 hidden.update(group.ids)
         hidden_components = {item for ids in self.hidden for item in self.component_membership.get(ids, ())}
-        profiles = self.profiles
+        hidden.update(self.manual if self.mode.currentIndex() == ADAPTIVE else ())
+        profiles = self.exploratory if exploratory else self.profiles
         if hidden_components:
             profiles = {sid: tuple((d, y) for d, y in components if (sid, d) not in hidden_components)
                         for sid, components in profiles.items()}
         return overrides, hidden, profiles
+
+    def profile_detail(self, sid):
+        record = self.profile_diagnostics.get(sid)
+        exploratory = self.exploratory_diagnostics.get(sid)
+        if record is None and exploratory is None:
+            return tr('ROI nie było wybrane do tego obliczenia ILT.')
+        reasons = {
+            'assigned':'Przypisanie ILT zaakceptowane przez kryteria rekonstrukcji.',
+            'discarded_component':'Pominięta składowa nie może zostać przypisana do pozostałego maksimum.',
+            'spectral_mismatch':'Profil widmowy nie zgadza się z zanikiem.',
+            'profile_dependent_diffusion':'Alternatywne odczyty kształtu lub fazy dają istotnie różne D dla tego ROI.',
+            'peak_mismatch':'Zanik ROI nie zgadza się z D maksimum, mimo możliwego dopasowania całego przedziału ILT.',
+            'integral_mismatch':'Przewidywane całki ILT nie zgadzają się z zanikiem ROI.',
+            'boundary_peak':'Maksimum na granicy siatki D.',
+            'no_component':'Brak dodatniej składowej powyżej progu udziału.',
+            'no_positive_reconstructed_profile':'Odtworzone składowe nie mają dodatniego pola na warstwie referencyjnej.',
+            'insufficient_profile':'Za mało punktów widmowych do rekonstrukcji.',
+            'insufficient_spectral_snr':'Za mały S/N profilu referencyjnego.',
+            'ill_conditioned_basis':'Za mało niezależnych danych do odtworzenia składowych.',
+            'spectral_solver_failed':'Nie udało się odtworzyć profilu widmowego.',
+            'solver_not_converged':'Optymalizacja ILT nie osiągnęła zbieżności.',
+            'solver_failed':'Nie udało się przeprowadzić optymalizacji ILT.',
+            'insufficient_attenuation_information':'Zanik nie spełnia kryteriów wejściowych AILT.',
+            'no_group_or_independent_split_evidence':'Brak zgodnej grupy i podstaw do niezależnego rozdzielenia.',
+            'no_stable_independent_split':'Brak stabilnego niezależnego rozdzielenia ROI.',
+            'unexplained_reference':'Część profilu referencyjnego nie ma wyjaśnienia w składowych.',
+        }
+        record = record or {}
+        lines = []
+        if record:
+            lines.append(tr('Filtr QC') + ' · ' + tr(reasons.get(record['reason'],record['reason'])))
+        if exploratory is not None:
+            reason = exploratory['reason']
+            label = 'Profil pokazany w widoku eksploracyjnym.' if reason == 'assigned' else reasons.get(reason,reason)
+            lines.append(tr('Eksploracyjna') + ' · ' + tr(label))
+            if exploratory.get('independent'):
+                lines.append(tr('Niezależne ILT dla ROI poza zgodną grupą.'))
+            if exploratory.get('candidate_D'):
+                peaks = ', '.join(f'{d:.4e}' for d in exploratory['candidate_D'])
+                lines.append(f"{tr('Maksima przedziałów ILT')}: {peaks} m²/s")
+            if exploratory.get('boundary_peak'):
+                lines.append(tr(reasons['boundary_peak']))
+            if exploratory.get('unexplained_positive_fraction') is not None:
+                label = tr('Niewyjaśnione dodatnie pole referencji')
+                lines.append(f"{tr('Eksploracyjna')} · {label}: {exploratory['unexplained_positive_fraction']:.2%}")
+            if exploratory.get('relative_residual') is not None:
+                lines.append(f"{tr('Eksploracyjna względna reszta widmowa')}: {exploratory['relative_residual']:.2%}")
+        if record.get('omitted_fraction'):
+            lines.append(f"{tr('Pominięta masa modelu na warstwie referencyjnej')}: {record['omitted_fraction']:.2%}")
+        for diffusion, fraction in record.get('omitted_components',()):
+            lines.append(f"{tr('Pominięta składowa')}: {diffusion:.4e} m²/s · {fraction:.2%}")
+        if record.get('unexplained_positive_fraction') is not None:
+            lines.append(f"{tr('Filtr QC')} · {tr('Niewyjaśnione dodatnie pole referencji')}: "
+                         f"{record['unexplained_positive_fraction']:.2%}")
+        for key, limit, label in (
+            ('peak_rms','peak_limit','RMS dla D maksimum'),
+            ('integral_rms','integral_limit','RMS całek modelu ILT'),
+            ('excess_residual','spectral_limit','Reszta widmowa ponad szum'),
+        ):
+            if record.get(key) is not None:
+                lines.append(f'{tr("Filtr QC")} · {tr(label)}: {record[key]:.2%} / {record[limit]:.2%}')
+        return '\n'.join(lines)
 
     def highlight_group(self, item, _):
         entry = item.data(0, USER_ROLE) if item is not None else None
@@ -264,6 +412,7 @@ class AlignmentPanel(QtCore.QObject):
         if kind == 'group':
             self.changed.emit()
         else:
+            self.clear_group_lambdas()
             self.queue(refresh_tree=False)
 
     def update_tree(self):
@@ -322,6 +471,8 @@ class AlignmentPanel(QtCore.QObject):
         if not group.converged:
             return tr('Brak zbieżności')
         label = f'D = {group.dominant:.3e}' if group.dominant is not None else 'D = —'
+        if group.regularization is not None:
+            label += f' · λ={group.regularization:.3g}'
         return label + (f' · ⚠ {len(group.rejected)}' if group.rejected else '')
 
     def show_diagnostics(self):
@@ -329,17 +480,17 @@ class AlignmentPanel(QtCore.QObject):
         dialog.setWindowTitle(tr('Diagnostyka grup'))
         dialog.resize(1000, 380)
         layout = QtWidgets.QVBoxLayout(dialog)
-        table = QtWidgets.QTableWidget(len(self.local_groups), 8)
+        table = QtWidgets.QTableWidget(len(self.local_groups), 9)
         table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
         table.setHorizontalHeaderLabels([tr('Grupa'), 'ROI', tr('Zakres D [m²/s]'), tr('D dominujące [m²/s]'),
-                                         tr('Stosunek amplitud'), tr('Status'), 'RMS / Iₛ', tr('Nierozdzielone')])
+                                         tr('Stosunek amplitud'), tr('Status'), 'RMS / Iₛ', tr('Nierozdzielone'), 'λ'])
         table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         for index, group in enumerate(self.local_groups):
             status = ('Niezależne rozdzielenie ROI' if group.independent
                       else 'Zbieżny' if group.converged else 'Brak zbieżności')
             values = (f'L{index+1}', str(len(group.ids)), ' – '.join(f'{d:.3e}' for d in group.d_range),
                       f'{group.dominant:.3e}' if group.dominant else '—', f'{group.amplitude_ratio:.3g}×',
-                      tr(status), f'{group.rms:.4g}' if group.rms is not None else '—', str(len(group.rejected)))
+                      tr(status), f'{group.rms:.4g}' if group.rms is not None else '—', str(len(group.rejected)), f'{group.regularization:.4g}' if group.regularization else '—')
             for column, value in enumerate(values):
                 item = QtWidgets.QTableWidgetItem(value)
                 members = ', '.join(group.rejected if column == 7 else group.ids)
@@ -348,7 +499,10 @@ class AlignmentPanel(QtCore.QObject):
                 item.setToolTip(members)
                 table.setItem(index, column, item)
         layout.addWidget(table)
-        layout.addWidget(QtWidgets.QLabel(tr('ROI z zachowanym oryginalnym D') + ' · ' + (', '.join(self.rejected) or '—')))
+        if self.rejected:
+            note = QtWidgets.QLabel(tr('ROI bez przypisania D w tej rekonstrukcji') + ' · ' + ', '.join(self.rejected))
+            note.setWordWrap(True)
+            layout.addWidget(note)
         close = QtWidgets.QPushButton(tr('Zamknij'))
         close.clicked.connect(dialog.close)
         layout.addWidget(close)

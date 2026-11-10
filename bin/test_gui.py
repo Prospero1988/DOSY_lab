@@ -447,6 +447,12 @@ class InterfaceTests(unittest.TestCase):
             self.assertFalse(dialog.distribution.getAxis('bottom').logMode)
             self.assertIs(dialog.result, result)
             dialog.log_axis.setChecked(True)
+            dialog.stability.setChecked(True)
+            wait_for(dialog.stability_summary.isVisible)
+            self.assertIn('90%', dialog.stability_summary.text())
+            self.assertIn('λ=', dialog.stability_summary.text())
+            np.testing.assert_array_equal(dialog.result.weights,result.weights)
+            self.assertIs(dialog.fit,fit)
             dialog.distribution.fullscreen_controller.open()
             self.assertIsNotNone(dialog.distribution.fullscreen_controller.window)
             dialog.distribution.fullscreen_controller.close()
@@ -460,11 +466,79 @@ class InterfaceTests(unittest.TestCase):
                     dialog.combined_export.click()
                 self.assertGreaterEqual(QtGui.QImage(str(single)).width(), 1600)
                 self.assertGreater(QtGui.QImage(str(combined)).height(), QtGui.QImage(str(single)).height())
+            from dosy_alignment_panel import INDIVIDUAL
             dialog.close()
             self.assertIsNone(w.ilt_window)
+            w.show_map()
+            map_window = w.map_window
+            self.assertTrue(map_window.alignment.mode.model().item(INDIVIDUAL).isEnabled())
+            map_window.alignment.mode.setCurrentIndex(INDIVIDUAL)
+            end = time.monotonic()+10
+            while not map_window.alignment.ready and time.monotonic() < end:
+                APP.processEvents()
+                time.sleep(.02)
+            self.assertTrue(map_window.alignment.ready,map_window.alignment.error)
+            self.assertEqual(set(map_window.represented_peaks),{'S1'})
             self.assertIs(w.dataset, dataset)
             self.assertIs(w.results, results)
             self.assertTrue(w.valid)
+
+    def test_auto_lambda_preview_apply_restore_and_export(self):
+        from dataclasses import replace
+        from ilt_regularization import scan
+
+        w = self.w
+        w.add_roi([3.60,3.68])
+        settle(w)
+        original = w.results
+        w.show_ilt('S1')
+        dialog = w.ilt_window
+        controls = dialog.auto_lambda
+
+        def wait_for(condition):
+            end = time.monotonic()+12
+            while not condition() and time.monotonic()<end:
+                APP.processEvents()
+                time.sleep(.02)
+            self.assertTrue(condition())
+
+        def scan_fixture(*args):
+            result = scan(*args)
+            candidates = [c for c in result.candidates if c.valid]
+            return replace(result,recommendation=candidates[1].regularization)
+
+        wait_for(lambda: dialog.result is not None)
+        previous = dialog.lambda_value()
+        before = dialog.result
+        with patch('ilt_regularization_window.scan',side_effect=scan_fixture):
+            controls.mode.setCurrentIndex(1)
+            diagnostics = controls.dialog
+            wait_for(lambda: diagnostics.job is None)
+            self.assertEqual(controls.mode.currentIndex(),0)
+            self.assertTrue(diagnostics.apply_button.isEnabled())
+            recommendation = diagnostics.results[('S1',)].recommendation
+            self.assertNotEqual(recommendation,previous)
+            self.assertIs(dialog.result,before)
+            points = diagnostics.plots[1].listDataItems()[0]
+            scatter = points.scatter.points()
+            points.sigPointsClicked.emit(points,[scatter[0]],None)
+            self.assertEqual(diagnostics.preview_index,int(scatter[0].data()))
+            self.assertIs(dialog.result,before)
+            with tempfile.TemporaryDirectory() as folder:
+                target = Path(folder)/'diagnostics.png'
+                diagnostics.save_combined(diagnostics.plots,target)
+                self.assertGreater(QtGui.QImage(str(target)).height(),500)
+            diagnostics.apply_button.click()
+            self.assertEqual(controls.mode.currentIndex(),1)
+            self.assertAlmostEqual(dialog.lambda_value(),recommendation)
+            controls.open()
+            undo = controls.dialog
+            self.assertTrue(undo.restore_button.isEnabled())
+            undo.restore_button.click()
+            self.assertEqual(dialog.lambda_value(),previous)
+            self.assertEqual(controls.mode.currentIndex(),0)
+            self.assertIs(w.results,original)
+            dialog.close()
 
     def test_global_ilt_selected_rows_comparison_and_export(self):
         w = self.w
@@ -997,9 +1071,19 @@ class InterfaceTests(unittest.TestCase):
             group = panel.tree.topLevelItem(0)
             panel.tree.setCurrentItem(group)
             self.assertEqual(panel.highlighted, {'S1','S2'})
-            self.assertTrue(any(image.opacity() < 1. for image in window.images))
+            from dosy_map import EXPLORATORY, QC_FILTERED
+            self.assertEqual(window.policy.currentIndex(),EXPLORATORY)
+            self.assertIn('S3',window.represented_peaks)
+            self.assertEqual(set(window.represented_peaks),set(panel.exploratory))
+            revision = panel.revision
+            window.policy.setCurrentIndex(QC_FILTERED)
+            self.assertEqual(panel.revision,revision)
+            self.assertTrue(window.unresolved_curves)
+            self.assertNotIn('S3',window.represented_peaks)
+            self.assertEqual(set(window.represented_peaks),set(panel.profiles))
+            self.assertIn('rozdzielenia', panel.profile_detail('S3'))
             group.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-            self.assertLess(len(window.images), 3)
+            self.assertFalse({'S1','S2'} & set(window.represented_peaks))
             panel.balance.setValue(3.)
             panel.regularization.setText('2e-6')
             panel.recalculate()
@@ -1009,6 +1093,61 @@ class InterfaceTests(unittest.TestCase):
             wait()
             self.assertEqual(panel.balance.value(), 10.)
             self.assertEqual(panel.regularization.text(), '1e-6')
+
+    def test_ilt_unresolved_profiles_and_native_reference_export(self):
+        from dosy_alignment_panel import ADAPTIVE
+        from dosy_map import EXPLORATORY, MONO_REFERENCE, QC_FILTERED
+
+        w = self.w
+        w.add_roi([3.60,3.68])
+        w.add_roi([5.26,5.33])
+        settle(w)
+        w.show_map()
+        window = w.map_window
+        panel = window.alignment
+        with QtCore.QSignalBlocker(panel.mode):
+            panel.mode.setCurrentIndex(ADAPTIVE)
+        row = w.results[0]
+        start,stop = np.searchsorted(w.dataset.ppm,row['bounds'])
+        panel.profiles = {'S1':((row['fit']['D_m2_s'],window.reference[start:stop]),)}
+        second = w.results[1]
+        lo,hi = np.searchsorted(w.dataset.ppm,second['bounds'])
+        panel.exploratory = {**panel.profiles,'S2':((second['fit']['D_m2_s'],window.reference[lo:hi]),)}
+        panel.exploratory_diagnostics = {sid:dict(reason='assigned',solved=True) for sid in panel.exploratory}
+        panel.profile_diagnostics = {'S1':dict(reason='assigned'), 'S2':dict(reason='peak_mismatch')}
+        panel.ready = True
+        window.render_map()
+        self.assertEqual(window.policy.currentIndex(),EXPLORATORY)
+        self.assertEqual(set(window.represented_peaks),{'S1','S2'})
+        self.assertIn('Zanik',window.rois.item(1).toolTip())
+        window.policy.setCurrentIndex(QC_FILTERED)
+        self.assertEqual(len(window.images),1)
+        self.assertEqual(len(window.unresolved_curves),1)
+        self.assertFalse(window.native_guides)
+        self.assertIn('Zanik',window.rois.item(1).toolTip())
+        projection = tuple(a.copy() for a in window.diffusion_trace.getData())
+        window.overlay.setCurrentIndex(0)
+        self.assertFalse(window.unresolved_curves)
+        window.overlay.setCurrentIndex(2)
+        self.assertEqual(len(window.native_guides),1)
+        self.assertEqual(len(window.unresolved_curves),1)
+        np.testing.assert_array_equal(projection,window.diffusion_trace.getData())
+        window.reset_view()
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/'overlay.png'
+            self.assertTrue(window.save_view(path))
+            image = QtGui.QImage(str(path))
+            self.assertIn('Adaptive Local ILT',image.text('DOSY reconstruction'))
+            self.assertIn('tylko odniesienie',image.text('DOSY reconstruction'))
+            self.assertIn('Filtrowana QC',image.text('DOSY reconstruction'))
+            window.policy.setCurrentIndex(MONO_REFERENCE)
+            self.assertFalse(window.unresolved_curves)
+            self.assertFalse(window.native_guides)
+            self.assertEqual(set(window.represented_peaks),{'S1','S2'})
+            self.assertTrue(window.save_view(path))
+            metadata = QtGui.QImage(str(path)).text('DOSY reconstruction')
+            self.assertIn('Odniesienie monoeksponencjalne',metadata)
+            self.assertNotIn('ILT',metadata)
 
     def test_dosy_map_navigation_coordinates_floor_and_export(self):
         w = self.w

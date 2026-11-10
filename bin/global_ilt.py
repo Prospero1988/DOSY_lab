@@ -92,16 +92,22 @@ def identify_components(weights):
         return (), ()
     detected = find_peaks(np.r_[0., aggregate, 0.], prominence=.05*maximum)[0] - 1
     peaks = tuple(map(int, detected)) or (int(np.argmax(aggregate)),)
+    return peaks, component_intervals(aggregate, peaks)
+
+
+def component_intervals(weights, peaks):
+    if not peaks:
+        return ()
     cuts = [0]
     for left, right in zip(peaks, peaks[1:]):
-        valley = aggregate[left+1:right]
+        valley = weights[left+1:right]
         if valley.size:
             minima = np.flatnonzero(valley == valley.min())
             cuts.append(left + 2 + int(minima[len(minima)//2]))
         else:
             cuts.append(right)
     cuts.append(len(weights))
-    return peaks, tuple(zip(cuts, cuts[1:]))
+    return tuple(zip(cuts, cuts[1:]))
 
 
 def solve_global_ilt(b, intensity, parameters, *, include=None, sigma=None,
