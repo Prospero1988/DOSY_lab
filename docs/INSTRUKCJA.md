@@ -127,7 +127,7 @@ The values above illustrate the file format. b values from nominal gradient ampl
 
 ## 7. Fitting and quality control
 
-Each ROI is fitted to $I(b)=I_0\exp(-bD)$ using its signed integrals. A fit requires at least three distinct active b values. D and its standard error $\operatorname{SE}(D)$ are reported in $\mathrm{m^2/s}$. The main table scales both by $`10^{-10}\ \mathrm{m^2/s}`$. Inspect **QC**, $R^2$ and the residuals before interpreting a fit.
+Each ROI is fitted to $I(b)=I_0\exp(-bD)$ using its signed integrals. A fit requires at least three distinct active b values. D and its standard error $\mathrm{SE}(D)$ are reported in $\mathrm{m^2/s}$. The main table scales both by $`10^{-10}\ \mathrm{m^2/s}`$. Inspect **QC**, $R^2$ and the residuals before interpreting a fit.
 
 - **Decays** shows measured points and fitted curves. **Show I / first integral** normalizes the display. Fitting uses the original integrals.
 - **Residuals** shows measurement minus prediction for the selected ROI in a separate full-height tab.
@@ -147,7 +147,7 @@ When b is unavailable, the decay tab still displays integrals against the gradie
 4. Use **Keep a copy for comparison** or **Load statistics snapshot** to compare separate experiments. Each keeps its own summary.
 5. **Export CSV and snapshot** saves the numerical tables and JSON snapshot. **PNG** and **SVG** save the selected plot with a white background, black labels and navy data. Grid controls are available for the D plot and the decay and residual panel.
 
-The summary includes the arithmetic mean, median, sample SD, CV, descriptive SEM, minimum, maximum and N where defined. The plot shows $\pm\operatorname{SE}(D)$ bars, the mean and a $`\pm1\,\mathrm{SD}`$ band. You can add $`\pm2\,\mathrm{SD}`$ lines. Sample SD, CV and descriptive SEM require at least two signals.
+The summary includes the arithmetic mean, median, sample SD, CV, descriptive SEM, minimum, maximum and N where defined. The plot shows $\pm\mathrm{SE}(D)$ bars, the mean and a $`\pm1\,\mathrm{SD}`$ band. You can add $`\pm2\,\mathrm{SD}`$ lines. Sample SD, CV and descriptive SEM require at least two signals.
 
 - **SE(D)** describes uncertainty in one fit under its model.
 - **SD** describes spread across selected signals. **SEM** is descriptive $\mathrm{SD}/\sqrt{N}$. ROIs from one experiment can share errors, including gradient calibration errors.

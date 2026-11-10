@@ -22,7 +22,7 @@ I(b)=I_0\exp(-bD)
 
 $I_0$ is the extrapolated integral at zero weighting. A fitted D may be apparent when the ROI contains overlapping signals, exchange or other departures from the model.
 
-The fit uses bounded nonlinear least squares with $I_0\ge0$ and $D\ge0$. It uses at least three distinct included b values. For numerical scaling the fit uses $b/10^9$ and divides intensities by the largest absolute included intensity. Optional positive point standard errors $\sigma_i$ weight the residuals by $1/\sigma_i$. Negative observations keep their sign. Excluded observations remain in the project. A fit's $\operatorname{SE}(D)$ comes from the local parameter covariance and is conditional on the model, data and weights. Across selected ROIs, SD describes the dispersion of fitted D values and SEM is descriptive. Errors may be correlated across ROIs in one experiment.
+The fit uses bounded nonlinear least squares with $I_0\ge0$ and $D\ge0$. It uses at least three distinct included b values. For numerical scaling the fit uses $b/10^9$ and divides intensities by the largest absolute included intensity. Optional positive point standard errors $\sigma_i$ weight the residuals by $1/\sigma_i$. Negative observations keep their sign. Excluded observations remain in the project. A fit's $\mathrm{SE}(D)$ comes from the local parameter covariance and is conditional on the model, data and weights. Across selected ROIs, SD describes the dispersion of fitted D values and SEM is descriptive. Errors may be correlated across ROIs in one experiment.
 
 ## Individual inverse Laplace transform
 
