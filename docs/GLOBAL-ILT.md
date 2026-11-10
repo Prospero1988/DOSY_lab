@@ -6,6 +6,8 @@ For example, select existing ROIs around 7.22, 4.15, 2.84 and 1.32 ppm when thos
 
 ## Views and controls
 
+Open **Info** for the in-app instructions and a separate explanation of λ and μ. Use the title-bar **×** or **Esc** to close the analysis window.
+
 - **A, Joint distribution** shows the unit-area density formed from the row norms of the joint solution. Markers identify candidate maxima in m²/s. The distribution summarizes the selected curves mathematically and cannot be interpreted as a molecular concentration distribution.
 - **B, ROI distributions** overlays each ROI's solution. The visibility menu affects this view only. The default shows each nonzero distribution at unit area. **Common ROI amplitude scale** restores original fitted amplitudes and divides all densities by the largest fitted area. Dotted lines mark shared candidate positions. **Logarithmic D axis** changes the view and is independent of grid spacing.
 - **C, Reconstruction** shows the original signed data and residuals for the chosen ROI. Monoexponential predictions come from the cached fit. Global ILT uses the same b, included points and positive intensity scale. **Compare independent ILT** adds separately solved curves using the same grid, λ, masks and weighting as Global ILT, with μ set to zero for the comparison. Curves use absolute b. The displayed y-axis scale is the largest absolute included integral for the selected ROI.

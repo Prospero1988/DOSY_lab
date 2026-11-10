@@ -8,6 +8,7 @@ from PySide6 import QtCore, QtWidgets
 from global_ilt import GlobalParameters, solve_global_ilt
 from i18n import tr
 from ilt import D_UNIT, GRID_SIZES, ILTParameters, solve_ilt
+from ilt_help import GLOBAL_ILT_HELP, ILT_WINDOW_FLAGS, add_ilt_info
 from ilt_tools import ILTPlotTools, SolveJob
 
 
@@ -17,7 +18,7 @@ PRINT_COLORS = ('#155e75', '#9a3412', '#166534', '#9d174d', '#5b21b6', '#854d0e'
 
 class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
     def __init__(self, parent, source, b, entries):
-        super().__init__(parent, QtCore.Qt.WindowType.Window | QtCore.Qt.WindowType.WindowMaximizeButtonHint)
+        super().__init__(parent, ILT_WINDOW_FLAGS)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setStyleSheet(parent.styleSheet())
         self.setWindowTitle(tr('DOSY Lab · Global ILT'))
@@ -166,6 +167,7 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
             button.clicked.connect(callback)
             options.addWidget(button)
         options.addStretch()
+        add_ilt_info(options, self, 'Instrukcja Global ILT', GLOBAL_ILT_HELP)
         combined = QtWidgets.QPushButton(tr('Zapisz wszystkie wykresy PNG'))
         combined.clicked.connect(lambda: self.export_png(self.plots, 'Global_ILT'))
         self.export_buttons.append(combined)

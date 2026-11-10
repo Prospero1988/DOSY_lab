@@ -354,6 +354,7 @@ class InterfaceTests(unittest.TestCase):
             w.roi_table.cellWidget(0, ILT_COLUMN).click()
             dialog = w.ilt_window
             self.assertTrue(dialog.isVisible())
+            self.check_ilt_help(dialog, 'ILT pojedynczej całki', 'λ', 'Druga pochodna')
             wait_for(lambda: dialog.result is not None)
             np.testing.assert_array_equal(dialog.b, dataset.b)
             np.testing.assert_array_equal(dialog.y, results[0]['result']['corrected_integral'])
@@ -418,6 +419,7 @@ class InterfaceTests(unittest.TestCase):
             dialog = w.global_ilt_window
             self.assertIsNotNone(dialog)
             self.assertEqual(dialog.ids, ['S1', 'S2'])
+            self.check_ilt_help(dialog, 'Global ILT dla wielu całek', 'λ — regularyzacja Tichonowa', 'μ — wspólna rzadkość')
             wait_for(lambda: dialog.result is not None)
             np.testing.assert_array_equal(dialog.b, w.dataset.b)
             np.testing.assert_array_equal(dialog.y[:,1], results[1]['result']['corrected_integral'])
@@ -500,6 +502,21 @@ class InterfaceTests(unittest.TestCase):
             self.assertEqual(seen, [1e-4, 1e-6])
             self.assertEqual(dialog.solved_parameters.sparsity, 1e-6)
             dialog.close()
+
+    def check_ilt_help(self, dialog, *phrases):
+        self.assertTrue(dialog.windowFlags() & QtCore.Qt.WindowType.WindowCloseButtonHint)
+        self.assertTrue(dialog.windowFlags() & QtCore.Qt.WindowType.WindowSystemMenuHint)
+        info = dialog.findChild(QtWidgets.QPushButton, 'ilt_info_button')
+        info.click()
+        guide = dialog.findChild(QtWidgets.QDialog, 'ilt_info_window')
+        self.assertTrue(guide.isVisible())
+        text = guide.findChild(QtWidgets.QTextBrowser).toPlainText()
+        for phrase in phrases:
+            self.assertIn(phrase, text)
+        info.click()
+        self.assertEqual(len(dialog.findChildren(QtWidgets.QDialog, 'ilt_info_window')), 1)
+        guide.close()
+        self.assertTrue(dialog.isVisible())
 
     def test_ilt_discards_running_solution_when_parameters_change(self):
         from ilt import solve_ilt

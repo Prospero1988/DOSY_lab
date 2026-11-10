@@ -8,12 +8,13 @@ from PySide6 import QtCore, QtWidgets
 from d_statistics import number
 from i18n import tr
 from ilt import D_UNIT, GRID_SIZES, ILTParameters, solve_ilt
+from ilt_help import ILT_HELP, ILT_WINDOW_FLAGS, add_ilt_info
 from ilt_tools import ILTPlotTools, SolveJob
 
 
 class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
     def __init__(self, parent, source, b, entry):
-        super().__init__(parent, QtCore.Qt.WindowType.Window | QtCore.Qt.WindowType.WindowMaximizeButtonHint)
+        super().__init__(parent, ILT_WINDOW_FLAGS)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setWindowTitle(tr('DOSY Lab · Eksperymentalne ILT'))
         self.setStyleSheet(parent.styleSheet())
@@ -107,6 +108,7 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
             button.clicked.connect(callback)
             actions.addWidget(button)
         actions.addStretch()
+        add_ilt_info(actions, self, 'Instrukcja ILT', ILT_HELP)
         self.combined_export = QtWidgets.QPushButton(tr('Zapisz wszystkie wykresy PNG'))
         self.combined_export.clicked.connect(lambda: self.export_png(self.plot_list, 'ILT'))
         actions.addWidget(self.combined_export)

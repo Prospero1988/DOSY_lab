@@ -4,6 +4,8 @@ Launch **DOSY Lab.cmd** from the `experimental/ilt-analysis` worktree. Open a JD
 
 ## Controls and plots
 
+Open **Info** in the analysis window for the in-app guide and an explanation of λ and the two penalties. The title-bar **×** and **Esc** both close the window.
+
 | Control | Effect |
 | --- | --- |
 | **λ** | Set the regularization strength using the logarithmic slider or enter an exact value from `1e-12` to `100`. Press Enter to apply typed values. Larger values usually yield smoother or broader solutions and may merge features. |
