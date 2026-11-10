@@ -8,6 +8,7 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from d_statistics import finite
+from dosy_alignment_panel import AlignmentPanel, MODE_NAMES, ORIGINAL
 from plot_export import NAVY, light_plot
 from spectrum_view import SpectrumBox
 from storage import source_save_name
@@ -26,7 +27,7 @@ def fitted_diffusion(result):
     return diffusion if fit.get('ok') and diffusion is not None and diffusion > 0 else None
 
 
-def roi_bands(ppm, reference, results, excluded=()):
+def roi_bands(ppm, reference, results, excluded=(), *, overrides=None, profiles=None):
     """Use each FFT bin at most once. Mask ambiguous bins in overlapping ROIs."""
     intervals = []
     coverage = np.zeros(len(ppm) + 1, dtype=int)
@@ -36,12 +37,18 @@ def roi_bands(ppm, reference, results, excluded=()):
             continue
         start, stop = np.searchsorted(ppm, result['bounds'])
         if start < stop:
-            intervals.append((start, stop, diffusion))
+            intervals.append((start, stop, result['id'], diffusion))
             coverage[start] += 1
             coverage[stop] -= 1
     shared = np.cumsum(coverage[:-1]) > 1
-    bands = [Band(ppm[start:stop], np.where(shared[start:stop], 0., reference[start:stop]), diffusion)
-             for start, stop, diffusion in intervals if not shared[start:stop].all()]
+    bands = []
+    overrides, profiles = overrides or {}, profiles or {}
+    for start, stop, sid, diffusion in intervals:
+        mask = shared[start:stop]
+        if mask.all():
+            continue
+        for center, intensity in profiles.get(sid, ((overrides.get(sid, diffusion), reference[start:stop]),)):
+            bands.append(Band(ppm[start:stop], np.where(mask, 0., intensity), center))
     return bands, bool(shared.any())
 
 
@@ -84,10 +91,12 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.experiment_id = None
         self.results = []
         self.excluded = set()
+        self.excluded_groups = set()
         self.images = []
         self.stale = True
         self.peak_intensity = 0.
         self.full_range = None
+        self.rendered_mode = ORIGINAL
         self.settings = parent.settings
         self.map_color = self.saved_color('dosy_map/color', '#fb923c')
         self.trace_color = self.saved_color('dosy_map/trace_color', '#67e8f9')
@@ -113,6 +122,11 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         reset = QtWidgets.QPushButton(tr('Cały zakres'))
         reset.clicked.connect(self.reset_view)
         toolbar.addWidget(reset)
+        fullscreen = QtWidgets.QPushButton(tr('Pełny ekran'))
+        fullscreen.clicked.connect(self.toggle_fullscreen)
+        toolbar.addWidget(fullscreen)
+        escape = QtGui.QShortcut(QtGui.QKeySequence('Esc'), self)
+        escape.activated.connect(lambda: self.showNormal() if self.isFullScreen() else None)
         toolbar.addStretch()
         toolbar.addWidget(QtWidgets.QLabel(tr('Wzmocnienie 2D')))
         self.gain = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
@@ -148,6 +162,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.save_button.clicked.connect(self.choose_save)
         toolbar.addWidget(self.save_button)
 
+        alignment_toolbar = QtWidgets.QHBoxLayout()
+        layout.addLayout(alignment_toolbar)
         content = QtWidgets.QSplitter()
         layout.addWidget(content, 1)
         self.graphics = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
@@ -195,11 +211,26 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.grid_button.toggled.connect(self.set_grid)
         self.set_grid(self.grid_button.isChecked())
         self.update_map_color()
+        sidebar = QtWidgets.QWidget()
+        sidebar.setMinimumWidth(195)
+        sidebar_layout = QtWidgets.QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        self.groups_label = QtWidgets.QLabel(tr('Grupy / związki'))
+        sidebar_layout.addWidget(self.groups_label)
+        self.groups = QtWidgets.QTreeWidget()
+        self.groups.setHeaderHidden(True)
+        self.groups.setRootIsDecorated(False)
+        self.groups.setMaximumHeight(140)
+        self.groups.setToolTip(tr('Ukryj całą grupę na mapie. Ponowne włączenie zachowuje wybór pojedynczych sygnałów.'))
+        self.groups.itemChanged.connect(self.group_toggled)
+        sidebar_layout.addWidget(self.groups)
+        sidebar_layout.addWidget(QtWidgets.QLabel(tr('Sygnały')))
         self.rois = QtWidgets.QListWidget()
-        self.rois.setMinimumWidth(195)
         self.rois.setToolTip(tr('Odznacz ROI, aby wyłączyć je tylko z mapy.'))
         self.rois.itemChanged.connect(self.roi_toggled)
-        content.addWidget(self.rois)
+        sidebar_layout.addWidget(self.rois, 1)
+        self.alignment = AlignmentPanel(self, alignment_toolbar, sidebar_layout)
+        content.addWidget(sidebar)
         content.setSizes([1040, 250])
         content.setStretchFactor(0, 1)
         self.coordinate = QtWidgets.QLabel(tr('Włącz Punkt / prowadnice, aby odczytać współrzędne.'))
@@ -207,6 +238,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.note = QtWidgets.QLabel()
         self.note.setWordWrap(True)
         layout.addWidget(self.note)
+        self.alignment.changed.connect(self.refresh_alignment)
         self.set_tool(0)
 
     @staticmethod
@@ -225,6 +257,12 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.map_view.pick_point = index == 2
         self.map_view.setMouseMode(pg.ViewBox.PanMode if index == 1 else pg.ViewBox.RectMode)
         self.reference_view.mode = 'pan' if index == 1 else 'zoom'
+
+    def toggle_fullscreen(self):
+        if self.isFullScreen():
+            self.showNormal()
+        else:
+            self.showFullScreen()
 
     def eventFilter(self, watched, event):
         if (event.type() == QtCore.QEvent.Type.MouseButtonDblClick
@@ -265,12 +303,22 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.statusBar().clearMessage()
         if new_experiment:
             self.excluded.clear()
+            self.excluded_groups.clear()
             for guide in (self.projection_guide, self.ppm_guide, self.diffusion_guide):
                 guide.hide()
             self.d_label.hide()
             self.coordinate.setText(tr('Włącz Punkt / prowadnice, aby odczytać współrzędne.'))
         self.reference = dataset.spectrum[dataset.options['reference_layer']].real
         self.trace.setData(dataset.ppm, self.reference)
+        groups = sorted({r['group'] for r in results if r.get('group') and fitted_diffusion(r) is not None}, key=str.casefold)
+        self.groups_label.setVisible(bool(groups))
+        self.groups.setVisible(bool(groups))
+        with QtCore.QSignalBlocker(self.groups):
+            self.groups.clear()
+            for group in groups:
+                item = QtWidgets.QTreeWidgetItem([group])
+                item.setCheckState(0, QtCore.Qt.CheckState.Unchecked if group in self.excluded_groups else QtCore.Qt.CheckState.Checked)
+                self.groups.addTopLevelItem(item)
         with QtCore.QSignalBlocker(self.rois):
             self.rois.clear()
             for result in results:
@@ -289,9 +337,12 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                     item.setCheckState(QtCore.Qt.CheckState.Unchecked if sid in self.excluded else QtCore.Qt.CheckState.Checked)
                 self.rois.addItem(item)
         first_map = not self.images
+        with QtCore.QSignalBlocker(self.alignment):
+            self.alignment.set_data(dataset, results, new_experiment)
         self.render_map()
         if new_experiment or first_map:
             self.reset_view()
+            self.rendered_mode = self.alignment.mode.currentIndex()
 
     def invalidate(self):
         self.stale = True
@@ -306,6 +357,21 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             self.excluded.add(sid)
         self.render_map()
 
+    def group_toggled(self, item, column):
+        group = item.text(column)
+        if item.checkState(column) == QtCore.Qt.CheckState.Checked:
+            self.excluded_groups.discard(group)
+        else:
+            self.excluded_groups.add(group)
+        self.render_map()
+
+    def refresh_alignment(self):
+        self.render_map()
+        mode = self.alignment.mode.currentIndex()
+        if self.alignment.ready and self.full_range is not None and mode != self.rendered_mode:
+            self.plot.setYRange(*self.full_range[1], padding=0.)
+            self.rendered_mode = mode
+
     def render_map(self):
         if self.dataset is None:
             return
@@ -314,10 +380,13 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.images.clear()
         ppm = self.dataset.ppm
         layer = self.dataset.options['reference_layer'] + 1
-        bands, overlaps = roi_bands(ppm, self.reference, self.results, self.excluded)
+        visible = [result for result in self.results if result.get('group') not in self.excluded_groups]
+        overrides, hidden, profiles = self.alignment.map_data()
+        bands, overlaps = roi_bands(ppm, self.reference, visible, self.excluded | hidden,
+                                    overrides=overrides, profiles=profiles)
         bands = [band for band in bands if np.any(band.intensity > 0)]
         self.peak_intensity = max((np.max(band.intensity) for band in bands), default=0.)
-        self.save_button.setEnabled(bool(bands) and not self.stale)
+        self.save_button.setEnabled(bool(bands) and not self.stale and self.alignment.ready)
         if not bands:
             self.full_range = ((ppm[0], ppm[-1]), (0., 1.))
             self.note.setText(tr('Brak dodatnich sygnałów do wyświetlenia. Sprawdź dopasowania D, fazę i wybór ROI.'))
@@ -350,6 +419,15 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             tr(f'Widmo 1D: warstwa {layer} (referencja). Mapa: kształt widma w ROI przy jego D. '
             'Kolor pokazuje dodatnie intensywności. Szerokość w D jest ustawieniem graficznym.')
             + (tr(' Wspólne punkty nakładających się ROI są pominięte.') if overlaps else ''))
+        if self.alignment.mode.currentIndex() != ORIGINAL:
+            detail = tr('Poza zaakceptowanymi grupami lub profilami zachowano oryginalne D.')
+            if self.alignment.rejected:
+                detail += ' · ' + tr('Odrzucone profile ILT') + ' ' + ', '.join(self.alignment.rejected)
+            if self.alignment.error:
+                detail = tr('Błąd wyrównania') + ' · ' + tr(self.alignment.error)
+            elif not self.alignment.ready:
+                detail = tr('Obliczanie wyrównania. Tymczasowo wyświetlana jest mapa oryginalna.')
+            self.note.setText(tr(MODE_NAMES[self.alignment.mode.currentIndex()]) + ' · ' + detail)
         self.update_intensity()
 
     def update_intensity(self):
@@ -417,6 +495,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
 
     def save_view(self, path):
         # Render a separate copy so export never changes the live plots or settings.
+        if self.stale or not self.alignment.ready:
+            return False
         canvas = QtWidgets.QWidget()
         canvas.setAttribute(QtCore.Qt.WidgetAttribute.WA_DontShowOnScreen)
         canvas.setStyleSheet('background: white;')
@@ -424,6 +504,15 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(3)
         try:
+            mode = self.alignment.mode.currentIndex()
+            title = tr(MODE_NAMES[mode])
+            if mode != ORIGINAL:
+                overrides, _, profiles = self.alignment.map_data()
+                title += f' · {tr("Przetworzone ROI")} {len(overrides) + len(profiles)}'
+            heading = QtWidgets.QLabel(title)
+            heading.setStyleSheet('color: black; background: white; font-weight: bold;')
+            heading.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+            layout.addWidget(heading)
             spectrum = light_plot(self.projection)
             map_plot = light_plot(self.plot)
             for source, plot in ((self.projection, spectrum), (self.plot, map_plot)):
@@ -455,7 +544,10 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             for source, plot in ((self.projection, spectrum), (self.plot, map_plot)):
                 x_range, y_range = source.getViewBox().viewRange()
                 plot.setRange(xRange=x_range, yRange=y_range, padding=0)
-            return canvas.grab().save(str(path), 'PNG')
+            image = canvas.grab().toImage()
+            image.setDotsPerMeterX(11811)
+            image.setDotsPerMeterY(11811)
+            return image.save(str(path), 'PNG')
         finally:
             canvas.close()
             canvas.deleteLater()

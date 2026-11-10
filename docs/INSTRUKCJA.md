@@ -71,7 +71,7 @@ The correction shifts all layers, the phase pivot, integral bounds and baseline 
 1. Open **Phase correction**. The reference layer is shown first.
 2. Click near a peak to set the **pivot**, or enter it in ppm. The correction at the pivot is PH0.
 3. Drag up or down with the **left mouse button** to change **PH0** and with the **right mouse button** to change **PH1**. Hold **Shift** for fine adjustment. You can set the sensitivity of each gesture.
-4. Use **Zoom range** and **Pan spectrum** to inspect the signal. Turn off the navigation tool to resume phasing. Scroll to adjust the height. Use **Show Im** and **Show previous phase** to inspect the effect.
+4. Use **Zoom range [Z]** and **Pan spectrum [P]** to inspect the signal. Press the same key again to resume phasing. **Full range [F]** or a left double-click resets the view. Scroll to adjust the height. Use **Show Im** and **Show previous phase** to inspect the effect.
 5. Use **Preview** to check another gradient layer. **Apply shared phase to all layers** commits one correction to the full series. **Cancel** discards changes made in the dialog.
 
 PH1 is specified in degrees across the entire acquired spectral width, in order of increasing ppm. The manual correction at a given point is `PH0 + PH1 · (ppm − pivot) / SW_ppm`. The displayed ppm axis usually decreases from left to right. Values from another program may use a different pivot, sign or axis convention.
@@ -97,6 +97,8 @@ An ROI is a ppm interval integrated in every layer. DOSY Lab integrates the sign
 - **Delete integral** removes the selected ROI. Each integral has a stable ID. Double-click **Group / compound** to type a new group or reuse an existing one.
 
 The ID is shown above the peak and the integral below. Edit **Integral** to set a relative reference, such as 1.00. The application proportionally rescales all displayed integrals and saves the factor in the project. Fits still use the original signed integrals.
+
+Use **Export integrals** next to **Fit / refresh** to save the IDs, groups and ppm bounds to a `.ints` file in `integrals`. For a similar measurement, set its chemical shift reference first, then click **Import integrals**. Confirm replacement if the current measurement already has integrals. DOSY Lab keeps the saved IDs and bounds, resets integral scaling and fit point settings, and calculates new integrals and fits from the current measurement.
 
 | Synthetic group | ppm ranges | Expected D [m²/s] |
 | --- | --- | --- |
@@ -189,10 +191,12 @@ An export bundle can contain complete measurement data and the embedded pulse pr
 ![2D DOSY map with the linked 1D spectrum, ROI list and crosshair](images/mapa-dosy-2d.png)
 
 1. Define integrals and complete their fits. Click **2D DOSY map** next to **Clear baseline**.
-2. Select the ROIs to show. A displayed ROI must have a successful fit with finite, positive D. The checkboxes affect the map only.
+2. Use **Groups / compounds** to hide an entire group or **Signals** to hide individual ROIs. Turning a group back on preserves individual selections. A displayed ROI must have a successful fit with finite, positive D. The checkboxes affect the map only.
 3. Use **Zoom** to drag a rectangle, **Pan** to move, or **Full range** to reset. The ppm zoom is linked to the 1D spectrum above.
 4. Use **Point / crosshair** to read ppm and D at the selected location. The D label appears beside the crosshair and is included in PNG export. The vertical guide also appears in the 1D spectrum.
 5. Scroll over the 1D spectrum to adjust its height. Scroll over the 2D map to change the **Threshold** relative to the strongest positive signal. Increase **2D gain** to brighten weak signals above the threshold.
 6. Use **View** for separate spectrum and map colors and **Grid** to toggle the grid. **Save view as PNG** exports the current zoom, intensity, grid and guides in a light color scheme.
 
 The map places each ROI’s positive real reference spectrum at its fitted D. Orange is the default signal color. Shared points of overlapping selected ROIs are omitted until the overlap is resolved. **D band width** controls the vertical display broadening as a percentage of the largest visible D. Each ROI contributes one fitted coefficient, so mixed signals within an ROI are represented by an apparent D.
+
+The experimental branch adds [diffusion alignment and Global ILT map modes](DOSY-ALIGNMENT.md).

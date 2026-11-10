@@ -1,6 +1,7 @@
 """Actual Qt widgets, worker updates, groups, point masks and PNG/SVG export."""
 from dataclasses import replace
 import os
+import json
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from pathlib import Path
 from threading import Event
@@ -14,7 +15,7 @@ from spectrum_settings import SpectrumAppearance, SpectrumSettingsDialog
 from core import default_options
 from test_dosy_lab import STE,synthetic
 from generate_demo import demo_bytes
-from storage import DATA, PROJECTS, PROCESSING, PROJECT_FILTER, PROFILE_FILTER
+from storage import DATA, PROJECTS, PROCESSING, INTEGRALS, PROJECT_FILTER, PROFILE_FILTER, INTEGRALS_FILTER
 from jeol import RawData
 from core import process_fids
 
@@ -73,6 +74,35 @@ class InterfaceTests(unittest.TestCase):
     def tearDown(self):
         if self.w.worker is not None:settle(self.w)
         self.w.close();APP.processEvents()
+
+    def test_phase_navigation_shortcuts_and_double_click_reset(self):
+        self.w.show_phase()
+        dialog = self.w.phase_window
+        dialog.activateWindow()
+        dialog.plot.setFocus()
+        APP.processEvents()
+        self.assertTrue(dialog.zoom_button.text().endswith('[Z]'))
+        self.assertTrue(dialog.pan_button.text().endswith('[P]'))
+        self.assertTrue(any(b.text().endswith('[F]') for b in dialog.findChildren(QtWidgets.QPushButton)))
+        QtTest.QTest.keyClicks(dialog.plot, 'z')
+        self.assertTrue(dialog.zoom_button.isChecked())
+        self.assertFalse(dialog.view.phasing)
+        QtTest.QTest.keyClicks(dialog.plot, 'p')
+        self.assertTrue(dialog.pan_button.isChecked())
+        self.assertFalse(dialog.zoom_button.isChecked())
+        self.assertEqual(dialog.view.mode, 'pan')
+        QtTest.QTest.keyClicks(dialog.plot, 'p')
+        self.assertTrue(dialog.view.phasing)
+        dialog.reset_view()
+        expected = dialog.view.viewRange()[0]
+        dialog.plot.setXRange(3.6, 3.7, padding=0.)
+        QtTest.QTest.keyClicks(dialog.plot, 'f')
+        np.testing.assert_allclose(dialog.view.viewRange()[0], expected)
+        dialog.plot.setXRange(3.6, 3.7, padding=0.)
+        view = dialog.plot.viewport()
+        QtTest.QTest.mouseDClick(view, QtCore.Qt.MouseButton.LeftButton, pos=view.rect().center())
+        np.testing.assert_allclose(dialog.view.viewRange()[0], expected)
+        dialog.reject()
 
     def test_shift_scales_only_new_mouse_movement_for_both_phases(self):
         self.w.show_phase()
@@ -277,6 +307,49 @@ class InterfaceTests(unittest.TestCase):
             s.choose_plot_export('svg')
             self.assertEqual(dialog.call_args.args[2],'Pomiar.02.svg')
 
+    def test_integral_template_preserves_definitions_and_recalculates_current_measurement(self):
+        w = self.w
+        w.add_roi([3.602031234567, 3.680912345678], group='Związek α')
+        w.next_id = 7
+        w.add_roi([5.26, 5.33], group='Druga grupa')
+        settle(w)
+        w.entries[0]['fit_mask'][0] = False
+        w.integral_scale = 3.
+        expected = [dict(id=e['id'], group=e['group'], bounds=e['bounds']) for e in w.entries]
+        path = Path(self.settings_path).with_name('ranges.ints')
+        with patch('ui.choose_save_file', return_value=str(path)) as dialog:
+            w.export_integrals()
+            self.assertEqual(dialog.call_args.args[2:], (INTEGRALS, f'{self.source.stem}.ints', INTEGRALS_FILTER))
+        packet = json.loads(path.read_text(encoding='utf-8'))
+        self.assertEqual(packet['integrals'], expected)
+
+        w.open_path(self.source)
+        settle(w)
+        w.add_roi([3.50, 3.56], group='Inny')
+        settle(w)
+        with patch.object(QtWidgets.QFileDialog, 'getOpenFileName', return_value=(str(path), '')) as dialog:
+            with patch.object(QtWidgets.QMessageBox, 'question', return_value=QtWidgets.QMessageBox.StandardButton.No):
+                w.import_integrals()
+            self.assertEqual(dialog.call_args.args[2:], (str(INTEGRALS), INTEGRALS_FILTER))
+            self.assertEqual(w.entries[0]['group'], 'Inny')
+
+            malformed = dict(packet, integrals=[expected[0], expected[0]])
+            path.write_text(json.dumps(malformed), encoding='utf-8')
+            with patch.object(QtWidgets.QMessageBox, 'warning') as warning:
+                w.import_integrals()
+            self.assertIn('Powtórzone ID', warning.call_args.args[2])
+            self.assertEqual(w.entries[0]['group'], 'Inny')
+
+            path.write_text(json.dumps(packet), encoding='utf-8')
+            with patch.object(QtWidgets.QMessageBox, 'question', return_value=QtWidgets.QMessageBox.StandardButton.Yes):
+                w.import_integrals()
+        settle(w)
+        self.assertEqual([dict(id=e['id'], group=e['group'], bounds=e['bounds']) for e in w.entries], expected)
+        self.assertTrue(all(all(e['fit_mask']) and not e['weighted'] for e in w.entries))
+        self.assertEqual(w.integral_scale, 1.)
+        self.assertEqual(w.next_id, 8)
+        self.assertTrue(all(len(e['result']['corrected_integral']) == len(w.raw.fid) for e in w.results))
+
     def test_switch_language_preserves_project_and_relabels_open_windows(self):
         w=self.w
         w.add_roi([3.60,3.68],group='Przesuwaj')
@@ -443,6 +516,14 @@ class InterfaceTests(unittest.TestCase):
             self.assertEqual(dialog.result.weights.shape, (50, 2))
             self.assertTrue(all(dialog.independent))
             dialog.roi.setCurrentIndex(1)
+            self.assertTrue(dialog.result.converged)
+            self.assertIs(w.map_ilt[1], dialog.result)
+            w.show_map()
+            panel = w.map_window.alignment
+            self.assertTrue(panel.mode.model().item(3).isEnabled())
+            panel.mode.setCurrentIndex(3)
+            wait_for(lambda: panel.ready)
+            self.assertEqual(set(panel.profiles) | set(panel.rejected), {'S1','S2'})
             with tempfile.TemporaryDirectory() as folder:
                 single, combined = [Path(folder)/name for name in ('heatmap.png', 'global.png')]
                 with (patch.object(QtWidgets.QFileDialog, 'getSaveFileName', side_effect=[(str(single), ''), (str(combined), '')]),
@@ -765,16 +846,71 @@ class InterfaceTests(unittest.TestCase):
         self.assertIn('brak zweryfikowanego b',w.decay.getAxis('bottom').labelText)
         self.assertIn('b=brak',w.point_tooltip('S1',0))
 
+    def test_dosy_alignment_modes_preserve_cached_fits_and_allow_manual_membership(self):
+        w = self.w
+        w.add_roi([3.60, 3.68]); w.add_roi([5.26, 5.33])
+        settle(w)
+        original = w.results
+        d_original = [row['fit']['D_m2_s'] for row in original]
+        with patch('ui.analyze', side_effect=AssertionError('Map modes must preserve independent fits')):
+            w.show_map()
+            window = w.map_window
+            panel = window.alignment
+
+            def wait_for_alignment():
+                until = time.monotonic()+5
+                while not panel.ready and not panel.error and time.monotonic() < until:
+                    QtTest.QTest.qWait(15)
+                self.assertTrue(panel.ready, panel.error)
+
+            self.assertEqual(panel.mode.currentIndex(), 0)
+            self.assertFalse(panel.mode.model().item(3).isEnabled())
+            panel.tolerance.setValue(20.)
+            panel.mode.setCurrentIndex(1)
+            wait_for_alignment()
+            overrides, _, _ = panel.map_data()
+            self.assertEqual(set(overrides), {'S1','S2'})
+            self.assertEqual(overrides['S1'], overrides['S2'])
+            group = panel.tree.topLevelItem(0)
+            group.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+            self.assertEqual(len(window.images), 0)
+            group.setCheckState(0, QtCore.Qt.CheckState.Checked)
+            group.child(0).setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+            wait_for_alignment()
+            self.assertFalse(panel.map_data()[0])
+            outside = panel.tree.topLevelItem(0)
+            excluded = next(outside.child(i) for i in range(outside.childCount())
+                            if outside.child(i).checkState(0) == QtCore.Qt.CheckState.Unchecked)
+            excluded.setCheckState(0, QtCore.Qt.CheckState.Checked)
+            panel.mode.setCurrentIndex(2)
+            wait_for_alignment()
+            self.assertEqual(len(panel.groups[0].diagnostics), 2)
+            self.assertIn('Wspólny fit D', window.note.text())
+            panel.mode.setCurrentIndex(0)
+            self.assertFalse(panel.map_data()[0])
+            self.assertIs(w.results, original)
+            self.assertEqual([row['fit']['D_m2_s'] for row in w.results], d_original)
+
     def test_dosy_map_navigation_coordinates_floor_and_export(self):
         w = self.w
-        w.add_roi([3.60, 3.68])
-        w.add_roi([5.26, 5.33])
+        w.add_roi([3.60, 3.68], group='Sacharoza')
+        w.add_roi([5.26, 5.33], group='Sacharoza')
         settle(w)
         with patch('ui.analyze', side_effect=AssertionError('Mapa nie może ponawiać fitu.')):
             w.map_button.click()
             APP.processEvents()
             window = w.map_window
             self.assertTrue(window.isVisible())
+            self.assertEqual(len(window.images), 2)
+            group = window.groups.topLevelItem(0)
+            self.assertEqual(group.text(0), 'Sacharoza')
+            window.rois.item(1).setCheckState(QtCore.Qt.CheckState.Unchecked)
+            group.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+            self.assertEqual(len(window.images), 0)
+            group.setCheckState(0, QtCore.Qt.CheckState.Checked)
+            self.assertEqual(len(window.images), 1)
+            self.assertEqual(window.rois.item(1).checkState(), QtCore.Qt.CheckState.Unchecked)
+            window.rois.item(1).setCheckState(QtCore.Qt.CheckState.Checked)
             self.assertEqual(len(window.images), 2)
             layer = w.dataset.options['reference_layer']
             np.testing.assert_array_equal(window.trace.getData()[1], w.dataset.spectrum[layer].real)

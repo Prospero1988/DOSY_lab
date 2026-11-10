@@ -84,9 +84,10 @@ The [user guide](INSTRUKCJA.md) walks through opening data, processing, phase an
 | `data` | Default directory for opening local JDF data |
 | `projects` | Local `.proj` files |
 | `processing` | Local `.list` profiles |
+| `integrals` | Local `.ints` files with integral IDs, compound groups and ppm bounds |
 | `work` | Local working data |
 
-Git ignores `data`, `work`, `projects` and `processing`.
+Git ignores `data`, `work`, `projects`, `processing` and `integrals`.
 
 ~~~powershell
 .\.venv\Scripts\python.exe -m unittest discover -s bin -v

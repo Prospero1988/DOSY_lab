@@ -3,7 +3,7 @@ from i18n import tr
 
 from copy import deepcopy
 import numpy as np
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 from core import phase_radians
 from spectrum_view import PhaseBox
@@ -58,20 +58,25 @@ class PhaseWindow(QtWidgets.QDialog):
         self.ph1_sensitivity=self.sensitivity(row,[.5,2,10,50,100],10)
         self.imaginary=QtWidgets.QCheckBox(tr('Pokaż Im'));self.imaginary.toggled.connect(self.draw);row.addWidget(self.imaginary)
         self.before=QtWidgets.QCheckBox(tr('Pokaż fazę sprzed edycji'));self.before.toggled.connect(self.draw);row.addWidget(self.before)
-        self.zoom_button=QtWidgets.QPushButton(tr('Zoom zakresu'));self.zoom_button.setCheckable(True)
+        self.zoom_button=QtWidgets.QPushButton(tr('Zoom zakresu [Z]'));self.zoom_button.setCheckable(True)
         self.zoom_button.setToolTip(tr('Włącz, aby przeciągnięciem powiększyć zakres. Wyłącz, aby wrócić do gestów PH0/PH1.'))
         row.addWidget(self.zoom_button)
-        self.pan_button = QtWidgets.QPushButton(tr('Przesuń widmo'))
+        self.pan_button = QtWidgets.QPushButton(tr('Przesuń widmo [P]'))
         self.pan_button.setCheckable(True)
         self.pan_button.setToolTip(tr('Przeciągnij widmo lewym przyciskiem w pionie lub poziomie. Wyłącz, aby wrócić do fazowania.'))
         row.addWidget(self.pan_button)
         self.zoom_button.toggled.connect(lambda checked:self.set_navigation(self.pan_button,checked))
         self.pan_button.toggled.connect(lambda checked:self.set_navigation(self.zoom_button,checked))
         row.addStretch()
-        for text,callback in [(tr('Cały zakres'),lambda:self.plot.autoRange()),(tr('Pełny ekran'),self.toggle_fullscreen),('Reset PH0/PH1',self.reset_phase)]:
+        for text,callback in [(tr('Cały zakres [F]'),self.reset_view),(tr('Pełny ekran'),self.toggle_fullscreen),('Reset PH0/PH1',self.reset_phase)]:
             button=QtWidgets.QPushButton(text);button.clicked.connect(callback);row.addWidget(button)
         self.view=PhaseBox();self.plot=pg.PlotWidget(viewBox=self.view);layout.addWidget(self.plot,1)
         self.view.bind_selection_feedback(self.plot)
+        self.plot.viewport().installEventFilter(self)
+        for key, callback in [('Z', self.zoom_button.click), ('F', self.reset_view), ('P', self.pan_button.click)]:
+            shortcut = QtGui.QShortcut(QtGui.QKeySequence(key), self)
+            shortcut.setAutoRepeat(False)
+            shortcut.activated.connect(callback)
         self.plot.invertX(True)
         self.appearance.apply_grid(self.plot)
         self.plot.setLabel('bottom','¹H [ppm]');self.plot.setLabel('left',tr('Widmo przed korekcją bazy'),units=tr('j.u.'))
@@ -141,6 +146,17 @@ class PhaseWindow(QtWidgets.QDialog):
         self.view.mode = 'pan' if panning else 'zoom'
         self.view.phasing = not (panning or self.zoom_button.isChecked())
         self.pivot.setMovable(not panning)
+
+    def reset_view(self):
+        self.view.hide_selection_preview()
+        self.plot.autoRange()
+
+    def eventFilter(self, watched, event):
+        if (watched is self.plot.viewport() and event.type() == QtCore.QEvent.Type.MouseButtonDblClick
+                and event.button() == QtCore.Qt.MouseButton.LeftButton):
+            self.reset_view()
+            return True
+        return super().eventFilter(watched, event)
 
     def set_pivot(self,value):self.controls['pivot_ppm'].setValue(value)
 

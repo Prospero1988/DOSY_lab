@@ -90,6 +90,13 @@ def phase_radians(ppm,metadata,options):
     return np.deg2rad(filter_ramp+options['phase0_deg']+options['phase1_deg']*(ppm-options['pivot_ppm'])/width)
 
 
+def validate_baseline_roi_overlap(regions, roi_bounds):
+    for a,b in regions:
+        for c,d in roi_bounds:
+            if max(min(a,b),min(c,d))<min(max(a,b),max(c,d)):
+                raise ValueError('Obszar bazy przecina ROI. Zmień maskę bazy przed zatwierdzeniem.')
+
+
 def process_fids(raw,options=None,roi_bounds=()):
     o=validate_options(options or default_options(raw),len(raw.fid))
     sw=raw.metadata['x_sweep_Hz'];freq=raw.metadata['x_frequency_Hz']/1e6
@@ -109,10 +116,7 @@ def process_fids(raw,options=None,roi_bounds=()):
                                      'baseline':None,'warnings':[]}
     if o['baseline_regions'] and (o['baseline_preview'] or o['baseline_enabled']):
         if o['baseline_enabled']:
-            for a,b in o['baseline_regions']:
-                for c,d in roi_bounds:
-                    if max(min(a,b),min(c,d))<min(max(a,b),max(c,d)):
-                        raise ValueError('Obszar bazy przecina ROI. Zmień maskę bazy przed zatwierdzeniem.')
+            validate_baseline_roi_overlap(o['baseline_regions'], roi_bounds)
         base,diag['baseline']=baseline_fit(ppm,z.real,o['baseline_regions'],o['baseline_degree'],
                                           o['reference_layer'],o['baseline_per_layer'])
         if min(min(x) for x in o['baseline_regions'])>ppm.min() or max(max(x) for x in o['baseline_regions'])<ppm.max():
@@ -155,15 +159,20 @@ def initial_dataset(raw):
     return process_fids(raw,options)
 
 
+def validate_integral_bounds(x, bounds):
+    lo,hi=sorted(map(float,bounds))
+    if not np.isfinite([lo,hi]).all() or lo>=hi or lo<x[0] or hi>x[-1]:raise ValueError('ROI poza widmem lub zerowej szerokości.')
+    if np.searchsorted(x,hi,side='right')-np.searchsorted(x,lo)<2:raise ValueError('ROI zawiera mniej niż dwa punkty widma.')
+    return lo, hi
+
+
 def signed_integrals(ppm,spectra,bounds):
     ppm=np.asarray(ppm);z=np.asarray(spectra)
     if ppm.ndim!=1 or z.ndim!=2 or z.shape[1]!=len(ppm):raise ValueError('Niezgodne wymiary integracji.')
     if not np.isfinite(ppm).all() or not np.isfinite(z).all():raise ValueError('NaN/Inf w integracji.')
     order=np.argsort(ppm);x=ppm[order];y=z[:,order]
     if np.any(np.diff(x)<=0):raise ValueError('Oś ppm musi być ściśle monotoniczna.')
-    lo,hi=sorted(map(float,bounds))
-    if not np.isfinite([lo,hi]).all() or lo>=hi or lo<x[0] or hi>x[-1]:raise ValueError('ROI poza widmem lub zerowej szerokości.')
-    if np.count_nonzero((x>=lo)&(x<=hi))<2:raise ValueError('ROI zawiera mniej niż dwa punkty widma.')
+    lo,hi=validate_integral_bounds(x,bounds)
     inside=(x>lo)&(x<hi);xx=np.r_[lo,x[inside],hi]
     yy=np.column_stack(([np.interp(lo,x,row) for row in y],y[:,inside],
                         [np.interp(hi,x,row) for row in y]))

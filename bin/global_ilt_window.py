@@ -17,6 +17,8 @@ PRINT_COLORS = ('#155e75', '#9a3412', '#166534', '#9d174d', '#5b21b6', '#854d0e'
 
 
 class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
+    solution_changed = QtCore.Signal(object)
+
     def __init__(self, parent, source, b, entries):
         super().__init__(parent, ILT_WINDOW_FLAGS)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -245,6 +247,7 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
 
     def queue_solve(self, *_):
         self.revision += 1
+        self.solution_changed.emit(None)
         if self.cancel is not None:
             self.cancel.set()
         for button in self.export_buttons:
@@ -316,6 +319,8 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
             f"{tr('Funkcja celu')} = {r.objective:.5g} · {tr('Reszta stacjonarności')} = {r.stationarity:.3g} · {tr('Iteracje')} = {r.iterations}")
         status = 'Solver zakończony' if r.converged else 'Osiągnięto limit iteracji. Wynik przybliżony.'
         self.set_status(' '.join(tr(line) for line in (status, *r.warnings)))
+        if r.converged:
+            self.solution_changed.emit(r)
         for button in self.export_buttons:
             button.setEnabled(True)
 
