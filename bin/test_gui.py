@@ -1,19 +1,21 @@
 """Actual Qt widgets, worker updates, groups, point masks and PNG/SVG export."""
 from dataclasses import replace
 import os
+import json
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from pathlib import Path
+from threading import Event
 from unittest.mock import patch
 import tempfile,time,unittest
 import numpy as np
 from PySide6 import QtCore,QtGui,QtWidgets,QtTest
 import pyqtgraph as pg
-from ui import Window, GROUP_COLUMN, INTEGRAL_COLUMN
+from ui import Window, GROUP_COLUMN, INTEGRAL_COLUMN, ILT_COLUMN
 from spectrum_settings import SpectrumAppearance, SpectrumSettingsDialog
 from core import default_options
 from test_dosy_lab import STE,synthetic
 from generate_demo import demo_bytes
-from storage import DATA, PROJECTS, PROCESSING, PROJECT_FILTER, PROFILE_FILTER
+from storage import DATA, PROJECTS, PROCESSING, INTEGRALS, PROJECT_FILTER, PROFILE_FILTER, INTEGRALS_FILTER
 from jeol import RawData
 from core import process_fids
 
@@ -72,6 +74,35 @@ class InterfaceTests(unittest.TestCase):
     def tearDown(self):
         if self.w.worker is not None:settle(self.w)
         self.w.close();APP.processEvents()
+
+    def test_phase_navigation_shortcuts_and_double_click_reset(self):
+        self.w.show_phase()
+        dialog = self.w.phase_window
+        dialog.activateWindow()
+        dialog.plot.setFocus()
+        APP.processEvents()
+        self.assertTrue(dialog.zoom_button.text().endswith('[Z]'))
+        self.assertTrue(dialog.pan_button.text().endswith('[P]'))
+        self.assertTrue(any(b.text().endswith('[F]') for b in dialog.findChildren(QtWidgets.QPushButton)))
+        QtTest.QTest.keyClicks(dialog.plot, 'z')
+        self.assertTrue(dialog.zoom_button.isChecked())
+        self.assertFalse(dialog.view.phasing)
+        QtTest.QTest.keyClicks(dialog.plot, 'p')
+        self.assertTrue(dialog.pan_button.isChecked())
+        self.assertFalse(dialog.zoom_button.isChecked())
+        self.assertEqual(dialog.view.mode, 'pan')
+        QtTest.QTest.keyClicks(dialog.plot, 'p')
+        self.assertTrue(dialog.view.phasing)
+        dialog.reset_view()
+        expected = dialog.view.viewRange()[0]
+        dialog.plot.setXRange(3.6, 3.7, padding=0.)
+        QtTest.QTest.keyClicks(dialog.plot, 'f')
+        np.testing.assert_allclose(dialog.view.viewRange()[0], expected)
+        dialog.plot.setXRange(3.6, 3.7, padding=0.)
+        view = dialog.plot.viewport()
+        QtTest.QTest.mouseDClick(view, QtCore.Qt.MouseButton.LeftButton, pos=view.rect().center())
+        np.testing.assert_allclose(dialog.view.viewRange()[0], expected)
+        dialog.reject()
 
     def test_shift_scales_only_new_mouse_movement_for_both_phases(self):
         self.w.show_phase()
@@ -276,6 +307,49 @@ class InterfaceTests(unittest.TestCase):
             s.choose_plot_export('svg')
             self.assertEqual(dialog.call_args.args[2],'Pomiar.02.svg')
 
+    def test_integral_template_preserves_definitions_and_recalculates_current_measurement(self):
+        w = self.w
+        w.add_roi([3.602031234567, 3.680912345678], group='Związek α')
+        w.next_id = 7
+        w.add_roi([5.26, 5.33], group='Druga grupa')
+        settle(w)
+        w.entries[0]['fit_mask'][0] = False
+        w.integral_scale = 3.
+        expected = [dict(id=e['id'], group=e['group'], bounds=e['bounds']) for e in w.entries]
+        path = Path(self.settings_path).with_name('ranges.ints')
+        with patch('ui.choose_save_file', return_value=str(path)) as dialog:
+            w.export_integrals()
+            self.assertEqual(dialog.call_args.args[2:], (INTEGRALS, f'{self.source.stem}.ints', INTEGRALS_FILTER))
+        packet = json.loads(path.read_text(encoding='utf-8'))
+        self.assertEqual(packet['integrals'], expected)
+
+        w.open_path(self.source)
+        settle(w)
+        w.add_roi([3.50, 3.56], group='Inny')
+        settle(w)
+        with patch.object(QtWidgets.QFileDialog, 'getOpenFileName', return_value=(str(path), '')) as dialog:
+            with patch.object(QtWidgets.QMessageBox, 'question', return_value=QtWidgets.QMessageBox.StandardButton.No):
+                w.import_integrals()
+            self.assertEqual(dialog.call_args.args[2:], (str(INTEGRALS), INTEGRALS_FILTER))
+            self.assertEqual(w.entries[0]['group'], 'Inny')
+
+            malformed = dict(packet, integrals=[expected[0], expected[0]])
+            path.write_text(json.dumps(malformed), encoding='utf-8')
+            with patch.object(QtWidgets.QMessageBox, 'warning') as warning:
+                w.import_integrals()
+            self.assertIn('Powtórzone ID', warning.call_args.args[2])
+            self.assertEqual(w.entries[0]['group'], 'Inny')
+
+            path.write_text(json.dumps(packet), encoding='utf-8')
+            with patch.object(QtWidgets.QMessageBox, 'question', return_value=QtWidgets.QMessageBox.StandardButton.Yes):
+                w.import_integrals()
+        settle(w)
+        self.assertEqual([dict(id=e['id'], group=e['group'], bounds=e['bounds']) for e in w.entries], expected)
+        self.assertTrue(all(all(e['fit_mask']) and not e['weighted'] for e in w.entries))
+        self.assertEqual(w.integral_scale, 1.)
+        self.assertEqual(w.next_id, 8)
+        self.assertTrue(all(len(e['result']['corrected_integral']) == len(w.raw.fid) for e in w.results))
+
     def test_switch_language_preserves_project_and_relabels_open_windows(self):
         w=self.w
         w.add_roi([3.60,3.68],group='Przesuwaj')
@@ -332,6 +406,235 @@ class InterfaceTests(unittest.TestCase):
         expected=process_fids(w.raw,w.processing.options())
         np.testing.assert_array_equal(w.dataset.phased,expected.phased)
         np.testing.assert_array_equal(w.raw.fid,raw)
+
+    def test_ilt_button_uses_cached_signed_data_and_exports_plots(self):
+        w = self.w
+        w.add_roi([3.60, 3.68], group='Sacharoza')
+        settle(w)
+        w.point_table.item(0, 0).setCheckState(QtCore.Qt.CheckState.Unchecked)
+        settle(w)
+        dataset, results = w.dataset, w.results
+        fit = results[0]['fit']
+
+        def wait_for(predicate):
+            end = time.monotonic() + 10
+            while not predicate() and time.monotonic() < end:
+                QtTest.QTest.qWait(15)
+            self.assertTrue(predicate(), dialog.status.text())
+
+        self.assertIsNone(w.ilt_window)
+        with patch('ui.analyze', side_effect=AssertionError('ILT must not redo the mono fit')):
+            w.roi_table.cellWidget(0, ILT_COLUMN).click()
+            dialog = w.ilt_window
+            self.assertTrue(dialog.isVisible())
+            self.check_ilt_help(dialog, 'ILT pojedynczej całki', 'λ', 'Druga pochodna')
+            wait_for(lambda: dialog.result is not None)
+            np.testing.assert_array_equal(dialog.b, dataset.b)
+            np.testing.assert_array_equal(dialog.y, results[0]['result']['corrected_integral'])
+            np.testing.assert_array_equal(dialog.mask, fit['fit_mask'])
+            self.assertFalse(dialog.mask[0])
+            self.assertIs(dialog.fit, fit)
+            dialog.slider.setValue(-63)
+            dialog.slider.setValue(-55)
+            dialog.lambda_edit.setText('0.000024137')
+            dialog.lambda_changed()
+            dialog.points.setCurrentIndex(dialog.points.findData(50))
+            wait_for(lambda: dialog.solved_parameters.regularization == .000024137)
+            self.assertEqual(dialog.solved_parameters.points, 50)
+            self.assertTrue(dialog.distribution.getAxis('bottom').logMode)
+            result = dialog.result
+            dialog.log_axis.setChecked(False)
+            self.assertFalse(dialog.distribution.getAxis('bottom').logMode)
+            self.assertIs(dialog.result, result)
+            dialog.log_axis.setChecked(True)
+            dialog.distribution.fullscreen_controller.open()
+            self.assertIsNotNone(dialog.distribution.fullscreen_controller.window)
+            dialog.distribution.fullscreen_controller.close()
+            APP.processEvents()
+
+            with tempfile.TemporaryDirectory() as folder:
+                single = Path(folder)/'distribution.png'
+                combined = Path(folder)/'ilt.png'
+                with patch.object(QtWidgets.QFileDialog, 'getSaveFileName', side_effect=[(str(single), ''), (str(combined), '')]):
+                    dialog.export_png((dialog.distribution,), 'distribution')
+                    dialog.combined_export.click()
+                self.assertGreaterEqual(QtGui.QImage(str(single)).width(), 1600)
+                self.assertGreater(QtGui.QImage(str(combined)).height(), QtGui.QImage(str(single)).height())
+            dialog.close()
+            self.assertIsNone(w.ilt_window)
+            self.assertIs(w.dataset, dataset)
+            self.assertIs(w.results, results)
+            self.assertTrue(w.valid)
+
+    def test_global_ilt_selected_rows_comparison_and_export(self):
+        w = self.w
+        for bounds in ([3.60, 3.68], [5.26, 5.33], [3.74, 3.82]):
+            w.add_roi(bounds)
+        settle(w)
+        table = w.roi_table
+        for row, modifier in [(0, QtCore.Qt.KeyboardModifier.NoModifier), (1, QtCore.Qt.KeyboardModifier.ControlModifier)]:
+            pos = table.visualItemRect(table.item(row, 0)).center()
+            QtTest.QTest.mouseClick(table.viewport(), QtCore.Qt.MouseButton.LeftButton, modifier, pos)
+        self.assertEqual(w.selected_roi_ids(), ['S1', 'S2'])
+        w.render_roi_table()
+        self.assertEqual(w.selected_roi_ids(), ['S1', 'S2'])
+        self.assertEqual(w.global_ilt_button.text(), 'Global ILT (2)')
+        results = w.results
+
+        def wait_for(predicate):
+            end = time.monotonic()+10
+            while not predicate() and time.monotonic() < end:
+                QtTest.QTest.qWait(15)
+            self.assertTrue(predicate(), dialog.status.text())
+
+        with patch('ui.analyze', side_effect=AssertionError('Global ILT must not redo the mono fit')):
+            w.global_ilt_button.click()
+            dialog = w.global_ilt_window
+            self.assertIsNotNone(dialog)
+            self.assertEqual(dialog.ids, ['S1', 'S2'])
+            self.check_ilt_help(dialog, 'Global ILT dla wielu całek', 'λ — regularyzacja Tichonowa', 'μ — wspólna rzadkość')
+            wait_for(lambda: dialog.result is not None)
+            np.testing.assert_array_equal(dialog.b, w.dataset.b)
+            np.testing.assert_array_equal(dialog.y[:,1], results[1]['result']['corrected_integral'])
+            self.assertIs(dialog.fits[0], results[0]['fit'])
+            self.assertEqual(dialog.table.rowCount(), 2)
+            self.assertTrue(dialog.result.components)
+            relative = dialog.heatmap_values()
+            np.testing.assert_allclose(relative.sum(axis=0), [100, 100])
+            dialog.absolute.setChecked(True)
+            np.testing.assert_array_equal(dialog.heatmap_values(), dialog.result.contributions)
+            dialog.visible_rois[0].setChecked(False)
+            self.assertEqual([item.name() for item in dialog.roi_plot.listDataItems()], ['S2'])
+            dialog.log_axis.setChecked(False)
+            self.assertFalse(dialog.roi_plot.getAxis('bottom').logMode)
+            dialog.penalties[1][1].setText('0')
+            dialog.compare.setChecked(True)
+            dialog.points.setCurrentIndex(dialog.points.findData(50))
+            dialog.recalculate()
+            wait_for(lambda: len(dialog.independent) == 2)
+            self.assertEqual(dialog.solved_parameters.sparsity, 0.)
+            self.assertEqual(dialog.result.weights.shape, (50, 2))
+            self.assertTrue(all(dialog.independent))
+            dialog.roi.setCurrentIndex(1)
+            self.assertTrue(dialog.result.converged)
+            self.assertIs(w.map_ilt[1], dialog.result)
+            w.show_map()
+            panel = w.map_window.alignment
+            self.assertTrue(panel.mode.model().item(3).isEnabled())
+            panel.mode.setCurrentIndex(3)
+            wait_for(lambda: panel.ready)
+            self.assertEqual(set(panel.profiles) | set(panel.rejected), {'S1','S2'})
+            with tempfile.TemporaryDirectory() as folder:
+                single, combined = [Path(folder)/name for name in ('heatmap.png', 'global.png')]
+                with (patch.object(QtWidgets.QFileDialog, 'getSaveFileName', side_effect=[(str(single), ''), (str(combined), '')]),
+                      patch.object(QtWidgets.QMessageBox, 'warning', side_effect=AssertionError('PNG export failed'))):
+                    dialog.export_png((dialog.heatmap,), 'heatmap')
+                    dialog.export_png(dialog.plots, 'combined')
+                image = QtGui.QImage(str(single))
+                self.assertEqual(image.width(), 1600)
+                self.assertEqual(image.dotsPerMeterX(), 11811)
+                montage = QtGui.QImage(str(combined))
+                self.assertGreater(montage.height(), image.height())
+                for exported in (image, montage):
+                    rgb = exported.convertToFormat(QtGui.QImage.Format.Format_RGB32)
+                    pixels = np.frombuffer(rgb.constBits(), dtype=np.uint32)
+                    self.assertGreater(np.count_nonzero(pixels == 0xff60a5fa), 20)
+            dialog.close()
+            self.assertIsNone(w.global_ilt_window)
+            self.assertIs(w.results, results)
+            self.assertTrue(w.valid)
+
+    def test_global_ilt_cancels_an_obsolete_running_job(self):
+        from global_ilt import SolveCancelled, solve_global_ilt
+
+        w = self.w
+        w.add_roi([3.60, 3.68]); w.add_roi([5.26, 5.33])
+        settle(w)
+        w.roi_table.selectAll()
+        started, cancelled = Event(), Event()
+        seen = []
+
+        def solve(b, y, parameters, **kwargs):
+            seen.append(parameters.sparsity)
+            if len(seen) == 1:
+                started.set()
+                deadline = time.monotonic()+5
+                while not kwargs['cancelled']() and time.monotonic() < deadline:
+                    time.sleep(.01)
+                if not kwargs['cancelled']():
+                    raise RuntimeError('Expected cancellation')
+                cancelled.set()
+                raise SolveCancelled('Obsolete')
+            return solve_global_ilt(b, y, parameters, **kwargs)
+
+        with patch('global_ilt_window.solve_global_ilt', side_effect=solve):
+            w.global_ilt_button.click()
+            dialog = w.global_ilt_window
+            deadline = time.monotonic()+8
+            while not started.is_set() and time.monotonic() < deadline:
+                QtTest.QTest.qWait(15)
+            self.assertTrue(started.is_set())
+            dialog.penalties[1][0].setValue(-55)
+            dialog.penalties[1][0].setValue(-60)
+            while dialog.result is None and time.monotonic() < deadline:
+                QtTest.QTest.qWait(15)
+            self.assertTrue(cancelled.is_set())
+            self.assertIsNotNone(dialog.result, dialog.status.text())
+            self.assertEqual(seen, [1e-4, 1e-6])
+            self.assertEqual(dialog.solved_parameters.sparsity, 1e-6)
+            dialog.close()
+
+    def check_ilt_help(self, dialog, *phrases):
+        self.assertTrue(dialog.windowFlags() & QtCore.Qt.WindowType.WindowCloseButtonHint)
+        self.assertTrue(dialog.windowFlags() & QtCore.Qt.WindowType.WindowSystemMenuHint)
+        info = dialog.findChild(QtWidgets.QPushButton, 'ilt_info_button')
+        info.click()
+        guide = dialog.findChild(QtWidgets.QDialog, 'ilt_info_window')
+        self.assertTrue(guide.isVisible())
+        text = guide.findChild(QtWidgets.QTextBrowser).toPlainText()
+        for phrase in phrases:
+            self.assertIn(phrase, text)
+        info.click()
+        self.assertEqual(len(dialog.findChildren(QtWidgets.QDialog, 'ilt_info_window')), 1)
+        guide.close()
+        self.assertTrue(dialog.isVisible())
+
+    def test_ilt_discards_running_solution_when_parameters_change(self):
+        from ilt import solve_ilt
+
+        w = self.w
+        w.add_roi([3.60, 3.68])
+        settle(w)
+        started, release = Event(), Event()
+        solved_parameters = []
+
+        def solve(b, intensity, parameters, **kwargs):
+            solved_parameters.append(parameters)
+            started.set()
+            if not release.wait(10):
+                raise RuntimeError('Test did not release worker')
+            return solve_ilt(b, intensity, parameters, **kwargs)
+
+        with patch('ilt_window.solve_ilt', side_effect=solve):
+            w.roi_table.cellWidget(0, ILT_COLUMN).click()
+            dialog = w.ilt_window
+            try:
+                end = time.monotonic()+8
+                while not started.is_set() and time.monotonic() < end:
+                    QtTest.QTest.qWait(15)
+                self.assertTrue(started.is_set())
+                dialog.slider.setValue(-60)
+                dialog.slider.setValue(-70)
+                self.assertFalse(dialog.combined_export.isEnabled())
+            finally:
+                release.set()
+            end = time.monotonic()+8
+            while dialog.result is None and time.monotonic() < end:
+                QtTest.QTest.qWait(15)
+            self.assertIsNotNone(dialog.result)
+            self.assertEqual([p.regularization for p in solved_parameters], [1e-5, 1e-7])
+            self.assertEqual(dialog.solved_parameters.regularization, 1e-7)
+            dialog.close()
 
     def test_reference_click_assigns_ppm_and_preserves_phase_and_integrals(self):
         w = self.w
@@ -543,16 +846,190 @@ class InterfaceTests(unittest.TestCase):
         self.assertIn('brak zweryfikowanego b',w.decay.getAxis('bottom').labelText)
         self.assertIn('b=brak',w.point_tooltip('S1',0))
 
-    def test_dosy_map_navigation_coordinates_floor_and_export(self):
+    def test_dosy_alignment_modes_preserve_cached_fits_and_allow_manual_membership(self):
+        w = self.w
+        w.add_roi([3.60, 3.68]); w.add_roi([5.26, 5.33])
+        settle(w)
+        original = w.results
+        d_original = [row['fit']['D_m2_s'] for row in original]
+        with patch('ui.analyze', side_effect=AssertionError('Map modes must preserve independent fits')):
+            w.show_map()
+            window = w.map_window
+            panel = window.alignment
+
+            def wait_for_alignment():
+                until = time.monotonic()+5
+                while not panel.ready and not panel.error and time.monotonic() < until:
+                    QtTest.QTest.qWait(15)
+                self.assertTrue(panel.ready, panel.error)
+
+            self.assertEqual(panel.mode.currentIndex(), 0)
+            self.assertFalse(panel.mode.model().item(3).isEnabled())
+            panel.tolerance.setValue(20.)
+            panel.mode.setCurrentIndex(1)
+            wait_for_alignment()
+            overrides, _, _ = panel.map_data()
+            self.assertEqual(set(overrides), {'S1','S2'})
+            self.assertEqual(overrides['S1'], overrides['S2'])
+            group = panel.tree.topLevelItem(0)
+            group.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+            self.assertEqual(len(window.images), 0)
+            group.setCheckState(0, QtCore.Qt.CheckState.Checked)
+            group.child(0).setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+            wait_for_alignment()
+            self.assertFalse(panel.map_data()[0])
+            outside = panel.tree.topLevelItem(0)
+            excluded = next(outside.child(i) for i in range(outside.childCount())
+                            if outside.child(i).checkState(0) == QtCore.Qt.CheckState.Unchecked)
+            excluded.setCheckState(0, QtCore.Qt.CheckState.Checked)
+            panel.mode.setCurrentIndex(2)
+            wait_for_alignment()
+            self.assertEqual(len(panel.groups[0].diagnostics), 2)
+            self.assertIn('Wspólny fit D', window.note.text())
+            panel.mode.setCurrentIndex(0)
+            self.assertFalse(panel.map_data()[0])
+            self.assertIs(w.results, original)
+            self.assertEqual([row['fit']['D_m2_s'] for row in w.results], d_original)
+
+    def test_diffusion_projection_links_d_and_delete_clears_all_guides(self):
         w = self.w
         w.add_roi([3.60, 3.68])
         w.add_roi([5.26, 5.33])
+        settle(w)
+        w.show_map()
+        window = w.map_window
+        self.assertFalse(window.diffusion_plot.isVisible())
+        window.diffusion_button.click()
+        APP.processEvents()
+        self.assertTrue(window.diffusion_plot.isVisible())
+        self.assertTrue(window.settings.value('dosy_map/diffusion_projection', False, type=bool))
+        original, d = window.diffusion_trace.getData()
+        self.assertGreater(np.max(original), 0.)
+        self.assertEqual(len(original), len(d))
+        before_x, before_d = window.diffusion_plot.getViewBox().viewRange()
+        viewport = window.diffusion_plot.viewport()
+        center = viewport.rect().center()
+        for delta, factor in [(120, 1/1.2), (-120, 1.)]:
+            event = QtGui.QWheelEvent(QtCore.QPointF(center), QtCore.QPointF(viewport.mapToGlobal(center)),
+                                      QtCore.QPoint(), QtCore.QPoint(0, delta), QtCore.Qt.MouseButton.NoButton,
+                                      QtCore.Qt.KeyboardModifier.NoModifier, QtCore.Qt.ScrollPhase.NoScrollPhase, False)
+            APP.sendEvent(viewport, event)
+            APP.processEvents()
+            x_range, d_range = window.diffusion_plot.getViewBox().viewRange()
+            self.assertAlmostEqual(np.ptp(x_range), factor*np.ptp(before_x), places=7)
+            np.testing.assert_allclose(d_range, before_d)
+        window.floor.setValue(25.)
+        window.gain.setValue(10)
+        np.testing.assert_array_equal(window.diffusion_trace.getData()[0], original)
+        window.floor.setValue(0.)
+        window.rois.item(1).setCheckState(QtCore.Qt.CheckState.Unchecked)
+        remaining, remaining_d = window.diffusion_trace.getData()
+        self.assertLess(remaining.sum()*np.diff(remaining_d).mean(), original.sum()*np.diff(d).mean())
+
+        low, high = window.full_range[1]
+        window.plot.setYRange(low, (low+high)/2, padding=0.)
+        APP.processEvents()
+        y = (3*low+high)/4
+        window.show_coordinates(3.64, y)
+        guide = window.diffusion_projection_guide
+        self.assertTrue(guide.isVisible())
+        self.assertEqual(guide.value(), window.diffusion_guide.value())
+
+        def screen_y(plot):
+            scene = plot.getViewBox().mapViewToScene(QtCore.QPointF(0., y))
+            return plot.viewport().mapToGlobal(plot.mapFromScene(scene)).y()
+
+        def screen_x(plot):
+            scene = plot.getViewBox().mapViewToScene(QtCore.QPointF(3.64, 0.))
+            return plot.viewport().mapToGlobal(plot.mapFromScene(scene)).x()
+
+        self.assertLessEqual(abs(screen_y(window.diffusion_plot)-screen_y(window.plot)), 1)
+        self.assertLessEqual(abs(screen_x(window.projection)-screen_x(window.plot)), 1)
+        window.activateWindow()
+        window.plot.setFocus()
+        APP.processEvents()
+        QtTest.QTest.keyClicks(window.plot, 'p')
+        self.assertTrue(window.tools.button(1).isChecked())
+        QtTest.QTest.keyClicks(window.plot, 'z')
+        self.assertTrue(window.tools.button(0).isChecked())
+        QtTest.QTest.keyClicks(window.plot, 'f')
+        np.testing.assert_allclose(window.plot.getViewBox().viewRange()[1], window.full_range[1])
+        with tempfile.TemporaryDirectory() as folder:
+            marked, cleared = [Path(folder)/name for name in ('marked.png', 'cleared.png')]
+            self.assertTrue(window.save_view(marked))
+            QtTest.QTest.keyClick(window.plot.viewport(), QtCore.Qt.Key.Key_Delete)
+            for item in (guide, window.diffusion_guide, window.ppm_guide, window.projection_guide, window.d_label):
+                self.assertFalse(item.isVisible())
+            self.assertTrue(window.save_view(cleared))
+            first, second = [QtGui.QImage(str(path)).convertToFormat(QtGui.QImage.Format.Format_RGB32) for path in (marked, cleared)]
+            self.assertEqual(first.size(), second.size())
+            width = window.diffusion_plot.width()
+            a, b = (np.frombuffer(image.constBits(), dtype=np.uint32).reshape(image.height(), -1) for image in (first, second))
+            self.assertGreater(np.count_nonzero(a[:, :width] != b[:, :width]), 20)
+        window.diffusion_button.click()
+        self.assertFalse(window.diffusion_plot.isVisible())
+
+    def test_adaptive_local_ilt_uses_cached_rows_and_updates_mode(self):
+        from dosy_alignment_panel import ADAPTIVE
+
+        w = self.w
+        for bounds in ([3.60,3.68], [5.26,5.33], [4.66,4.74]):
+            w.add_roi(bounds)
+        settle(w)
+        original = w.results
+        with patch('ui.analyze', side_effect=AssertionError('Adaptive map must preserve independent fits')):
+            w.show_map()
+            window = w.map_window
+            panel = window.alignment
+            self.assertFalse(panel.adaptive_controls.isVisible())
+            panel.tolerance.setValue(20.)
+            panel.mode.setCurrentIndex(ADAPTIVE)
+            self.assertTrue(panel.adaptive_controls.isVisible())
+
+            def wait():
+                end = time.monotonic()+8
+                while not panel.ready and not panel.error and time.monotonic() < end:
+                    QtTest.QTest.qWait(15)
+                self.assertTrue(panel.ready, panel.error)
+
+            wait()
+            self.assertIn(('S1','S2'), [group.ids for group in panel.local_groups])
+            group = panel.tree.topLevelItem(0)
+            panel.tree.setCurrentItem(group)
+            self.assertEqual(panel.highlighted, {'S1','S2'})
+            self.assertTrue(any(image.opacity() < 1. for image in window.images))
+            group.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+            self.assertLess(len(window.images), 3)
+            panel.balance.setValue(3.)
+            panel.regularization.setText('2e-6')
+            panel.recalculate()
+            wait()
+            self.assertIs(w.results, original)
+            panel.reset_defaults()
+            wait()
+            self.assertEqual(panel.balance.value(), 10.)
+            self.assertEqual(panel.regularization.text(), '1e-6')
+
+    def test_dosy_map_navigation_coordinates_floor_and_export(self):
+        w = self.w
+        w.add_roi([3.60, 3.68], group='Sacharoza')
+        w.add_roi([5.26, 5.33], group='Sacharoza')
         settle(w)
         with patch('ui.analyze', side_effect=AssertionError('Mapa nie może ponawiać fitu.')):
             w.map_button.click()
             APP.processEvents()
             window = w.map_window
             self.assertTrue(window.isVisible())
+            self.assertEqual(len(window.images), 2)
+            group = window.groups.topLevelItem(0)
+            self.assertEqual(group.text(0), 'Sacharoza')
+            window.rois.item(1).setCheckState(QtCore.Qt.CheckState.Unchecked)
+            group.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+            self.assertEqual(len(window.images), 0)
+            group.setCheckState(0, QtCore.Qt.CheckState.Checked)
+            self.assertEqual(len(window.images), 1)
+            self.assertEqual(window.rois.item(1).checkState(), QtCore.Qt.CheckState.Unchecked)
+            window.rois.item(1).setCheckState(QtCore.Qt.CheckState.Checked)
             self.assertEqual(len(window.images), 2)
             layer = w.dataset.options['reference_layer']
             np.testing.assert_array_equal(window.trace.getData()[1], w.dataset.spectrum[layer].real)

@@ -39,6 +39,10 @@ def tr(text):
     return _convert(text, 'en') if _language == 'en' else text
 
 
+def current_language():
+    return _language
+
+
 def set_language(code):
     global _language, _qt_translator
     _language = 'en' if code == 'en' else 'pl'

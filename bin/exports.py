@@ -2,6 +2,7 @@
 from pathlib import Path, PureWindowsPath
 from datetime import datetime,timezone
 import csv,json,uuid
+from sys import float_info
 import numpy as np
 from core import clean_json,validate_options
 from d_statistics import build_snapshot,groups,summarize,export_statistics,SCIENTIFIC_NOTE
@@ -21,6 +22,39 @@ def save_project(path,dataset,entries,*,integral_scale=1.):
     packet=project_payload(dataset,entries,integral_scale=integral_scale)
     require_extension(path,'.proj').write_text(json.dumps(clean_json(packet),ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
 
+
+def integral_definitions(rows):
+    if not isinstance(rows, list) or not rows:
+        raise ValueError('Lista całek jest pusta lub nieprawidłowa.')
+    seen = set()
+    definitions = []
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError('Nieprawidłowa definicja całki.')
+        sid, group, bounds = row.get('id'), row.get('group'), row.get('bounds')
+        if not isinstance(sid, str) or not sid.strip() or not isinstance(group, str):
+            raise ValueError('Nieprawidłowe ID lub grupa całki.')
+        if sid in seen:
+            raise ValueError('Powtórzone ID całki.')
+        if (not isinstance(bounds, (list, tuple)) or len(bounds) != 2
+                or not all(type(value) in (int, float) and abs(value) <= float_info.max for value in bounds)
+                or bounds[0] >= bounds[1]):
+            raise ValueError('Nieprawidłowe granice całki.')
+        seen.add(sid)
+        definitions.append(dict(id=sid, group=group, bounds=list(bounds)))
+    return definitions
+
+
+def save_integrals(path, entries):
+    packet = dict(schema='dosy_lab_integrals', version=1, integrals=integral_definitions(entries))
+    require_extension(path, '.ints').write_text(json.dumps(packet, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
+
+
+def read_integrals(path):
+    packet = json.loads(require_extension(path, '.ints').read_text(encoding='utf-8'))
+    if not isinstance(packet, dict) or packet.get('schema') != 'dosy_lab_integrals' or packet.get('version') != 1:
+        raise ValueError('Nieobsługiwany plik całek DOSY Lab.')
+    return integral_definitions(packet.get('integrals'))
 
 def _project_source(project, packet):
     original = packet['source_path']

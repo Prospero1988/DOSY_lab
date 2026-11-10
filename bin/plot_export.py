@@ -14,6 +14,7 @@ NAVY = '#142b5c'
 def light_plot(source):
     plot = pg.PlotWidget(background='w')
     plot.invertX(source.getViewBox().xInverted())
+    plot.invertY(source.getViewBox().yInverted())
     plot.hideButtons()
     plot.getViewBox().setBorder('k')
     for name in ('left', 'bottom'):
@@ -24,6 +25,7 @@ def light_plot(source):
         axis.setTextPen('k')
         axis.setLabel(original.labelText, units=original.labelUnits, color='#000000')
         axis.setStyle(showValues=original.style['showValues'])
+        axis.setLogMode(original.logMode)
         axis.enableAutoSIPrefix(original.autoSIPrefix)
         axis.setGrid(original.grid)
     plot.getAxis('left').setWidth(source.getAxis('left').width())
@@ -43,14 +45,14 @@ def _colored_pen(pen, color):
     return result
 
 
-def _light_item(item):
+def _light_item(item, color=NAVY):
     if isinstance(item, pg.PlotDataItem):
         x, y = item.getData()
         if x is None or len(x) == 0:
             return None
-        return pg.PlotDataItem(x, y, pen=_colored_pen(item.opts['pen'], NAVY),
+        return pg.PlotDataItem(x, y, pen=_colored_pen(item.opts['pen'], color),
                                symbol=item.opts['symbol'], symbolSize=item.opts['symbolSize'],
-                               symbolPen=None, symbolBrush=NAVY)
+                               symbolPen=None, symbolBrush=color, name=item.name())
     if isinstance(item, pg.ScatterPlotItem):
         spots = [
             dict(pos=point.pos(), size=point.size(), symbol=point.symbol(), pen=pg.mkPen(NAVY),
@@ -67,6 +69,12 @@ def _light_item(item):
                                    brush=pg.mkBrush(0, 0, 0, alpha))
     if isinstance(item, pg.InfiniteLine):
         return pg.InfiniteLine(item.value(), angle=item.angle, pen=_colored_pen(item.pen, '#000000'))
+    if isinstance(item, pg.ImageItem) and item.image is not None:
+        image = pg.ImageItem(item.image, axisOrder=item.axisOrder, lut=item.lut,
+                             levels=item.getLevels(), autoLevels=False)
+        image.setTransform(item.transform())
+        image.setPos(item.pos())
+        return image
     if isinstance(item, pg.TextItem):
         label = pg.TextItem(item.toPlainText(), color='k', anchor=item.anchor)
         label.setPos(item.pos())
@@ -74,19 +82,26 @@ def _light_item(item):
     return None
 
 
-def save_light_plot(source, path, *, bottom_ticks=None):
+def save_light_plot(source, path, *, bottom_ticks=None, left_ticks=None, legend=False, dpi=None, series_colors=None):
     path = Path(path)
     plot = light_plot(source)
     plot.setAttribute(QtCore.Qt.WidgetAttribute.WA_DontShowOnScreen)
     try:
+        if legend:
+            plot.addLegend(labelTextColor='k', brush='w')
         if bottom_ticks is not None:
             plot.getAxis('bottom').setTicks([bottom_ticks])
+        if left_ticks is not None:
+            plot.getAxis('left').setTicks([left_ticks])
         for item in source.plotItem.items:
             if not item.isVisible():
                 continue
-            copy = _light_item(item)
+            color = series_colors.get(item.name(), NAVY) if series_colors and isinstance(item, pg.PlotDataItem) else NAVY
+            copy = _light_item(item, color)
             if copy is not None:
                 copy.setZValue(item.zValue())
+                if legend and isinstance(item, pg.InfiniteLine) and getattr(item, 'label', None) is not None:
+                    pg.InfLineLabel(copy, text=item.label.format, position=item.label.orthoPos, color='k')
                 plot.addItem(copy)
         plot.resize(max(source.width(), 600), max(source.height(), 300))
         plot.show()
@@ -97,7 +112,14 @@ def save_light_plot(source, path, *, bottom_ticks=None):
         elif path.suffix.lower() == '.png':
             exporter = ImageExporter(plot.plotItem)
             exporter.parameters()['width'] = 1600
-            exporter.export(str(path))
+            if dpi is None:
+                exporter.export(str(path))
+            else:
+                image = exporter.export(toBytes=True)
+                image.setDotsPerMeterX(round(dpi / .0254))
+                image.setDotsPerMeterY(round(dpi / .0254))
+                if not image.save(str(path), 'PNG'):
+                    raise OSError(f'Could not save PNG: {path}')
         else:
             raise ValueError('Wybierz rozszerzenie PNG lub SVG.')
     finally:

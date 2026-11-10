@@ -7,16 +7,20 @@ import numpy as np
 from PySide6 import QtCore,QtGui,QtWidgets
 import pyqtgraph as pg
 import pyqtgraph.exporters
-from core import process_fids,initial_dataset,analyze
+from core import process_fids, initial_dataset, analyze, validate_baseline_roi_overlap, validate_integral_bounds
 from jeol import read_jdf,manual_b
 from processing_panel import ProcessingPanel,BDialog
 from statistics_window import StatisticsWindow
 from dosy_map import DosyMapWindow
-from storage import DATA, PROJECTS, PROJECT_FILTER, choose_save_file, dialog_directory, source_save_name
+from storage import (DATA, PROJECTS, PROJECT_FILTER, INTEGRALS, INTEGRALS_FILTER,
+                     choose_save_file, dialog_directory, source_save_name)
 from plot_export import save_light_plot
 from d_statistics import build_snapshot,number
 from fullscreen_plot import enable_fullscreen
-from exports import export_bundle,save_project,read_project
+from ilt_window import ILTWindow
+from global_ilt_window import GlobalILTWindow
+from ilt import MIN_DISTINCT_B
+from exports import export_bundle, save_project, read_project, save_integrals, read_integrals
 from spectrum_view import SpectrumBox
 from phase_window import PhaseWindow
 from spectrum_settings import SpectrumAppearance, SpectrumSettingsDialog
@@ -36,6 +40,7 @@ GROUP_COLUMN = 1
 LOWER_PPM_COLUMN = 2
 UPPER_PPM_COLUMN = 3
 INTEGRAL_COLUMN = 4
+ILT_COLUMN = 9
 
 
 class GroupDelegate(QtWidgets.QStyledItemDelegate):
@@ -87,6 +92,9 @@ class Window(QtWidgets.QMainWindow):
         self.signal_labels = {}
         self.info_window = None
         self.map_window = None
+        self.ilt_window = None
+        self.global_ilt_window = None
+        self.map_ilt = None
         self.worker=None;self.job_callback=None;self.pending=False;self.revision=0;self.job_revision=0
         self.valid=False;self._updating=False;self.close_pending=False;self.statistics_window=None;self.phase_window=None
         self.experiment_id=uuid.uuid4().hex;self.region_items={};self.base_items=[];self.next_id=1
@@ -179,14 +187,20 @@ class Window(QtWidgets.QMainWindow):
         left=QtWidgets.QWidget();ll=QtWidgets.QVBoxLayout(left);bottom.addWidget(left)
         bar=QtWidgets.QHBoxLayout();ll.addLayout(bar)
         self.button(tr('Dopasuj / odśwież'),self.request_calculation,bar,tr('Przelicz widma, całki i dopasowania D z bieżących ustawień.'))
-        self.roi_table=QtWidgets.QTableWidget(0,9)
-        self.roi_table.setHorizontalHeaderLabels(['ID',tr('Grupa / związek'),tr('Od ppm'),tr('Do ppm'),tr('Całka'),'D / 10⁻¹⁰','SE(D) / 10⁻¹⁰','R²','QC'])
+        self.global_ilt_button = self.button('Global ILT', self.show_global_ilt, bar,
+                                            tr('Zaznacz co najmniej dwa wiersze przez Ctrl lub Shift.'))
+        self.button(tr('Eksport całek'), self.export_integrals, bar, tr('Zapisz ID, grupy i zakresy ppm całek do ponownego użycia.'))
+        self.button(tr('Import całek'), self.import_integrals, bar, tr('Wczytaj zapisane zakresy ppm i przelicz je dla bieżącego widma.'))
+        self.roi_table=QtWidgets.QTableWidget(0,10)
+        self.roi_table.setHorizontalHeaderLabels(['ID',tr('Grupa / związek'),tr('Od ppm'),tr('Do ppm'),tr('Całka'),'D / 10⁻¹⁰','SE(D) / 10⁻¹⁰','R²','QC','ILT'])
         self.roi_table.setItemDelegateForColumn(GROUP_COLUMN, GroupDelegate(self))
         self.roi_table.horizontalHeaderItem(6).setToolTip(
             tr('Błąd standardowy oszacowania D z dopasowania zaniku, w 10⁻¹⁰ m²/s.'))
         self.roi_table.horizontalHeaderItem(INTEGRAL_COLUMN).setToolTip(
             tr('Całki pierwszej widocznej warstwy. Wpisz wartość odniesienia, aby proporcjonalnie przeskalować wszystkie całki.'))
         self.roi_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.roi_table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.roi_table.itemSelectionChanged.connect(self.update_global_ilt_selection)
         self.roi_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         self.roi_table.itemChanged.connect(self.roi_edited);self.roi_table.currentCellChanged.connect(self.roi_selected);ll.addWidget(self.roi_table)
         self.fit_info=QtWidgets.QLabel(tr('Zaznacz sygnał. Grupa jest potrzebna do statystyki zbiorczej.'));self.fit_info.setWordWrap(True);ll.addWidget(self.fit_info)
@@ -293,10 +307,12 @@ class Window(QtWidgets.QMainWindow):
 
     def loaded(self,payload):
         self.raw,self.dataset,self.entries,self.results,self.integral_scale=payload
+        self.set_map_ilt(self.dataset, (), None)
+        self.roi_table.clearSelection()
         self.processing.source_name = self.dataset.name
         self.experiment_id=uuid.uuid4().hex
         self.active_id=self.entries[0]['id'] if self.entries else None
-        self.next_id=max([int(e['id'][1:]) for e in self.entries if e['id'].startswith('S') and e['id'][1:].isdigit()]+[0])+1
+        self.reset_next_roi_id()
         self.processing.set_options(self.dataset.options,len(self.raw.fid))
         self.layer.blockSignals(True);self.layer.clear()
         for i,g in enumerate(self.raw.gradients):
@@ -310,6 +326,7 @@ class Window(QtWidgets.QMainWindow):
     def request_calculation(self,*args):
         if self.raw is None or self._updating:return
         self.revision+=1;self.valid=False;self.export_button.setEnabled(False);self.timer.start(180)
+        self.set_map_ilt(self.dataset, (), None)
         self.invalidate_map()
 
     def invalidate_map(self):
@@ -546,9 +563,19 @@ class Window(QtWidgets.QMainWindow):
 
     def new_roi(self,bounds,name=None,group=''):
         if len(bounds)!=2 or not np.isfinite(bounds).all() or min(bounds)>=max(bounds):raise ValueError(tr('Nieprawidłowe granice ROI.'))
+        used_ids = {entry['id'] for entry in self.entries}
+        while f'S{self.next_id}' in used_ids:
+            self.next_id += 1
         sid=f'S{self.next_id}';self.next_id+=1
-        return dict(id=sid,name=name or sid,group=group,bounds=sorted(bounds),color=COLORS[(self.next_id-2)%len(COLORS)],
+        return self.make_roi(sid, bounds, group, self.next_id-2, name)
+
+    def make_roi(self, sid, bounds, group, color_index, name=None):
+        return dict(id=sid,name=name or sid,group=group,bounds=sorted(bounds),color=COLORS[color_index % len(COLORS)],
                     fit_mask=[True]*len(self.raw.fid),sigma=[None]*len(self.raw.fid),weighted=False)
+
+    def reset_next_roi_id(self):
+        numbers = (entry['id'][1:] for entry in self.entries if entry['id'].startswith('S'))
+        self.next_id = 1 + max((int(number) for number in numbers if len(number) < 100 and number.isascii() and number.isdecimal()), default=0)
 
     def add_roi(self,bounds,name=None,group=''):
         if self.raw is None:return
@@ -605,6 +632,7 @@ class Window(QtWidgets.QMainWindow):
             self.render_spectrum();self.render_roi_table();self.request_calculation()
 
     def render_roi_table(self):
+        selected = set(self.selected_roi_ids())
         self._updating=True;self.roi_table.setRowCount(len(self.entries));fits={e['id']:e for e in self.results}
         for i,e in enumerate(self.entries):
             fit=fits.get(e['id'],{}).get('fit') or {}
@@ -625,7 +653,25 @@ class Window(QtWidgets.QMainWindow):
                 if j==INTEGRAL_COLUMN:
                     item.setToolTip(tr('Wpisz wartość odniesienia. Wszystkie całki przy widmie i w tej kolumnie zmienią się w tej samej proporcji.'))
                 self.roi_table.setItem(i,j,item)
-            if e['id']==self.active_id:self.roi_table.setCurrentCell(i,0)
+            if fit.get('ok') and self.valid:
+                if self.roi_table.cellWidget(i, ILT_COLUMN) is None:
+                    button = QtWidgets.QPushButton(tr('Analizuj ILT'))
+                    button.clicked.connect(lambda _, row=i: self.show_ilt(self.entries[row]['id']))
+                    self.roi_table.setCellWidget(i, ILT_COLUMN, button)
+            else:
+                self.roi_table.removeCellWidget(i, ILT_COLUMN)
+            if e['id']==self.active_id:
+                self.roi_table.setCurrentCell(i, 0, QtCore.QItemSelectionModel.SelectionFlag.NoUpdate)
+        selection = QtCore.QItemSelection()
+        preserved = selected & {entry['id'] for entry in self.entries}
+        if len(preserved) < 2:
+            preserved = {self.active_id}
+        for i, entry in enumerate(self.entries):
+            if entry['id'] in preserved:
+                index = self.roi_table.model().index(i, 0)
+                selection.select(index, index)
+        flags = QtCore.QItemSelectionModel.SelectionFlag
+        self.roi_table.selectionModel().select(selection, flags.ClearAndSelect | flags.Rows)
         self._updating=False
     def roi_edited(self,item):
         if self._updating:return
@@ -771,11 +817,70 @@ class Window(QtWidgets.QMainWindow):
         if self.dataset is None:return
         if self.statistics_window is None:self.statistics_window=StatisticsWindow(self)
         self.statistics_window.update_live(self.snapshot());self.statistics_window.show();self.statistics_window.raise_()
+
+    def show_ilt(self, sid):
+        if not self.valid or self.dataset is None or self.dataset.b is None:
+            return
+        entry = next((row for row in self.results if row['id'] == sid and row['fit'].get('ok')), None)
+        if entry is None:
+            return
+        if self.ilt_window is not None:
+            self.ilt_window.close()
+        self.ilt_window = ILTWindow(self, self.dataset.name, self.dataset.b, entry)
+        self.ilt_window.finished.connect(self.ilt_closed)
+        self.ilt_window.show()
+
+    def ilt_closed(self):
+        self.ilt_window = None
+
+    def selected_roi_ids(self):
+        rows = sorted(index.row() for index in self.roi_table.selectionModel().selectedRows())
+        return [item.text() for row in rows if (item := self.roi_table.item(row, 0)) is not None]
+
+    def update_global_ilt_selection(self):
+        count = len(self.selected_roi_ids())
+        self.global_ilt_button.setText(f'Global ILT ({count})' if count else 'Global ILT')
+
+    def show_global_ilt(self):
+        if not self.valid or self.dataset is None or self.dataset.b is None:
+            self.statusBar().showMessage(tr('Wczytaj widmo z wartościami b i przelicz całki.'), 7000)
+            return
+        ids = self.selected_roi_ids()
+        if len(ids) < 2:
+            self.statusBar().showMessage(tr('Zaznacz co najmniej dwa wiersze przez Ctrl lub Shift.'), 7000)
+            return
+        by_id = {entry['id']: entry for entry in self.results}
+        entries = [by_id.get(sid) for sid in ids]
+        if any(entry is None or not entry['fit'].get('ok') or
+               len(np.unique(self.dataset.b[entry['fit']['fit_mask']])) < MIN_DISTINCT_B for entry in entries):
+            self.statusBar().showMessage(tr('Wybierz ROI z poprawnym fitem i co najmniej 6 różnymi aktywnymi wartościami b.'), 9000)
+            return
+        if self.global_ilt_window is not None:
+            self.global_ilt_window.close()
+        self.global_ilt_window = GlobalILTWindow(self, self.dataset.name, self.dataset.b, entries)
+        dataset, revision = self.dataset, self.revision
+        self.set_map_ilt(dataset, (), None)
+        self.global_ilt_window.solution_changed.connect(
+            lambda result: self.set_map_ilt(dataset, tuple(ids), result) if revision == self.revision else None)
+        self.global_ilt_window.finished.connect(self.global_ilt_closed)
+        self.global_ilt_window.show()
+
+    def global_ilt_closed(self):
+        self.global_ilt_window = None
+
+    def set_map_ilt(self, dataset, ids, result):
+        if dataset is not self.dataset:
+            return
+        self.map_ilt = (ids, result) if result is not None else None
+        if self.map_window is not None:
+            self.map_window.alignment.set_snapshot(self.map_ilt)
+
     def show_map(self):
         if not self.valid:return
         if self.map_window is None:self.map_window=DosyMapWindow(self)
         self.map_window.show()
         self.map_window.update_data(self.experiment_id,self.dataset,self.results)
+        self.map_window.alignment.set_snapshot(self.map_ilt)
         self.map_window.raise_()
     def edit_spectrum_settings(self):
         dialog = SpectrumSettingsDialog(self.appearance, self)
@@ -818,6 +923,58 @@ class Window(QtWidgets.QMainWindow):
         except OSError as exc:
             QtWidgets.QMessageBox.warning(self,tr('Wczytaj projekt'),str(exc))
 
+    def export_integrals(self):
+        if not self.entries:
+            self.statusBar().showMessage(tr('Dodaj co najmniej jedną całkę do eksportu.'), 5000)
+            return
+        title = tr('Eksport całek')
+        try:
+            filename = source_save_name(self.dataset.name, '.ints')
+            path = choose_save_file(self, title, INTEGRALS, filename, tr(INTEGRALS_FILTER))
+            if path:
+                save_integrals(path, self.entries)
+        except (OSError, ValueError) as exc:
+            QtWidgets.QMessageBox.warning(self, title, tr(str(exc)))
+
+    def import_integrals(self):
+        if not self.valid or self.worker is not None:
+            self.statusBar().showMessage(tr('Wczytaj widmo i poczekaj na aktualne obliczenia.'), 5000)
+            return
+        title = tr('Import całek')
+        try:
+            path, _ = QtWidgets.QFileDialog.getOpenFileName(self, title, dialog_directory(INTEGRALS), tr(INTEGRALS_FILTER))
+            if not path:
+                return
+            definitions = read_integrals(path)
+            bounds = [validate_integral_bounds(self.dataset.ppm, row['bounds']) for row in definitions]
+            if self.dataset.options['baseline_enabled']:
+                validate_baseline_roi_overlap(self.dataset.options['baseline_regions'], bounds)
+        except (OSError, ValueError) as exc:
+            QtWidgets.QMessageBox.warning(self, title, tr(str(exc)))
+            return
+        if self.entries and QtWidgets.QMessageBox.question(self, title, tr('Zastąpić bieżące całki zakresami z pliku?'),
+                QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
+                QtWidgets.QMessageBox.StandardButton.No) != QtWidgets.QMessageBox.StandardButton.Yes:
+            return
+        self.roi_table.clearSelection()
+        self.entries = [self.make_roi(row['id'], row['bounds'], row['group'], index)
+                        for index, row in enumerate(definitions)]
+        self.reset_next_roi_id()
+        self.active_id = self.entries[0]['id']
+        self.results = []
+        self.integral_scale = 1.
+        if self.statistics_window is not None:
+            self.statistics_window.choices.pop(self.experiment_id, None)
+        if self.map_window is not None:
+            self.map_window.excluded.clear()
+            self.map_window.excluded_groups.clear()
+            self.map_window.alignment.manual.clear()
+            self.map_window.alignment.hidden.clear()
+        self.render_spectrum()
+        self.render_roi_table()
+        self.render_diagnostics()
+        self.request_calculation()
+
     def choose_spectrum_png(self):
         filename = source_save_name(self.dataset.name, '.png')
         path, _ = QtWidgets.QFileDialog.getSaveFileName(self, tr('Zapisz widmo 1D'), filename, 'PNG (*.png)')
@@ -858,6 +1015,8 @@ class Window(QtWidgets.QMainWindow):
         if self.worker is not None and self.worker.isRunning():self.close_pending=True;event.ignore();return
         if self.statistics_window is not None:self.statistics_window.close()
         if self.map_window is not None:self.map_window.close()
+        if self.ilt_window is not None:self.ilt_window.close()
+        if self.global_ilt_window is not None:self.global_ilt_window.close()
         if self.info_window is not None:self.info_window.close()
         super().closeEvent(event)
 

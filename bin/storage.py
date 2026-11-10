@@ -6,10 +6,12 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / 'data'
 PROJECTS = ROOT / 'projects'
 PROCESSING = ROOT / 'processing'
+INTEGRALS = ROOT / 'integrals'
 WORK = ROOT / 'work'
 EXAMPLES = ROOT / 'examples'
 PROJECT_FILTER = 'Projekt DOSY Lab (*.proj)'
 PROFILE_FILTER = 'Profil processingu DOSY Lab (*.list)'
+INTEGRALS_FILTER = 'Zakresy całkowania DOSY Lab (*.ints)'
 
 
 def dialog_directory(directory):

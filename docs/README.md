@@ -62,6 +62,8 @@ The [user guide](INSTRUKCJA.md) walks through opening data, processing, phase an
 - [Interactive phase correction](INSTRUKCJA.md#3-phase-correction)
 - [Where b values come from](INSTRUKCJA.md#6-b-values)
 - [D statistics and fit diagnostics](INSTRUKCJA.md#8-d-statistics)
+- [Experimental inverse Laplace analysis](ILT.md)
+- [Experimental Global ILT for selected ROIs](GLOBAL-ILT.md)
 - [Project files and exports](INSTRUKCJA.md#9-projects-and-exports)
 - [2D DOSY map from integrals](INSTRUKCJA.md#11-2d-dosy-map)
 
@@ -82,9 +84,10 @@ The [user guide](INSTRUKCJA.md) walks through opening data, processing, phase an
 | `data` | Default directory for opening local JDF data |
 | `projects` | Local `.proj` files |
 | `processing` | Local `.list` profiles |
+| `integrals` | Local `.ints` files with integral IDs, compound groups and ppm bounds |
 | `work` | Local working data |
 
-Git ignores `data`, `work`, `projects` and `processing`.
+Git ignores `data`, `work`, `projects`, `processing` and `integrals`.
 
 ~~~powershell
 .\.venv\Scripts\python.exe -m unittest discover -s bin -v
