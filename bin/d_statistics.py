@@ -26,12 +26,14 @@ def quality(fit, error=''):
     fit = fit or {}
     d, se, r2 = (finite(fit.get(key)) for key in ('D_m2_s', 'D_standard_error_m2_s', 'R2'))
     if error or not fit.get('ok'):
-        return False, 'BRAK FITU', error or fit.get('message', 'Brak poprawnego dopasowania.')
+        message = error or fit.get('message', 'Brak poprawnego dopasowania.')
+        return False, 'BRAK FITU', ' '.join([message, *(fit.get('measurement_warnings') or [])])
     if d is None or d < 0:
         return False, 'BŁĘDNE D', 'D jest brakujące, ujemne lub nieskończone/NaN.'
     provided_warnings = fit.get('warnings') or []
     if isinstance(provided_warnings, str): provided_warnings = [provided_warnings]
     warnings = [str(w) for w in provided_warnings]
+    warnings.extend(fit.get('measurement_warnings') or [])
     if se is None or se <= 0:
         warnings.append('Brak dodatniego, skończonego SE(D); niedostępne wagi 1/SE².')
     if r2 is None:

@@ -9,6 +9,9 @@ from d_statistics import finite
 from ilt import D_UNIT, _kernel
 
 
+MAX_PROFILE_RELATIVE_RESIDUAL = .15
+
+
 @dataclass(frozen=True)
 class DiffusionGroup:
     ids: tuple[str, ...]
@@ -99,9 +102,11 @@ def alignment_plan(b, rows, tolerance, excluded, shared=False):
     return groups
 
 
-def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution, *, conserve_reference=False):
+def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution, *, conserve_reference=False,
+                 withheld=None):
     """Estimate nonnegative ppm profiles using component decay bases fixed by ILT."""
     profiles, rejected = {}, []
+    withheld = {} if withheld is None else withheld
     if not solution.converged:
         return profiles, tuple(ids)
     by_id = {row['id']: row for row in rows}
@@ -117,6 +122,11 @@ def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution, *, conse
         masses = prediction[reference_layer]
         keep = (masses > 0) & (masses >= .05*masses.sum())
         peaks = [peak for peak, enabled in zip(solution.components, keep) if enabled]
+        omitted = float(masses[~keep].sum()/masses.sum()) if masses.sum() > 0 else 0.
+        if len(peaks) == 1 and omitted > 0:
+            withheld[sid] = dict(reason='discarded_component', omitted_fraction=omitted)
+            rejected.append(sid)
+            continue
         scale = solution.scales[column]
         original_rms = entry['fit']['RMSE']/scale
         if (not peaks or stop-start < 2 or any(peak in (0, len(solution.diffusion)-1) for peak in peaks)
@@ -124,7 +134,20 @@ def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution, *, conse
             rejected.append(sid)
             continue
         if len(peaks) == 1:
-            profiles[sid] = ((solution.diffusion[peaks[0]], spectra[reference_layer,start:stop]),)
+            # Copy a reference trace only if the fixed decay basis explains the
+            # signed spectra, including any dispersion or negative baseline.
+            basis = prediction[mask, keep.nonzero()[0][0]] / masses[keep][0]
+            trace = spectra[reference_layer,start:stop]
+            target = spectra[mask,start:stop]
+            error = np.linalg.norm(basis[:,None]*trace-target)
+            target_norm = np.linalg.norm(target)
+            profile_flags = entry.get('result',{}).get('profile_diagnostics',{}).get('flagged',())
+            if target_norm == 0 or error > MAX_PROFILE_RELATIVE_RESIDUAL*target_norm or {'shape','phase'}.intersection(profile_flags):
+                withheld[sid] = dict(reason='spectral_mismatch', omitted_fraction=omitted,
+                                     relative_residual=float(error/target_norm) if target_norm else None)
+                rejected.append(sid)
+            else:
+                profiles[sid] = ((solution.diffusion[peaks[0]], trace),)
             continue
         basis = prediction[mask][:,keep]/masses[keep]
         target = spectra[mask,start:stop]
@@ -139,11 +162,11 @@ def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution, *, conse
             rejected.append(sid)
             continue
         weights = trapezoid(coeff, x=ppm[start:stop], axis=1)
-        if (np.linalg.norm(basis@coeff-target)/np.linalg.norm(target) > .15 or weights.sum() <= 0
+        if (np.linalg.norm(basis@coeff-target)/np.linalg.norm(target) > MAX_PROFILE_RELATIVE_RESIDUAL or weights.sum() <= 0
                 or np.max(np.abs(weights/weights.sum()-masses[keep]/masses[keep].sum())) > .2):
             rejected.append(sid)
             continue
-        if conserve_reference:
+        if conserve_reference and omitted == 0:
             reference = np.maximum(spectra[reference_layer,start:stop]/target_scale, 0.)
             total = coeff.sum(axis=0)
             if reference[total == 0].sum() > .01*reference.sum() or not reference.any():
@@ -151,7 +174,7 @@ def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution, *, conse
                 continue
             coeff *= np.divide(reference, total, out=np.zeros_like(total), where=total > 0)
             weights = trapezoid(coeff, x=ppm[start:stop], axis=1)
-            if (np.linalg.norm(basis@coeff-target)/np.linalg.norm(target) > .15 or weights.sum() <= 0
+            if (np.linalg.norm(basis@coeff-target)/np.linalg.norm(target) > MAX_PROFILE_RELATIVE_RESIDUAL or weights.sum() <= 0
                     or np.max(np.abs(weights/weights.sum()-masses[keep]/masses[keep].sum())) > .2):
                 rejected.append(sid)
                 continue

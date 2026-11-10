@@ -1,5 +1,4 @@
 """On-demand ILT diagnostics for a snapshot of one DOSY integral."""
-from functools import partial
 
 import numpy as np
 import pyqtgraph as pg
@@ -7,7 +6,7 @@ from PySide6 import QtCore, QtWidgets
 
 from d_statistics import number
 from i18n import tr
-from ilt import D_UNIT, GRID_SIZES, ILTParameters, solve_ilt
+from ilt import D_UNIT, GRID_SIZES, ILTParameters, sensitivity_trials, solve_ilt
 from ilt_help import ILT_HELP, ILT_WINDOW_FLAGS, add_ilt_info
 from ilt_tools import ILTPlotTools, SolveJob
 
@@ -46,6 +45,10 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.summary = QtWidgets.QLabel()
         self.summary.setWordWrap(True)
         root.addWidget(self.summary)
+        self.stability_summary = QtWidgets.QLabel(textFormat=QtCore.Qt.TextFormat.PlainText)
+        self.stability_summary.setWordWrap(True)
+        self.stability_summary.hide()
+        root.addWidget(self.stability_summary)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
         root.addWidget(splitter, 1)
@@ -103,6 +106,9 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.log_axis = QtWidgets.QCheckBox(tr('Logarytmiczna oś D'))
         self.log_axis.toggled.connect(self.render_distribution)
         actions.addWidget(self.log_axis)
+        self.stability = QtWidgets.QCheckBox(tr('Sprawdź wrażliwość ILT'))
+        self.stability.toggled.connect(self.queue_solve)
+        actions.addWidget(self.stability)
         for label, callback in [('Przywróć ustawienia', self.reset_parameters), ('Przelicz ILT', self.recalculate)]:
             button = QtWidgets.QPushButton(tr(label))
             button.clicked.connect(callback)
@@ -156,6 +162,7 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
 
     def queue_solve(self, *_):
         self.revision += 1
+        self.stability_summary.hide()
         for button in self.export_buttons:
             button.setEnabled(False)
         self.show_error('Oczekiwanie na rozwiązanie ILT…')
@@ -170,7 +177,14 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         except ValueError as exc:
             self.show_error(str(exc))
             return
-        compute = partial(solve_ilt, self.b, self.y, include=self.mask, sigma=self.sigma)
+        b, y, mask, sigma = self.b, self.y, self.mask, self.sigma
+        check_stability = self.stability.isChecked()
+
+        def compute(settings):
+            result = solve_ilt(b,y,settings,include=mask,sigma=sigma)
+            trials = sensitivity_trials(b,y,settings,result,include=mask,sigma=sigma) if check_stability else ()
+            return result,trials
+
         self.job = SolveJob(self.revision, p, compute)
         self.job.signals.finished.connect(self.solved)
         QtCore.QThreadPool.globalInstance().start(self.job)
@@ -187,12 +201,34 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         if error:
             self.show_error(error)
             return
-        self.result, self.solved_parameters = result, parameters
+        self.result, trials = result
+        self.solved_parameters = parameters
         self.render_comparison()
         self.render_distribution()
-        self.status.setText(' '.join(map(tr, result.warnings)))
+        self.status.setText(' '.join(map(tr, self.result.warnings)))
+        self.show_sensitivity(trials)
         for button in self.export_buttons:
             button.setEnabled(True)
+
+    def show_sensitivity(self, trials):
+        if not trials:
+            self.stability_summary.hide()
+            return
+        lines = [tr('Próby wrażliwości · maksima i przedział zawierający środkowe 90% masy [m²/s]. To nie jest przedział ufności.')]
+        for trial in trials:
+            p = trial['parameters']
+            spacing = tr('Logarytmiczna') if p.spacing == 'log' else tr('Liniowa')
+            label = f'λ={p.regularization:.4g} · {spacing}'
+            if trial.get('error'):
+                lines.append(f"{label} · {tr(trial['error'])}")
+                continue
+            peaks = ', '.join(f'{value:.3e}' for value in trial['peaks']) or '—'
+            mass = ' – '.join(f'{value:.3e}' for value in trial['mass_interval']) or '—'
+            lines.append(f"{label} · {tr('Maksima')} ({len(trial['peaks'])}): {peaks} · "
+                         f"{tr('Masa 90%')}: {mass} · RMS/Iₛ={trial['rms']:.3g}"
+                         + (' · ' + ' '.join(map(tr, trial['warnings'])) if trial['warnings'] else ''))
+        self.stability_summary.setText('\n'.join(lines))
+        self.stability_summary.show()
 
     def show_error(self, error):
         suffix = ' ' + tr('Wykresy pokazują poprzednie rozwiązanie.') if self.result is not None else ''

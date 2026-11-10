@@ -15,7 +15,7 @@ from dosy_map import DosyMapWindow
 from storage import (DATA, PROJECTS, PROJECT_FILTER, INTEGRALS, INTEGRALS_FILTER,
                      choose_save_file, dialog_directory, source_save_name)
 from plot_export import save_light_plot
-from d_statistics import build_snapshot,number
+from d_statistics import build_snapshot,number,quality
 from fullscreen_plot import enable_fullscreen
 from ilt_window import ILTWindow
 from global_ilt_window import GlobalILTWindow
@@ -637,17 +637,20 @@ class Window(QtWidgets.QMainWindow):
         for i,e in enumerate(self.entries):
             fit=fits.get(e['id'],{}).get('fit') or {}
             integral=self.integral_value(e,fits.get(e['id']))
+            _, qc, detail = quality(fit, fits.get(e['id'],{}).get('error',''))
             values=[e['id'],e['group'],*[f'{x:.6f}' for x in e['bounds']],
                     self.format_integral(integral),
                     f"{fit['D_m2_s']/1e-10:.5f}" if fit.get('ok') else '—',
                     f"{fit['D_standard_error_m2_s']/1e-10:.5f}" if fit.get('D_standard_error_m2_s') is not None else '—',
                     f"{fit['R2']:.6f}" if fit.get('R2') is not None else '—',
-                    (tr('UWAGA') if fit.get('warnings') else 'OK') if fit.get('ok') else tr('BRAK FITU')]
+                    tr(qc)]
             for j,value in enumerate(values):
                 item=QtWidgets.QTableWidgetItem(value)
                 editable = j in (GROUP_COLUMN,LOWER_PPM_COLUMN,UPPER_PPM_COLUMN) or (j==INTEGRAL_COLUMN and integral is not None)
                 if not editable:item.setFlags(item.flags()&~QtCore.Qt.ItemFlag.ItemIsEditable)
                 if j==0 and e['name']!=e['id']:item.setToolTip(e['name'])
+                if j==len(values)-1:
+                    item.setToolTip(tr(detail))
                 if j==GROUP_COLUMN:
                     item.setToolTip(tr('Dwuklik otwiera edycję. Wpisz nową grupę lub wybierz istniejącą z listy.'))
                 if j==INTEGRAL_COLUMN:
@@ -753,6 +756,13 @@ class Window(QtWidgets.QMainWindow):
                 info+=tr(fit.get('message','Brak poprawnego fitu.'))
                 if d.b is None:
                     info+='\n'+tr(d.metadata['b_source']['description'])
+            if fit.get('measurement_warnings'):
+                info+='\n' + tr('Jakość pomiaru ROI') + ' · ' + ' '.join(map(tr,fit['measurement_warnings']))
+            diagnostic = result.get('profile_diagnostics',{})
+            if diagnostic.get('status') == 'insufficient':
+                info+='\n' + tr('Za mało informacji do oceny zmian profilu między warstwami.')
+            if 'baseline_relative_rms' in diagnostic:
+                info+='\n' + tr('RMS korekty bazy / RMS całek przed korektą') + f": {diagnostic['baseline_relative_rms']:.2%}"
             self.fit_info.setText(info)
         self._updating=False
 

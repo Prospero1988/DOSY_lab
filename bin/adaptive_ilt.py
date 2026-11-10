@@ -1,5 +1,5 @@
 """Local, quality-screened joint inversion of DOSY ROI groups."""
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from types import SimpleNamespace
 
 import numpy as np
@@ -27,6 +27,7 @@ class LocalResult:
     profiles: dict
     unresolved: tuple[str, ...]
     membership: dict  # group IDs -> (ROI, D) components matched from a separate mixed ROI
+    withheld: dict = field(default_factory=dict)
 
 
 def amplitude_weights(amplitude, snr, limit):
@@ -134,7 +135,7 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
     quality = {sid: info for sid, row in by_id.items() if sid not in excluded
                and (info := reference_quality(row, reference)) is not None
                and len(np.unique(dataset.b[row['fit']['fit_mask']])) >= MIN_DISTINCT_B}
-    profiles, groups, attempted = {}, [], set()
+    profiles, groups, attempted, withheld = {}, [], set(), {}
 
     def check_cancelled():
         if cancelled is not None and cancelled():
@@ -142,7 +143,7 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
 
     def project(ids, solution):
         return ilt_profiles(dataset.b, dataset.ppm, dataset.spectrum.real, reference, rows, ids,
-                            solution, conserve_reference=True)
+                            solution, conserve_reference=True, withheld=withheld)
 
     for group in compatible_groups(dataset.b, [by_id[sid] for sid in quality], tolerance):
         check_cancelled()
@@ -198,4 +199,4 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
             if len(matches) == 1:
                 membership.setdefault(matches[0].ids, []).append((sid, d))
     return LocalResult(tuple(groups), profiles, tuple(sorted(set(by_id)-set(profiles)-set(excluded))),
-                       {key: tuple(value) for key, value in membership.items()})
+                       {key: tuple(value) for key, value in membership.items()}, withheld)

@@ -10,7 +10,7 @@ The diffusion weighting $b_i$ is in $\mathrm{s/m^2}$ and the translational diffu
 b=(\gamma g\delta)^2(\Delta-\delta/3)
 ```
 
-The actual weighting depends on the gradient waveform and timing. DOSY Lab uses an explicit JDF b axis, a supported and verified BPP-STE-LED or BPP-DSTE-LED encoding model, or a manually supplied list in acquisition order. This calculation relies on the acquisition metadata and calibration. An incorrect b scale biases every inferred D in the same experiment. Repeated b values remain separate observations.
+The actual weighting depends on the gradient waveform and timing. DOSY Lab uses an explicit JDF b axis, a supported and verified BPP-STE-LED or BPP-DSTE-LED encoding model, or a manually supplied list in acquisition order. This calculation relies on the acquisition metadata and calibration. An incorrect b scale biases every inferred D in the same experiment. Repeated b values remain separate observations. A conflict among recorded timings or between comparable explicit and modeled b values disables automatic diffusion fitting. The FIDs remain available and a documented manual b list can be supplied.
 
 ## Conventional monoexponential fitting
 
@@ -22,7 +22,13 @@ I(b)=I_0\exp(-bD)
 
 $I_0$ is the extrapolated integral at zero weighting. A fitted D may be apparent when the ROI contains overlapping signals, exchange or other departures from the model.
 
-The fit uses bounded nonlinear least squares with $I_0\ge0$ and $D\ge0$. It uses at least three distinct included b values. For numerical scaling the fit uses $b/10^9$ and divides intensities by the largest absolute included intensity. Optional positive point standard errors $\sigma_i$ weight the residuals by $1/\sigma_i$. Negative observations keep their sign. Excluded observations remain in the project. A fit's $\mathrm{SE}(D)$ comes from the local parameter covariance and is conditional on the model, data and weights. Across selected ROIs, SD describes the dispersion of fitted D values and SEM is descriptive. Errors may be correlated across ROIs in one experiment.
+The fit uses bounded nonlinear least squares with $I_0\ge0$ and $D\ge0$. It uses at least three distinct included b values. The fitter uses the smallest active b as its amplitude reference and scales b by the active span. It divides intensities by the largest absolute included intensity. A profiled amplitude supplies the initial estimate before bounded nonlinear least squares. The amplitude at zero weighting is extrapolated when representable. Optional positive point standard errors $\sigma_i$ weight the residuals by $1/\sigma_i$. Negative observations keep their sign. Excluded observations remain in the project. A fit's $\mathrm{SE}(D)$ comes from the local parameter covariance and is conditional on the model, data and weights. Across selected ROIs, SD describes the dispersion of fitted D values and SEM is descriptive. Errors may be correlated across ROIs in one experiment.
+
+## Measurement-quality diagnostics
+
+The complex ROI profile is assessed on the active layers alongside the scalar fit. The leading complex singular vector supplies a template. A complex multiplier per layer separates phase from shape for this diagnostic. The fitted decay still uses the original signed real integrals. A b-trend contrast emphasizes layers with usable template amplitude. Whole-layer random sign changes preserve correlation across spectral points in each residual trace. The test assumes approximately independent, symmetric layer errors and uses the fitted template, so the resulting score is a screening heuristic. It is not a calibrated test across multiple ROIs or a diagnosis of a particular source of contamination. The check requires at least eight distinct active b values. It can miss nonmonotonic changes or overlapping signals with identical attenuation.
+
+When baseline subtraction is active, the fit detail also reports the RMS correction relative to the RMS of the integrals before subtraction. A large correction calls for inspecting the baseline mask. The value does not determine whether the correction is right. Fit convergence, measurement-quality warnings and model interpretation are recorded separately in the fit export.
 
 ## Individual inverse Laplace transform
 

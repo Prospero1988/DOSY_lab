@@ -22,6 +22,7 @@ ILT_HELP = {
 - **Kara.** Rząd zerowy ogranicza kwadrat gęstości. Druga pochodna (domyślna) ogranicza krzywiznę, więc preferuje płynniejsze rozkłady. Ta sama wartość λ może dawać inny efekt po zmianie kary, zakresu lub typu siatki.
 - **D min / D max.** Wpisz dodatnie granice w jednostkach `10⁻¹⁰ m²/s`, z D min poniżej D max. Domyślny zakres obejmuje od D mono/20 do 20 × D mono, z bezpiecznym zakresem zastępczym, gdy D mono wynosi zero. Jeśli maksimum wypada przy brzegu, sprawdź szerszy zakres i wrażliwość na λ.
 - **Punkty siatki / Siatka D.** Dostępne są 50, 100, 200 i 400 punktów oraz siatka liniowa lub logarytmiczna. Domyślnie 100 punktów logarytmicznych. Gęstsza siatka dokładniej próbuje rozkład. Rozdzielczość eksperymentalna zależy od danych.
+- **Sprawdź wrażliwość ILT** porównuje rozkład dla mniejszej i większej λ oraz drugiej współrzędnej siatki. Raportuje maksima i przedział środkowych 90% masy. To rozrzut modelu, a nie przedział ufności.
 - **Logarytmiczna oś D** zmienia tylko sposób rysowania wykresu. **Przywróć ustawienia** wraca do wartości początkowych. **Przelicz ILT** uruchamia obliczenie od razu. Zmiany parametrów przeliczają się też automatycznie po krótkiej przerwie.
 
 ## Wykresy i interpretacja
@@ -47,6 +48,7 @@ ILT dopasowuje sumę zaników exp(−bD) z nieujemnymi udziałami i karą Tichon
 - **Penalty.** Zeroth order penalizes squared density. The default second derivative penalizes curvature. The effect of the same λ can change with the penalty, range and spacing.
 - **D min / D max.** Enter positive bounds in `10⁻¹⁰ m²/s`, with D min below D max. The default spans D mono/20 to 20 × D mono, with a fallback when D mono is zero. Check a wider range and sensitivity to λ if a maximum reaches a boundary.
 - **Grid points / D grid.** Choose 50, 100, 200 or 400 points and linear or logarithmic spacing. The default is 100 log-spaced points. A denser grid samples the solution more finely. Experimental resolution depends on the data.
+- **Check ILT sensitivity** compares smaller and larger λ and the alternative grid coordinate. It reports maxima and the interval containing the central 90% of the mass. That interval describes the fitted distribution.
 - **Logarithmic D axis** changes the plot display only. **Restore defaults** resets the settings. **Recalculate ILT** starts a solve immediately. Parameter changes also trigger a solve after a short delay.
 
 ## Plots and interpretation

@@ -24,6 +24,7 @@ class AlignmentPanel(QtCore.QObject):
         super().__init__(owner)
         self.dataset, self.rows, self.snapshot = None, (), None
         self.groups, self.profiles, self.rejected = (), {}, ()
+        self.withheld = {}
         self.local_groups = ()
         self.highlighted = set()
         self.highlighted_components = set()
@@ -156,6 +157,7 @@ class AlignmentPanel(QtCore.QObject):
             self.cancel.set()
         self.error = ''
         self.groups, self.profiles, self.rejected = (), {}, ()
+        self.withheld = {}
         self.local_groups = ()
         self.highlighted.clear()
         self.highlighted_components.clear()
@@ -193,13 +195,15 @@ class AlignmentPanel(QtCore.QObject):
         def compute(_):
             if mode == ILT and snapshot is not None:
                 ids, result = snapshot
+                withheld = {}
                 profiles, rejected = ilt_profiles(dataset.b, dataset.ppm, dataset.spectrum.real,
-                                                  dataset.options['reference_layer'], rows, ids, result)
-                return (), profiles, rejected, (), {}
+                                                  dataset.options['reference_layer'], rows, ids, result,
+                                                  withheld=withheld)
+                return (), profiles, rejected, (), {}, withheld
             if mode == ADAPTIVE:
                 local = adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, excluded, cancel.is_set)
-                return (), local.profiles, local.unresolved, local.groups, local.membership
-            return alignment_plan(dataset.b, rows, tolerance, excluded, shared=mode == SHARED), {}, (), (), {}
+                return (), local.profiles, local.unresolved, local.groups, local.membership, local.withheld
+            return alignment_plan(dataset.b, rows, tolerance, excluded, shared=mode == SHARED), {}, (), (), {}, {}
 
         self.job = SolveJob(self.revision, mode, compute)
         self.job.signals.finished.connect(self.solved)
@@ -215,7 +219,8 @@ class AlignmentPanel(QtCore.QObject):
             return
         self.error = error
         if not error:
-            self.groups, self.profiles, self.rejected, self.local_groups, self.component_membership = payload
+            (self.groups, self.profiles, self.rejected, self.local_groups,
+             self.component_membership, self.withheld) = payload
             self.ready = True
         self.update_tree()
         self.changed.emit()
@@ -228,7 +233,7 @@ class AlignmentPanel(QtCore.QObject):
 
     def map_data(self):
         overrides = {}
-        hidden = set()
+        hidden = set(self.withheld)
         for group in self.groups:
             d = self.active_group_d(group)
             if d is not None:
@@ -244,6 +249,17 @@ class AlignmentPanel(QtCore.QObject):
             profiles = {sid: tuple((d, y) for d, y in components if (sid, d) not in hidden_components)
                         for sid, components in profiles.items()}
         return overrides, hidden, profiles
+
+    def withheld_note(self):
+        if not self.withheld:
+            return ''
+        items = []
+        for sid, record in self.withheld.items():
+            explanation = (f"{tr('pominięta masa na warstwie referencyjnej')}: {record['omitted_fraction']:.2%}"
+                           if record['reason'] == 'discarded_component'
+                           else tr('profil widmowy nie zgadza się z zanikiem'))
+            items.append(f'{sid} ({explanation})')
+        return tr('ROI bez przypisania D w tej rekonstrukcji') + ' ' + ', '.join(items)
 
     def highlight_group(self, item, _):
         entry = item.data(0, USER_ROLE) if item is not None else None
@@ -348,7 +364,12 @@ class AlignmentPanel(QtCore.QObject):
                 item.setToolTip(members)
                 table.setItem(index, column, item)
         layout.addWidget(table)
-        layout.addWidget(QtWidgets.QLabel(tr('ROI z zachowanym oryginalnym D') + ' · ' + (', '.join(self.rejected) or '—')))
+        fallback = [sid for sid in self.rejected if sid not in self.withheld]
+        layout.addWidget(QtWidgets.QLabel(tr('ROI z zachowanym oryginalnym D') + ' · ' + (', '.join(fallback) or '—')))
+        if self.withheld:
+            note = QtWidgets.QLabel(self.withheld_note())
+            note.setWordWrap(True)
+            layout.addWidget(note)
         close = QtWidgets.QPushButton(tr('Zamknij'))
         close.clicked.connect(dialog.close)
         layout.addWidget(close)

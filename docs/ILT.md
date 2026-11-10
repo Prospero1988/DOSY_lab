@@ -12,6 +12,7 @@ Open **Info** in the analysis window for the in-app guide and an explanation of 
 | **D min / D max** | Set positive grid endpoints in units of $`10^{-10}\ \mathrm{m^2/s}`$. A broad range can introduce regions the acquisition barely constrains. |
 | **Grid points / D grid** | Choose 50, 100, 200 or 400 cells, equally spaced in linear D or log D. More cells improve numerical sampling of the distribution. Physical resolution depends on the attenuation data. |
 | **Penalty** | Choose zeroth-order Tikhonov or second-derivative smoothness. The latter is the starting setting, with $\lambda=10^{-5}$, 100 log-spaced cells and a range centered geometrically on the monoexponential D from $D/20$ to $20D$. If that D is zero, the initial range is based on the inverse active b span. The center is bounded to $10^{-15}$–$`10^{-5}\ \mathrm{m^2/s}`$ for the controls. |
+| **Check ILT sensitivity** | Compare the current result with λ divided and multiplied by ten when in range, and with the other grid coordinate at fixed bounds and cell count. The panel lists maxima, normalized residual RMS and the central 90% mass interval. None of the trials replaces the active result. |
 | **Logarithmic D axis** | Toggle the distribution plot axis without solving again or changing the density convention. |
 | **Restore defaults / Recalculate ILT** | Restore the starting settings or solve immediately using the displayed inputs. Other fit changes also trigger a solve after a short pause. |
 

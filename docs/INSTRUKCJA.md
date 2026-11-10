@@ -25,7 +25,7 @@
 4. Open **Info** to inspect acquisition settings, the pulse program, processing, and the source of **b**.
 5. Select a spectrum with **Layer**, or return to the reference using **Show reference**. Enter layer numbers such as `1,8,16` in **Overlay layers**. The first visible layer supplies the integral values displayed on the spectrum and in the main table. **Show Im** adds the imaginary spectrum.
 
-Changing the visible layer preserves the ppm bounds of all ROIs. The decay fit uses the active points from the full gradient series.
+Changing the visible layer preserves the ppm bounds of all ROIs. The decay fit uses the active points from the full gradient series. If the recorded timings or b sources conflict, the spectrum and integrals remain available. Inspect **b values** and supply a documented manual list before fitting.
 
 ## 2. Navigation and processing
 
@@ -127,7 +127,7 @@ The values above illustrate the file format. b values from nominal gradient ampl
 
 ## 7. Fitting and quality control
 
-Each ROI is fitted to $I(b)=I_0\exp(-bD)$ using its signed integrals. A fit requires at least three distinct active b values. D and its standard error $\mathrm{SE}(D)$ are reported in $\mathrm{m^2/s}$. The main table scales both by $`10^{-10}\ \mathrm{m^2/s}`$. Inspect **QC**, $R^2$ and the residuals before interpreting a fit.
+Each ROI is fitted to $I(b)=I_0\exp(-bD)$ using its signed integrals. A fit requires at least three distinct active b values. D and its standard error $\mathrm{SE}(D)$ are reported in $\mathrm{m^2/s}$. The main table scales both by $`10^{-10}\ \mathrm{m^2/s}`$. Inspect **QC**, $R^2$ and the residuals before interpreting a fit. Measurement-quality warnings flag changes in ROI shape or phase with b, or a baseline correction that varies relative to the decay. An affected D may describe the whole ROI under the model. The checks preserve the fitted integrals and point selections.
 
 - **Decays** shows measured points and fitted curves. **Show I / first integral** normalizes the display. Fitting uses the original integrals.
 - **Residuals** shows measurement minus prediction for the selected ROI in a separate full-height tab.

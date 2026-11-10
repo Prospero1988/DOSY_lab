@@ -462,7 +462,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         if not bands:
             self.diffusion_trace.setData([], [])
             self.full_range = ((ppm[0], ppm[-1]), (0., 1.))
-            self.note.setText(tr('Brak dodatnich sygnałów do wyświetlenia. Sprawdź dopasowania D, fazę i wybór ROI.'))
+            self.note.setText(self.alignment.withheld_note() or
+                              tr('Brak dodatnich sygnałów do wyświetlenia. Sprawdź dopasowania D, fazę i wybór ROI.'))
             return
         maximum = max(band.diffusion for band in bands) / self.D_SCALE
         fwhm = self.width.value() * maximum / 100
@@ -498,9 +499,11 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             + (tr(' Wspólne punkty nakładających się ROI są pominięte.') if overlaps else ''))
         if self.alignment.mode.currentIndex() != ORIGINAL:
             detail = tr('Poza zaakceptowanymi grupami lub profilami zachowano oryginalne D.')
-            if self.alignment.rejected:
-                label = 'ROI z zachowanym oryginalnym D' if self.alignment.mode.currentIndex() == ADAPTIVE else 'Odrzucone profile ILT'
-                detail += ' · ' + tr(label) + ' ' + ', '.join(self.alignment.rejected)
+            fallback = [sid for sid in self.alignment.rejected if sid not in self.alignment.withheld]
+            if fallback:
+                detail += ' · ' + tr('ROI z zachowanym oryginalnym D') + ' ' + ', '.join(fallback)
+            if self.alignment.withheld:
+                detail += ' · ' + self.alignment.withheld_note()
             if self.alignment.error:
                 detail = tr('Błąd wyrównania') + ' · ' + tr(self.alignment.error)
             elif not self.alignment.ready:
@@ -589,6 +592,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             if mode != ORIGINAL:
                 overrides, _, profiles = self.alignment.map_data()
                 title += f' · {tr("Przetworzone ROI")} {len(overrides) + len(profiles)}'
+                if self.alignment.withheld:
+                    title += f' · {tr("ROI bez przypisania D w tej rekonstrukcji")} {len(self.alignment.withheld)}'
             heading = QtWidgets.QLabel(title)
             heading.setStyleSheet('color: black; background: white; font-weight: bold;')
             heading.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
