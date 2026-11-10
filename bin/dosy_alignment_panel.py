@@ -4,11 +4,12 @@ import math
 
 from PySide6 import QtCore, QtWidgets
 
-from adaptive_ilt import adaptive_local_ilt
+from adaptive_ilt import adaptive_local_ilt, local_sweep_inputs
 from dosy_alignment import (alignment_plan, eligible_diffusion, exploratory_profiles, ilt_profiles,
                             individual_map_solution)
 from i18n import tr
 from ilt_tools import SolveJob
+from ilt_regularization_window import RegularizationControls
 from roi_quality import estimate_spectral_noise
 
 
@@ -28,6 +29,7 @@ class AlignmentPanel(QtCore.QObject):
         super().__init__(owner)
         self.dataset, self.rows, self.snapshot = None, (), None
         self.individual = {}
+        self.group_regularizations = {}
         self.groups, self.profiles, self.rejected = (), {}, ()
         self.withheld = {}
         self.profile_diagnostics = {}
@@ -96,7 +98,7 @@ class AlignmentPanel(QtCore.QObject):
         row.addWidget(QtWidgets.QLabel(tr('Lokalne λ')))
         self.regularization = QtWidgets.QLineEdit('1e-6')
         self.regularization.setMaximumWidth(90)
-        self.regularization.editingFinished.connect(self.queue)
+        self.regularization.editingFinished.connect(self.shared_lambda_changed)
         row.addWidget(self.regularization)
         self.group_count = QtWidgets.QLabel()
         row.addWidget(self.group_count)
@@ -106,6 +108,9 @@ class AlignmentPanel(QtCore.QObject):
         defaults = QtWidgets.QPushButton(tr('Przywróć ustawienia'))
         defaults.clicked.connect(self.reset_defaults)
         row.addWidget(defaults)
+        self.auto_lambda = RegularizationControls(owner,row,self.lambda_snapshot,lambda: self.revision,
+                                                  self.apply_group_lambdas,self.restore_group_lambdas,
+                                                  lambda: self.restore_group_lambdas({}))
         row.addStretch()
         self.tree_label = QtWidgets.QLabel(tr('Grupy wyrównania D'))
         self.tree = QtWidgets.QTreeWidget()
@@ -124,15 +129,18 @@ class AlignmentPanel(QtCore.QObject):
     def tolerance_changed(self, value):
         with QtCore.QSignalBlocker(self.slider):
             self.slider.setValue(round(10*value))
+        self.clear_group_lambdas()
         if self.mode.currentIndex() in (ALIGNED, SHARED, ADAPTIVE):
             self.queue()
 
     def balance_changed(self, value):
         with QtCore.QSignalBlocker(self.balance_slider):
             self.balance_slider.setValue(round(100*math.log10(value)))
+        self.clear_group_lambdas()
         self.queue()
 
     def reset_defaults(self):
+        self.clear_group_lambdas()
         self.tolerance.setValue(5.)
         self.balance.setValue(10.)
         self.regularization.setText('1e-6')
@@ -142,6 +150,7 @@ class AlignmentPanel(QtCore.QObject):
         if self.dataset is dataset and self.rows is rows:
             return
         self.dataset, self.rows = dataset, rows
+        self.clear_group_lambdas()
         if new_experiment:
             self.manual.clear()
             self.hidden.clear()
@@ -189,6 +198,41 @@ class AlignmentPanel(QtCore.QObject):
             self.update_tree()
         self.changed.emit()
 
+    def local_lambda(self):
+        value = float(self.regularization.text().strip().replace(',', '.'))
+        if not 1e-12 <= value <= 100:
+            raise ValueError('λ musi mieścić się w zakresie 10⁻¹²–100.')
+        return value
+
+    def lambda_snapshot(self):
+        dataset, rows = self.dataset,self.rows
+        if dataset is None or dataset.b is None:
+            raise ValueError('Wczytaj widmo z wartościami b i przelicz całki.')
+        lam = self.local_lambda()
+        args = (dataset,rows,self.tolerance.value(),self.balance.value(),lam,set(self.manual),
+                dict(self.group_regularizations))
+        return self.revision,lam,lambda: local_sweep_inputs(*args),dataset.name + ' · Adaptive Local ILT'
+
+    def apply_group_lambdas(self,recommendations):
+        previous = self.group_regularizations
+        self.group_regularizations = {key:r.recommendation for key,r in recommendations.items()}
+        self.queue()
+        return previous
+
+    def restore_group_lambdas(self,values):
+        self.group_regularizations = values
+        self.queue()
+
+    def clear_group_lambdas(self):
+        self.auto_lambda.dismiss()
+        self.group_regularizations = {}
+        self.auto_lambda.previous = None
+        self.auto_lambda.manual_override()
+
+    def shared_lambda_changed(self):
+        self.clear_group_lambdas()
+        self.queue()
+
     def recalculate(self):
         self.queue()
         self.timer.stop()
@@ -202,12 +246,13 @@ class AlignmentPanel(QtCore.QObject):
         excluded, tolerance = set(self.manual), self.tolerance.value()
         snapshot, individual = self.snapshot, self.individual
         try:
-            regularization = float(self.regularization.text().strip().replace(',', '.')) if mode == ADAPTIVE else 0.
+            regularization = self.local_lambda() if mode == ADAPTIVE else 0.
         except ValueError:
             self.error = tr('Wpisz prawidłową wartość liczbową.')
             self.changed.emit()
             return
         balance = self.balance.value()
+        group_lambdas = dict(self.group_regularizations)
         self.cancel = cancel = Event()
 
         def compute(_):
@@ -233,7 +278,8 @@ class AlignmentPanel(QtCore.QObject):
                     explore_diagnostics.update(records)
                 return (), profiles, tuple(rejected), (), {}, withheld, diagnostics, exploratory, explore_diagnostics
             if mode == ADAPTIVE:
-                local = adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, excluded, cancel.is_set)
+                local = adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, excluded,
+                                           cancel.is_set, group_regularizations=group_lambdas)
                 return ((), local.profiles, local.unresolved, local.groups, local.membership, local.withheld,
                         local.diagnostics, local.exploratory, local.exploratory_diagnostics)
             return alignment_plan(dataset.b, rows, tolerance, excluded, shared=mode == SHARED), {}, (), (), {}, {}, {}, {}, {}
@@ -366,6 +412,7 @@ class AlignmentPanel(QtCore.QObject):
         if kind == 'group':
             self.changed.emit()
         else:
+            self.clear_group_lambdas()
             self.queue(refresh_tree=False)
 
     def update_tree(self):
@@ -424,6 +471,8 @@ class AlignmentPanel(QtCore.QObject):
         if not group.converged:
             return tr('Brak zbieżności')
         label = f'D = {group.dominant:.3e}' if group.dominant is not None else 'D = —'
+        if group.regularization is not None:
+            label += f' · λ={group.regularization:.3g}'
         return label + (f' · ⚠ {len(group.rejected)}' if group.rejected else '')
 
     def show_diagnostics(self):
@@ -431,17 +480,17 @@ class AlignmentPanel(QtCore.QObject):
         dialog.setWindowTitle(tr('Diagnostyka grup'))
         dialog.resize(1000, 380)
         layout = QtWidgets.QVBoxLayout(dialog)
-        table = QtWidgets.QTableWidget(len(self.local_groups), 8)
+        table = QtWidgets.QTableWidget(len(self.local_groups), 9)
         table.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
         table.setHorizontalHeaderLabels([tr('Grupa'), 'ROI', tr('Zakres D [m²/s]'), tr('D dominujące [m²/s]'),
-                                         tr('Stosunek amplitud'), tr('Status'), 'RMS / Iₛ', tr('Nierozdzielone')])
+                                         tr('Stosunek amplitud'), tr('Status'), 'RMS / Iₛ', tr('Nierozdzielone'), 'λ'])
         table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         for index, group in enumerate(self.local_groups):
             status = ('Niezależne rozdzielenie ROI' if group.independent
                       else 'Zbieżny' if group.converged else 'Brak zbieżności')
             values = (f'L{index+1}', str(len(group.ids)), ' – '.join(f'{d:.3e}' for d in group.d_range),
                       f'{group.dominant:.3e}' if group.dominant else '—', f'{group.amplitude_ratio:.3g}×',
-                      tr(status), f'{group.rms:.4g}' if group.rms is not None else '—', str(len(group.rejected)))
+                      tr(status), f'{group.rms:.4g}' if group.rms is not None else '—', str(len(group.rejected)), f'{group.regularization:.4g}' if group.regularization else '—')
             for column, value in enumerate(values):
                 item = QtWidgets.QTableWidgetItem(value)
                 members = ', '.join(group.rejected if column == 7 else group.ids)

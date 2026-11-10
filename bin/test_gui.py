@@ -483,6 +483,63 @@ class InterfaceTests(unittest.TestCase):
             self.assertIs(w.results, results)
             self.assertTrue(w.valid)
 
+    def test_auto_lambda_preview_apply_restore_and_export(self):
+        from dataclasses import replace
+        from ilt_regularization import scan
+
+        w = self.w
+        w.add_roi([3.60,3.68])
+        settle(w)
+        original = w.results
+        w.show_ilt('S1')
+        dialog = w.ilt_window
+        controls = dialog.auto_lambda
+
+        def wait_for(condition):
+            end = time.monotonic()+12
+            while not condition() and time.monotonic()<end:
+                APP.processEvents()
+                time.sleep(.02)
+            self.assertTrue(condition())
+
+        def scan_fixture(*args):
+            result = scan(*args)
+            candidates = [c for c in result.candidates if c.valid]
+            return replace(result,recommendation=candidates[1].regularization)
+
+        wait_for(lambda: dialog.result is not None)
+        previous = dialog.lambda_value()
+        before = dialog.result
+        with patch('ilt_regularization_window.scan',side_effect=scan_fixture):
+            controls.mode.setCurrentIndex(1)
+            diagnostics = controls.dialog
+            wait_for(lambda: diagnostics.job is None)
+            self.assertEqual(controls.mode.currentIndex(),0)
+            self.assertTrue(diagnostics.apply_button.isEnabled())
+            recommendation = diagnostics.results[('S1',)].recommendation
+            self.assertNotEqual(recommendation,previous)
+            self.assertIs(dialog.result,before)
+            points = diagnostics.plots[1].listDataItems()[0]
+            scatter = points.scatter.points()
+            points.sigPointsClicked.emit(points,[scatter[0]],None)
+            self.assertEqual(diagnostics.preview_index,int(scatter[0].data()))
+            self.assertIs(dialog.result,before)
+            with tempfile.TemporaryDirectory() as folder:
+                target = Path(folder)/'diagnostics.png'
+                diagnostics.save_combined(diagnostics.plots,target)
+                self.assertGreater(QtGui.QImage(str(target)).height(),500)
+            diagnostics.apply_button.click()
+            self.assertEqual(controls.mode.currentIndex(),1)
+            self.assertAlmostEqual(dialog.lambda_value(),recommendation)
+            controls.open()
+            undo = controls.dialog
+            self.assertTrue(undo.restore_button.isEnabled())
+            undo.restore_button.click()
+            self.assertEqual(dialog.lambda_value(),previous)
+            self.assertEqual(controls.mode.currentIndex(),0)
+            self.assertIs(w.results,original)
+            dialog.close()
+
     def test_global_ilt_selected_rows_comparison_and_export(self):
         w = self.w
         for bounds in ([3.60, 3.68], [5.26, 5.33], [3.74, 3.82]):

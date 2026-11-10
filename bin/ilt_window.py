@@ -9,6 +9,8 @@ from i18n import tr
 from ilt import D_UNIT, GRID_SIZES, ILTParameters, sensitivity_trials, solve_ilt
 from ilt_help import ILT_HELP, ILT_WINDOW_FLAGS, add_ilt_info
 from ilt_tools import ILTPlotTools, SolveJob
+from ilt_regularization import SweepInput, has_systematic_warning, supplied_noise
+from ilt_regularization_window import RegularizationControls
 
 
 class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
@@ -25,6 +27,9 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.fit = entry['fit']  # the accepted fit is a snapshot, read only
         self.mask = np.array(self.fit['fit_mask'], dtype=bool, copy=True)
         self.sigma = np.array(entry['sigma'], dtype=float) if self.fit['weighted'] else None
+        self.noise_sigma = supplied_noise([entry])[:,0]
+        self.systematic = has_systematic_warning([entry])
+        self.sweep_ids = (entry['id'],)
         self.scale = float(np.max(np.abs(self.y[self.mask])))
         center = self.fit['D_m2_s'] or 1 / np.ptp(self.b[self.mask])
         center = float(np.clip(center, 1e-15, 1e-5))
@@ -121,6 +126,8 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.combined_export.clicked.connect(lambda: self.export_png(self.plot_list, 'ILT'))
         actions.addWidget(self.combined_export)
         self.export_buttons = [self.combined_export]
+        self.auto_lambda = RegularizationControls(self,actions,self.lambda_snapshot,lambda: self.revision,
+                                                  self.apply_lambda,self.set_lambda)
 
     def reset_parameters(self):
         p = self.defaults
@@ -163,6 +170,7 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.start_solve()
 
     def queue_solve(self, *_):
+        self.auto_lambda.manual_override()
         self.revision += 1
         self.stability_summary.hide()
         for button in self.export_buttons:
@@ -170,12 +178,29 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.show_error('Oczekiwanie na rozwiązanie ILT…')
         self.timer.start()
 
+    def parameters(self):
+        return ILTParameters(self.minimum.value()*D_UNIT,self.maximum.value()*D_UNIT,
+                             self.points.currentData(),self.spacing.currentData(),self.lambda_value(),self.order.currentData())
+
+    def lambda_snapshot(self):
+        source = SweepInput(self.b,self.y,self.mask,self.parameters(),self.sigma,self.noise_sigma,
+                            systematic=self.systematic)
+        return self.revision,source.current,lambda: {self.sweep_ids:source},self.context
+
+    def set_lambda(self,value):
+        self.lambda_edit.setText(f'{value:.12g}')
+        self.lambda_changed()
+
+    def apply_lambda(self,recommendations):
+        previous = self.lambda_value()
+        self.set_lambda(recommendations[self.sweep_ids].recommendation)
+        return previous
+
     def start_solve(self):
         if self.closed or self.job is not None:
             return
         try:
-            p = ILTParameters(self.minimum.value()*D_UNIT, self.maximum.value()*D_UNIT,
-                              self.points.currentData(), self.spacing.currentData(), self.lambda_value(), self.order.currentData())
+            p = self.parameters()
         except ValueError as exc:
             self.show_error(str(exc))
             return
@@ -307,6 +332,7 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.summary.setText(text)
 
     def done(self, result):
+        self.auto_lambda.dismiss()
         self.closed = True
         self.timer.stop()
         super().done(result)

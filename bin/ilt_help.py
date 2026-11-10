@@ -18,6 +18,8 @@ ILT_HELP = {
 
 ## Parametry
 
+**Auto λ / stabilność** skanuje zakres λ bez zmiany bieżącego rozwiązania. Kliknij próbę, aby obejrzeć podgląd. Zastosowanie sugestii wymaga potwierdzenia w oknie skanu.
+
 - **λ — siła regularyzacji.** Suwak jest logarytmiczny, a pole przyjmuje dokładną wartość od `1e-12` do `100`. Domyślnie `1e-5`. Mniejsze λ pozwala ściślej dopasować dane, w tym szum, i może ujawnić wąskie, niestabilne maksima. Większe λ mocniej tłumi takie zmiany i może poszerzyć lub zlać maksima.
 - **Kara.** Rząd zerowy ogranicza kwadrat gęstości. Druga pochodna (domyślna) ogranicza krzywiznę, więc preferuje płynniejsze rozkłady. Ta sama wartość λ może dawać inny efekt po zmianie kary, zakresu lub typu siatki.
 - **D min / D max.** Wpisz dodatnie granice w jednostkach `10⁻¹⁰ m²/s`, z D min poniżej D max. Domyślny zakres obejmuje od D mono/20 do 20 × D mono, z bezpiecznym zakresem zastępczym, gdy D mono wynosi zero. Jeśli maksimum wypada przy brzegu, sprawdź szerszy zakres i wrażliwość na λ.
@@ -44,6 +46,8 @@ ILT dopasowuje sumę zaników exp(−bD) z nieujemnymi udziałami i karą Tichon
 
 ## Parameters
 
+**Auto λ / stability** scans a λ range without changing the active result. Click a trial to preview it and apply a suggestion explicitly.
+
 - **λ — regularization strength.** Use the log slider or type an exact value from `1e-12` to `100`. The default is `1e-5`. A smaller λ can fit noise more closely and produce narrow, unstable maxima. A larger λ can broaden or merge maxima.
 - **Penalty.** Zeroth order penalizes squared density. The default second derivative penalizes curvature. The effect of the same λ can change with the penalty, range and spacing.
 - **D min / D max.** Enter positive bounds in `10⁻¹⁰ m²/s`, with D min below D max. The default spans D mono/20 to 20 × D mono, with a fallback when D mono is zero. Check a wider range and sensitivity to λ if a maximum reaches a boundary.
@@ -67,6 +71,8 @@ ILT fits a sum of exp(−bD) decays with nonnegative contributions and a Tikhono
 GLOBAL_ILT_HELP = {
     'pl': '''
 # Global ILT dla wielu całek
+
+**Auto λ / stabilność** porównuje rozwiązania przy stałym μ. Zmiana μ wymaga ponownego skanu.
 
 1. Przetwórz widmo, wyznacz całki i poczekaj na ich dopasowanie w głównym oknie.
 2. Zaznacz co najmniej dwa wiersze tabeli przez Ctrl lub Shift. Każdy ROI musi mieć poprawne dopasowanie i co najmniej sześć różnych aktywnych wartości b. Kliknij **Global ILT** obok **Dopasuj / odśwież**.
@@ -103,6 +109,8 @@ Wspólne D i zbieżność solvera nie wystarczają do przypisania cząsteczki. U
 ''',
     'en': '''
 # Global ILT for selected integrals
+
+**Auto λ / stability** compares solutions at fixed μ. Run a new scan after changing μ.
 
 1. Process the spectrum, define the integrals and complete their fits.
 2. Ctrl-click or Shift-click at least two rows. Each ROI needs a valid fit and six distinct included b values. Click **Global ILT** next to **Fit / refresh**.

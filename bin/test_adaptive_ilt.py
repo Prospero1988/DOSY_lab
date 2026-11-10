@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 from scipy.integrate import trapezoid
 
-from adaptive_ilt import adaptive_local_ilt, amplitude_weights, fit_inputs, grid_for
+from adaptive_ilt import adaptive_local_ilt, amplitude_weights, fit_inputs, grid_for, local_sweep_inputs
 from core import fit_decay
 from global_ilt import GlobalParameters, solve_global_ilt
 from ilt import D_UNIT
@@ -68,3 +68,15 @@ class AdaptiveILTTests(unittest.TestCase):
         total = sum(y for _,y in result.profiles['5'])
         np.testing.assert_allclose(total, dataset.spectrum[0,start:stop], atol=1e-8)
         np.testing.assert_allclose([d/D_UNIT for d,_ in result.profiles['5']], [2.,16.], rtol=.10)
+
+    def test_group_specific_lambda_preserves_membership_and_mono_fits(self):
+        dataset,rows = self.fixture([([3.],[1.],0.),([3.],[.5],0.),([9.],[1.],0.),([9.],[.8],0.)])
+        original = [row['fit']['D_m2_s'] for row in rows]
+        baseline = adaptive_local_ilt(dataset,rows,5.,10.,1e-6)
+        override = {('1','2'):2e-5}
+        inputs = local_sweep_inputs(dataset,rows,5.,10.,1e-6,(),override)
+        result = adaptive_local_ilt(dataset,rows,5.,10.,1e-6,group_regularizations=override)
+        self.assertEqual([g.ids for g in result.groups],[g.ids for g in baseline.groups])
+        self.assertEqual([g.regularization for g in result.groups],[2e-5,1e-6])
+        self.assertEqual([source.current for source in inputs.values()],[2e-5,1e-6])
+        self.assertEqual([row['fit']['D_m2_s'] for row in rows],original)

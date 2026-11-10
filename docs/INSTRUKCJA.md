@@ -220,6 +220,8 @@ The description above applies to **Original DOSY map**. Select another **Map mod
 4. Review **Component contributions** and **Results** together. Component shares sum fitted cell masses across intervals. Treat them as fitted signal fractions under the chosen model.
 5. Use **Info** for the guide, and export individual plots or the combined PNG. For the 2D map, finish a converged solve and then select **Global ILT DOSY · ROI profiles**. Reopen Global ILT after changing the source data or selection. See the [Global ILT guide](GLOBAL-ILT.md) for weighting and convergence details.
 
+Use **Auto λ / stability** in Individual ILT, Global ILT or Adaptive Local ILT to scan regularization. Click a trial to preview it and use **Apply recommendation** to change the active analysis. Global and grouped AILT scans keep μ fixed. [Methods, examples and interpretation](ILT_REGULARIZATION_2.1.md)
+
 ## 14. Adaptive Local ILT
 
 1. Fit the regions conventionally and open **2D DOSY map**. Select **Adaptive Local ILT** from **Map mode**.

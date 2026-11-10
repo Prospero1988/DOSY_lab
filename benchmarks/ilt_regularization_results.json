@@ -1,0 +1,1377 @@
+{
+  "seed": 81207,
+  "repeated_seed": 20261110,
+  "synthetic": {
+    "mono": {
+      "method": "Brak jednoznacznej rekomendacji",
+      "recommendation": null,
+      "interval": [
+        1e-10,
+        8.25404185268019e-08
+      ],
+      "noise": 0.004003723271578544,
+      "warnings": [
+        "Skan nie wyznaczył jednoznacznego przejścia przez poziom szumu.",
+        "Załamanie krzywej jest dostępne jako osobna wskazówka."
+      ],
+      "converged": 25,
+      "trials": 25,
+      "oracle": {
+        "lambda_value": 1e-10,
+        "maxima_m2_s": [
+          3.7319704839070885e-10
+        ],
+        "prediction_rms": 0.0008028491842977407,
+        "weighted_residual": 0.004456223144306685,
+        "penalty": 34.79772352345727,
+        "false_maxima": 0,
+        "missed": 0,
+        "relative_bias": [
+          -0.017902504234976635
+        ]
+      },
+      "grid": [
+        {
+          "kind": "Szerszy zakres D",
+          "lambda_value": 1e-05,
+          "maxima": [
+            3.8904514499427963e-10
+          ],
+          "valid": true
+        },
+        {
+          "kind": "Inna rozdzielczość siatki D",
+          "lambda_value": 1e-05,
+          "maxima": [
+            3.836435493579969e-10
+          ],
+          "valid": true
+        }
+      ],
+      "corner_lambda": 5.62341325190349e-07,
+      "noise_scale_check": {
+        "0.5": null,
+        "2.0": 2.6101572156825386e-05
+      }
+    },
+    "separated": {
+      "method": "Brak jednoznacznej rekomendacji",
+      "recommendation": null,
+      "interval": [
+        1e-10,
+        1.4677992676220705e-06
+      ],
+      "noise": 0.002495718780869183,
+      "warnings": [
+        "Skan nie wyznaczył jednoznacznego przejścia przez poziom szumu."
+      ],
+      "converged": 25,
+      "trials": 25,
+      "oracle": {
+        "lambda_value": 1e-10,
+        "maxima_m2_s": [
+          2.679549595346951e-10,
+          1.2574334296829365e-09
+        ],
+        "prediction_rms": 0.0010196780569612877,
+        "weighted_residual": 0.002650376960464301,
+        "penalty": 12.652789315922503,
+        "false_maxima": 0,
+        "missed": 0,
+        "relative_bias": [
+          -0.0075742239455739435,
+          -0.03274351562851041
+        ]
+      },
+      "grid": [
+        {
+          "kind": "Szerszy zakres D",
+          "lambda_value": 1e-05,
+          "maxima": [
+            2.9512092266663816e-10
+          ],
+          "valid": true
+        },
+        {
+          "kind": "Inna rozdzielczość siatki D",
+          "lambda_value": 1e-05,
+          "maxima": [
+            2.910924221734202e-10,
+            1.6121012048396963e-09
+          ],
+          "valid": true
+        }
+      ],
+      "corner_lambda": null
+    },
+    "close": {
+      "method": "Brak jednoznacznej rekomendacji",
+      "recommendation": null,
+      "interval": [
+        1e-10,
+        2.1544346900318867e-07
+      ],
+      "noise": 0.0025748649605016665,
+      "warnings": [
+        "Skan nie wyznaczył jednoznacznego przejścia przez poziom szumu.",
+        "Załamanie krzywej jest dostępne jako osobna wskazówka."
+      ],
+      "converged": 25,
+      "trials": 25,
+      "oracle": {
+        "lambda_value": 1e-10,
+        "maxima_m2_s": [
+          4.1677052825502014e-10
+        ],
+        "prediction_rms": 0.0005122187474722466,
+        "weighted_residual": 0.0026388252108341614,
+        "penalty": 13.404930704670948,
+        "false_maxima": 0,
+        "missed": 1,
+        "relative_bias": [
+          0.04192632063755042
+        ]
+      },
+      "grid": [
+        {
+          "kind": "Szerszy zakres D",
+          "lambda_value": 1e-05,
+          "maxima": [
+            4.4668359215096176e-10
+          ],
+          "valid": true
+        },
+        {
+          "kind": "Inna rozdzielczość siatki D",
+          "lambda_value": 1e-05,
+          "maxima": [
+            4.5275796637957434e-10
+          ],
+          "valid": true
+        }
+      ],
+      "corner_lambda": 8.25404185268019e-08
+    },
+    "weak": {
+      "method": "Zasada rozbieżności",
+      "recommendation": {
+        "lambda_value": 1.4677992676220705e-06,
+        "maxima_m2_s": [
+          2.679549595346951e-10
+        ],
+        "prediction_rms": 0.0028718609068206073,
+        "weighted_residual": 0.003801387412666862,
+        "penalty": 1.9914787137355607,
+        "false_maxima": 0,
+        "missed": 1,
+        "relative_bias": [
+          -0.0075742239455739435
+        ]
+      },
+      "interval": [
+        1e-10,
+        3.8311868495572925e-06
+      ],
+      "noise": 0.0037598402791519637,
+      "warnings": [
+        "Część maksimów przy sugerowanym λ jest niestabilna lub niejednoznaczna."
+      ],
+      "converged": 25,
+      "trials": 25,
+      "oracle": {
+        "lambda_value": 1e-10,
+        "maxima_m2_s": [
+          2.679549595346951e-10,
+          1.7513034478643959e-09
+        ],
+        "prediction_rms": 0.0014557372118398188,
+        "weighted_residual": 0.003128085099167665,
+        "penalty": 15.012758411157915,
+        "false_maxima": 1,
+        "missed": 1,
+        "relative_bias": [
+          -0.0075742239455739435
+        ]
+      },
+      "grid": [
+        {
+          "kind": "Szerszy zakres D",
+          "lambda_value": 1.4677992676220705e-06,
+          "maxima": [
+            2.9512092266663816e-10
+          ],
+          "valid": true
+        },
+        {
+          "kind": "Inna rozdzielczość siatki D",
+          "lambda_value": 1.4677992676220705e-06,
+          "maxima": [
+            2.754555326395463e-10
+          ],
+          "valid": true
+        }
+      ],
+      "corner_lambda": 5.62341325190349e-07
+    },
+    "low_SNR": {
+      "method": "Zasada rozbieżności",
+      "recommendation": {
+        "lambda_value": 0.14677992676220736,
+        "maxima_m2_s": [
+          5.1977405892912e-10
+        ],
+        "prediction_rms": 0.02979609980898289,
+        "weighted_residual": 0.08871940486883755,
+        "penalty": 0.044600936405605765,
+        "false_maxima": 1,
+        "missed": 2,
+        "relative_bias": []
+      },
+      "interval": [
+        1e-10,
+        1.0
+      ],
+      "noise": 0.08881925635103695,
+      "warnings": [
+        "Część maksimów przy sugerowanym λ jest niestabilna lub niejednoznaczna."
+      ],
+      "converged": 25,
+      "trials": 25,
+      "oracle": {
+        "lambda_value": 1e-05,
+        "maxima_m2_s": [
+          2.3994019063365837e-10,
+          1.955780910510154e-09
+        ],
+        "prediction_rms": 0.019230836339137112,
+        "weighted_residual": 0.08636672764303308,
+        "penalty": 1.2871801560579257,
+        "false_maxima": 1,
+        "missed": 1,
+        "relative_bias": [
+          -0.11133262728274695
+        ]
+      },
+      "grid": [
+        {
+          "kind": "Szerszy zakres D",
+          "lambda_value": 0.14677992676220736,
+          "maxima": [
+            5.888436553555886e-10
+          ],
+          "valid": true
+        },
+        {
+          "kind": "Inna rozdzielczość siatki D",
+          "lambda_value": 0.14677992676220736,
+          "maxima": [
+            5.343235314739557e-10
+          ],
+          "valid": true
+        }
+      ],
+      "corner_lambda": null
+    },
+    "continuous": {
+      "method": "Zasada rozbieżności",
+      "recommendation": {
+        "lambda_value": 0.00121152765862859,
+        "maxima_m2_s": [
+          4.6543152999463424e-10
+        ],
+        "prediction_rms": 0.0037009944416833062,
+        "weighted_residual": 0.005366811343059569,
+        "penalty": 0.23490855561931334
+      },
+      "interval": [
+        0.0004641588833612782,
+        0.00121152765862859
+      ],
+      "noise": 0.0049730064923894255,
+      "warnings": [
+        "Część maksimów przy sugerowanym λ jest niestabilna lub niejednoznaczna."
+      ],
+      "converged": 25,
+      "trials": 25,
+      "oracle": {
+        "lambda_value": 0.00017782794100389227,
+        "maxima_m2_s": [
+          4.6543152999463424e-10
+        ],
+        "prediction_rms": 0.0023073018868761423,
+        "weighted_residual": 0.0033115339184629487,
+        "penalty": 0.2947890546259941
+      },
+      "grid": [
+        {
+          "kind": "Szerszy zakres D",
+          "lambda_value": 0.00121152765862859,
+          "maxima": [
+            4.4668359215096176e-10
+          ],
+          "valid": true
+        },
+        {
+          "kind": "Inna rozdzielczość siatki D",
+          "lambda_value": 0.00121152765862859,
+          "maxima": [
+            4.5275796637957434e-10
+          ],
+          "valid": true
+        }
+      ],
+      "corner_lambda": null
+    },
+    "poor_b_coverage": {
+      "method": "Brak jednoznacznej rekomendacji",
+      "recommendation": null,
+      "interval": [
+        1e-10,
+        0.00825404185268019
+      ],
+      "noise": 0.00626237554985038,
+      "warnings": [
+        "Część maksimów wypada przy granicy siatki D.",
+        "Skan nie wyznaczył jednoznacznego przejścia przez poziom szumu."
+      ],
+      "converged": 25,
+      "trials": 25,
+      "oracle": {
+        "lambda_value": 1e-05,
+        "maxima_m2_s": [
+          5.804614748355509e-10
+        ],
+        "prediction_rms": 0.014674147857396149,
+        "weighted_residual": 0.006324414713126798,
+        "penalty": 0.11899818987048374,
+        "false_maxima": 1,
+        "missed": 2,
+        "relative_bias": []
+      },
+      "grid": [
+        {
+          "kind": "Szerszy zakres D",
+          "lambda_value": 1e-05,
+          "maxima": [
+            5.888436553555886e-10
+          ],
+          "valid": true
+        },
+        {
+          "kind": "Inna rozdzielczość siatki D",
+          "lambda_value": 1e-05,
+          "maxima": [
+            5.646556796684213e-10
+          ],
+          "valid": true
+        }
+      ],
+      "corner_lambda": null
+    },
+    "heteroscedastic": {
+      "method": "Zasada rozbieżności",
+      "recommendation": {
+        "lambda_value": 5.62341325190349e-07,
+        "maxima_m2_s": [
+          2.679549595346951e-10,
+          1.2574334296829365e-09
+        ],
+        "prediction_rms": 0.0022300252684125397,
+        "weighted_residual": 0.002917915679456346,
+        "penalty": 1.3679269272072023,
+        "false_maxima": 0,
+        "missed": 0,
+        "relative_bias": [
+          -0.0075742239455739435,
+          -0.03274351562851041
+        ]
+      },
+      "interval": [
+        1e-10,
+        1e-05
+      ],
+      "noise": 0.0029560280706984834,
+      "warnings": [
+        "Załamanie krzywej wypada poza zakresem zgodnym z szumem.",
+        "Część maksimów przy sugerowanym λ jest niestabilna lub niejednoznaczna."
+      ],
+      "converged": 25,
+      "trials": 25,
+      "oracle": {
+        "lambda_value": 1e-10,
+        "maxima_m2_s": [
+          2.679549595346951e-10,
+          1.1259683991338551e-09
+        ],
+        "prediction_rms": 0.0010434358994683881,
+        "weighted_residual": 0.002700451625720627,
+        "penalty": 15.127695484247964,
+        "false_maxima": 0,
+        "missed": 0,
+        "relative_bias": [
+          -0.0075742239455739435,
+          -0.13387046220472687
+        ]
+      },
+      "grid": [
+        {
+          "kind": "Szerszy zakres D",
+          "lambda_value": 5.62341325190349e-07,
+          "maxima": [
+            2.9512092266663816e-10,
+            1.3489628825916529e-09
+          ],
+          "valid": true
+        },
+        {
+          "kind": "Inna rozdzielczość siatki D",
+          "lambda_value": 5.62341325190349e-07,
+          "maxima": [
+            2.754555326395463e-10,
+            1.2926314024325255e-09
+          ],
+          "valid": true
+        }
+      ],
+      "corner_lambda": 0.00121152765862859,
+      "noise_scale_check": {
+        "0.5": null,
+        "2.0": 0.0031622776601683794
+      }
+    },
+    "joint_overlap_different_amplitudes": {
+      "method": "Zasada rozbieżności",
+      "recommendation": {
+        "lambda_value": 3.8311868495572925e-06,
+        "maxima_m2_s": [
+          2.679549595346951e-10,
+          1.2574334296829365e-09
+        ],
+        "prediction_rms": 0.0038708068583118305,
+        "weighted_residual": 0.012725961036493651,
+        "penalty": 4.370709580380059,
+        "false_maxima": 0,
+        "missed": 0,
+        "relative_bias": [
+          -0.0075742239455739435,
+          -0.03274351562851041
+        ]
+      },
+      "interval": [
+        1e-10,
+        2.6101572156825386e-05
+      ],
+      "noise": 0.01298453757856467,
+      "warnings": [
+        "Dobór warunkowy przy stałym μ. Zmiana μ wymaga nowego skanu.",
+        "Część maksimów wypada przy granicy siatki D."
+      ],
+      "converged": 25,
+      "trials": 25,
+      "oracle": {
+        "lambda_value": 1e-10,
+        "maxima_m2_s": [
+          2.679549595346951e-10,
+          1.2574334296829365e-09
+        ],
+        "prediction_rms": 0.002596485659139511,
+        "weighted_residual": 0.012087867431087322,
+        "penalty": 5.446040444540488,
+        "false_maxima": 0,
+        "missed": 0,
+        "relative_bias": [
+          -0.0075742239455739435,
+          -0.03274351562851041
+        ]
+      },
+      "grid": [
+        {
+          "kind": "Szerszy zakres D",
+          "lambda_value": 3.8311868495572925e-06,
+          "maxima": [
+            2.5703957827688617e-10,
+            1.3489628825916529e-09
+          ],
+          "valid": true
+        },
+        {
+          "kind": "Inna rozdzielczość siatki D",
+          "lambda_value": 3.8311868495572925e-06,
+          "maxima": [
+            2.754555326395463e-10,
+            1.2926314024325255e-09
+          ],
+          "valid": true
+        }
+      ]
+    }
+  },
+  "repeated": {
+    "mono": {
+      "replicates": 20,
+      "selected": 14,
+      "results": [
+        {
+          "lambda_value": 1.2115276586285901e-08,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.0011573980423975534,
+          "weighted_residual": 0.0040456892027258065,
+          "penalty": 11.737265509869086,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 5.62341325190349e-07,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.003619447580210654,
+          "weighted_residual": 0.004050134084223206,
+          "penalty": 3.0623901764981727,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 8.25404185268019e-08,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.002439442037976243,
+          "weighted_residual": 0.003967817064772002,
+          "penalty": 4.765202304548159,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 1.2115276586285901e-08,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.0013666061982206656,
+          "weighted_residual": 0.004015203844812317,
+          "penalty": 10.577173391905678,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 4.641588833612773e-09,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.0008437707504955817,
+          "weighted_residual": 0.003956346701101964,
+          "penalty": 16.254615380156338,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 3.162277660168379e-08,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.0015255539577053133,
+          "weighted_residual": 0.003915805169293348,
+          "penalty": 8.723537216485315,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 1.2115276586285901e-08,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.0017203148282355489,
+          "weighted_residual": 0.003998529460165518,
+          "penalty": 11.124634559019206,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 2.1544346900318867e-07,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.0024775095703454724,
+          "weighted_residual": 0.0038975164307207097,
+          "penalty": 4.583376276413622,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 8.25404185268019e-08,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.0025854399120728714,
+          "weighted_residual": 0.0039535780887909435,
+          "penalty": 5.576012420665235,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 2.1544346900318867e-07,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.0027098522884613395,
+          "weighted_residual": 0.004005284967075832,
+          "penalty": 4.395070420835768,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 1.2115276586285901e-08,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.0010137390312147424,
+          "weighted_residual": 0.0040764475503570815,
+          "penalty": 12.786743831261102,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 8.25404185268019e-08,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.002449203569172429,
+          "weighted_residual": 0.003964201481449381,
+          "penalty": 5.857422000793475,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 8.25404185268019e-08,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.0024615271720672925,
+          "weighted_residual": 0.003971608232949933,
+          "penalty": 5.241328196011148,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        },
+        {
+          "lambda_value": 8.25404185268019e-08,
+          "maxima_m2_s": [
+            3.7319704839070885e-10
+          ],
+          "prediction_rms": 0.0020589196525151185,
+          "weighted_residual": 0.004054712601455672,
+          "penalty": 6.356948266154663,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.017902504234976635
+          ]
+        }
+      ]
+    },
+    "separated": {
+      "replicates": 20,
+      "selected": 13,
+      "results": [
+        {
+          "lambda_value": 8.25404185268019e-08,
+          "maxima_m2_s": [
+            2.679549595346951e-10,
+            1.404247962287813e-09
+          ],
+          "prediction_rms": 0.001321311774334424,
+          "weighted_residual": 0.0024187667270374183,
+          "penalty": 2.74515241368107,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.0075742239455739435,
+            0.08019074022139461
+          ]
+        },
+        {
+          "lambda_value": 5.62341325190349e-07,
+          "maxima_m2_s": [
+            2.679549595346951e-10,
+            1.404247962287813e-09
+          ],
+          "prediction_rms": 0.0014793919242303037,
+          "weighted_residual": 0.002405537306985504,
+          "penalty": 1.7136324524104465,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.0075742239455739435,
+            0.08019074022139461
+          ]
+        },
+        {
+          "lambda_value": 1.4677992676220705e-06,
+          "maxima_m2_s": [
+            2.9924065722221856e-10,
+            1.404247962287813e-09
+          ],
+          "prediction_rms": 0.0020058618513309353,
+          "weighted_residual": 0.0023314370148853096,
+          "penalty": 1.1638163859091382,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            0.10829873045266103,
+            0.08019074022139461
+          ]
+        },
+        {
+          "lambda_value": 2.1544346900318867e-07,
+          "maxima_m2_s": [
+            2.9924065722221856e-10,
+            1.404247962287813e-09
+          ],
+          "prediction_rms": 0.0013657015516771217,
+          "weighted_residual": 0.0024074373663878702,
+          "penalty": 1.8695149453397828,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            0.10829873045266103,
+            0.08019074022139461
+          ]
+        },
+        {
+          "lambda_value": 2.1544346900318867e-07,
+          "maxima_m2_s": [
+            2.679549595346951e-10,
+            1.404247962287813e-09
+          ],
+          "prediction_rms": 0.0013884415817698539,
+          "weighted_residual": 0.0024447897289338765,
+          "penalty": 2.075137608708416,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.0075742239455739435,
+            0.08019074022139461
+          ]
+        },
+        {
+          "lambda_value": 2.1544346900318867e-07,
+          "maxima_m2_s": [
+            2.9924065722221856e-10,
+            1.404247962287813e-09
+          ],
+          "prediction_rms": 0.0014509026000688392,
+          "weighted_residual": 0.002493637464880282,
+          "penalty": 2.0180133636543744,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            0.10829873045266103,
+            0.08019074022139461
+          ]
+        },
+        {
+          "lambda_value": 4.641588833612773e-09,
+          "maxima_m2_s": [
+            2.679549595346951e-10,
+            1.2574334296829365e-09
+          ],
+          "prediction_rms": 0.0010223362215086777,
+          "weighted_residual": 0.0024684669437053082,
+          "penalty": 7.680559191186392,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.0075742239455739435,
+            -0.03274351562851041
+          ]
+        },
+        {
+          "lambda_value": 8.25404185268019e-08,
+          "maxima_m2_s": [
+            2.679549595346951e-10,
+            1.2574334296829365e-09
+          ],
+          "prediction_rms": 0.001588470899106101,
+          "weighted_residual": 0.0025115455688686323,
+          "penalty": 2.760411218421248,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.0075742239455739435,
+            -0.03274351562851041
+          ]
+        },
+        {
+          "lambda_value": 5.62341325190349e-07,
+          "maxima_m2_s": [
+            2.9924065722221856e-10,
+            1.404247962287813e-09
+          ],
+          "prediction_rms": 0.0014483809324235453,
+          "weighted_residual": 0.002574726727835343,
+          "penalty": 1.5780402650048095,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            0.10829873045266103,
+            0.08019074022139461
+          ]
+        },
+        {
+          "lambda_value": 8.25404185268019e-08,
+          "maxima_m2_s": [
+            2.679549595346951e-10,
+            1.404247962287813e-09
+          ],
+          "prediction_rms": 0.0021240653091228246,
+          "weighted_residual": 0.00235982668048445,
+          "penalty": 3.4119931188311488,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.0075742239455739435,
+            0.08019074022139461
+          ]
+        },
+        {
+          "lambda_value": 3.162277660168379e-08,
+          "maxima_m2_s": [
+            2.679549595346951e-10,
+            1.404247962287813e-09
+          ],
+          "prediction_rms": 0.0011123443311974442,
+          "weighted_residual": 0.0025058856952116042,
+          "penalty": 3.6902529728448545,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.0075742239455739435,
+            0.08019074022139461
+          ]
+        },
+        {
+          "lambda_value": 1.2115276586285901e-08,
+          "maxima_m2_s": [
+            2.679549595346951e-10,
+            1.404247962287813e-09
+          ],
+          "prediction_rms": 0.0005834470607152263,
+          "weighted_residual": 0.0024808516740531463,
+          "penalty": 6.122225322962242,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.0075742239455739435,
+            0.08019074022139461
+          ]
+        },
+        {
+          "lambda_value": 2.1544346900318867e-07,
+          "maxima_m2_s": [
+            2.679549595346951e-10,
+            1.404247962287813e-09
+          ],
+          "prediction_rms": 0.0015297159478591684,
+          "weighted_residual": 0.0024827435448524678,
+          "penalty": 2.009226758571189,
+          "false_maxima": 0,
+          "missed": 0,
+          "relative_bias": [
+            -0.0075742239455739435,
+            0.08019074022139461
+          ]
+        }
+      ]
+    },
+    "close": {
+      "replicates": 20,
+      "selected": 19,
+      "results": [
+        {
+          "lambda_value": 6.812920690579622e-10,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.0010634420442463158,
+          "weighted_residual": 0.002566462489690614,
+          "penalty": 17.32755633553662,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 4.641588833612773e-09,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.00035003834028797586,
+          "weighted_residual": 0.00259279941339877,
+          "penalty": 11.181953894663822,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 3.162277660168379e-08,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.001101131033666703,
+          "weighted_residual": 0.0025706427651729603,
+          "penalty": 5.967400212603607,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 3.162277660168379e-08,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.001110262673610903,
+          "weighted_residual": 0.0024986494980848233,
+          "penalty": 6.3298428186301745,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 2.6101572156825333e-10,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.00031375796130552234,
+          "weighted_residual": 0.0025824014044300713,
+          "penalty": 22.53644479646978,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 3.162277660168379e-08,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.0011524020305117043,
+          "weighted_residual": 0.0025297813804776434,
+          "penalty": 5.859074358238747,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 1.2115276586285901e-08,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.001187859225690643,
+          "weighted_residual": 0.0025529716701625698,
+          "penalty": 7.515058027339169,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 3.162277660168379e-08,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.001161063604204006,
+          "weighted_residual": 0.0025566791108205447,
+          "penalty": 6.330329005995083,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 3.162277660168379e-08,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.001108772024548237,
+          "weighted_residual": 0.0025215451532546985,
+          "penalty": 7.067220320236053,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 8.25404185268019e-08,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.0016081619012287712,
+          "weighted_residual": 0.0025406553981607307,
+          "penalty": 4.842041148507161,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 4.641588833612773e-09,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.000423341266669125,
+          "weighted_residual": 0.0025801591534838787,
+          "penalty": 10.565882551875726,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 2.1544346900318867e-07,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.001679288545001166,
+          "weighted_residual": 0.0026412217535712757,
+          "penalty": 4.291758244023077,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 5.62341325190349e-07,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.002454101377765267,
+          "weighted_residual": 0.0027349117219428835,
+          "penalty": 3.0354546650102767,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 8.25404185268019e-08,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.0015160389543728732,
+          "weighted_residual": 0.0026109967990169667,
+          "penalty": 4.540613115822475,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 1.7782794100389228e-09,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.0012148033248831807,
+          "weighted_residual": 0.002574740068908238,
+          "penalty": 16.423569919911817,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 3.162277660168379e-08,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.0008548798527163992,
+          "weighted_residual": 0.0026159889175990667,
+          "penalty": 7.423871353254628,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 2.6101572156825333e-10,
+          "maxima_m2_s": [
+            4.6543152999463424e-10
+          ],
+          "prediction_rms": 0.0012176225059778191,
+          "weighted_residual": 0.002573874958596937,
+          "penalty": 11.564553425324497,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            -0.06913694001073156
+          ]
+        },
+        {
+          "lambda_value": 2.1544346900318867e-07,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.0016904513580304646,
+          "weighted_residual": 0.002521138059793115,
+          "penalty": 4.22277121645555,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        },
+        {
+          "lambda_value": 4.641588833612773e-09,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.0004827299823368991,
+          "weighted_residual": 0.002594643121801266,
+          "penalty": 10.707942162649282,
+          "false_maxima": 0,
+          "missed": 1,
+          "relative_bias": [
+            0.04192632063755042
+          ]
+        }
+      ]
+    },
+    "low_SNR": {
+      "replicates": 20,
+      "selected": 4,
+      "results": [
+        {
+          "lambda_value": 0.0031622776601683794,
+          "maxima_m2_s": [
+            3.3417918851093556e-10
+          ],
+          "prediction_rms": 0.02059132421561159,
+          "weighted_residual": 0.08341714817029186,
+          "penalty": 0.2662564936986798,
+          "false_maxima": 1,
+          "missed": 2,
+          "relative_bias": []
+        },
+        {
+          "lambda_value": 0.3831186849557293,
+          "maxima_m2_s": [
+            7.239207102538793e-10
+          ],
+          "prediction_rms": 0.0428013299695394,
+          "weighted_residual": 0.08290902078525189,
+          "penalty": 0.05230361715594765,
+          "false_maxima": 1,
+          "missed": 2,
+          "relative_bias": []
+        },
+        {
+          "lambda_value": 0.021544346900318867,
+          "maxima_m2_s": [
+            4.1677052825502014e-10
+          ],
+          "prediction_rms": 0.021979179404411495,
+          "weighted_residual": 0.10245871907939438,
+          "penalty": 0.1262700315472405,
+          "false_maxima": 1,
+          "missed": 2,
+          "relative_bias": []
+        },
+        {
+          "lambda_value": 1.0,
+          "maxima_m2_s": [
+            8.08443738042088e-10
+          ],
+          "prediction_rms": 0.04521109952446174,
+          "weighted_residual": 0.09074568741673386,
+          "penalty": 0.021247008703310394,
+          "false_maxima": 1,
+          "missed": 2,
+          "relative_bias": []
+        }
+      ]
+    }
+  },
+  "strychnine": {
+    "source_sha256": "d65b9384caddd4439fc916a4331bbd7226ac83eeb4d5de1d4242c4566d525b55",
+    "groups": {
+      "S1,S10,S12,S13,S14,S15,S16,S17,S18,S19,S20,S3,S4,S5,S6,S7,S8,S9": {
+        "method": "Heurystyka krzywej warunkowej",
+        "recommendation": 1e-05,
+        "range": [
+          3.162277660168379e-06,
+          3.1622776601683795e-05
+        ],
+        "fixed_mu": 0.0001,
+        "warnings": [
+          "Dobór warunkowy przy stałym μ. Zmiana μ wymaga nowego skanu.",
+          "Brak potwierdzonych, kompletnych σ(I) do zasady rozbieżności."
+        ],
+        "trials": [
+          {
+            "lambda_value": 1e-09,
+            "residual": 0.01759250422336104,
+            "maxima": [
+              2.148233508421013e-09
+            ],
+            "valid": true
+          },
+          {
+            "lambda_value": 3.1622776601683795e-09,
+            "residual": 0.017672033724921227,
+            "maxima": [
+              2.148233508421013e-09
+            ],
+            "valid": true
+          },
+          {
+            "lambda_value": 1e-08,
+            "residual": 0.01783852132716914,
+            "maxima": [
+              2.148233508421013e-09
+            ],
+            "valid": true
+          },
+          {
+            "lambda_value": 3.162277660168379e-08,
+            "residual": 0.018239316095931227,
+            "maxima": [
+              2.148233508421013e-09
+            ],
+            "valid": true
+          },
+          {
+            "lambda_value": 1e-07,
+            "residual": 0.01843911490694889,
+            "maxima": [
+              2.148233508421013e-09
+            ],
+            "valid": true
+          },
+          {
+            "lambda_value": 3.162277660168379e-07,
+            "residual": 0.018570637153951963,
+            "maxima": [
+              2.148233508421013e-09
+            ],
+            "valid": true
+          },
+          {
+            "lambda_value": 1e-06,
+            "residual": 0.020091595491598415,
+            "maxima": [
+              2.148233508421013e-09
+            ],
+            "valid": true
+          },
+          {
+            "lambda_value": 3.162277660168379e-06,
+            "residual": 0.022933354737003378,
+            "maxima": [
+              2.148233508421013e-09
+            ],
+            "valid": true
+          },
+          {
+            "lambda_value": 1e-05,
+            "residual": 0.02817985684037014,
+            "maxima": [
+              2.148233508421013e-09
+            ],
+            "valid": true
+          },
+          {
+            "lambda_value": 3.1622776601683795e-05,
+            "residual": 0.03719747613147425,
+            "maxima": [
+              2.281402403297196e-09
+            ],
+            "valid": true
+          },
+          {
+            "lambda_value": 0.0001,
+            "residual": 0.052164245889927977,
+            "maxima": [
+              2.281402403297196e-09
+            ],
+            "valid": true
+          },
+          {
+            "lambda_value": 0.00031622776601683794,
+            "residual": 0.0766546365487798,
+            "maxima": [
+              2.422826431748481e-09
+            ],
+            "valid": true
+          },
+          {
+            "lambda_value": 0.001,
+            "residual": 0.11804966337357282,
+            "maxima": [
+              2.573017329119736e-09
+            ],
+            "valid": true
+          }
+        ]
+      }
+    }
+  }
+}

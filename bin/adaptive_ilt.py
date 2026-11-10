@@ -8,6 +8,7 @@ from dosy_alignment import (cluster_diffusion, exploratory_profiles, fit_shared_
                             ilt_profiles, individual_map_solution)
 from global_ilt import GlobalParameters, SolveCancelled, identify_components, solve_global_ilt
 from ilt import ILTParameters, MIN_DISTINCT_B, solve_ilt
+from ilt_regularization import SweepInput, has_systematic_warning, supplied_noise
 from roi_quality import estimate_spectral_noise
 
 
@@ -21,6 +22,7 @@ class LocalGroup:
     converged: bool
     rejected: tuple[str, ...]
     independent: bool = False
+    regularization: float | None = None
 
 
 @dataclass(frozen=True)
@@ -125,16 +127,39 @@ def separate_mixed_roi(dataset, row, regularization, fitted, y, mask, sigma):
                            rms=[fitted.rms], intervals=intervals, components=peaks, converged=True)
 
 
-def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, excluded=(), cancelled=None):
+def eligible_local_rows(dataset, rows, excluded):
+    reference = dataset.options['reference_layer']
+    return {row['id']: info for row in rows if row['id'] not in excluded
+            and (info := reference_quality(row,reference)) is not None
+            and len(np.unique(dataset.b[row['fit']['fit_mask']])) >= MIN_DISTINCT_B}
+
+
+def local_sweep_inputs(dataset,rows,tolerance,balance,regularization,excluded,group_regularizations):
+    if dataset.b is None:
+        return {}
+    quality = eligible_local_rows(dataset,rows,excluded)
+    by_id = {row['id']: row for row in rows}
+    sources = {}
+    for group in compatible_groups(dataset.b,[by_id[sid] for sid in quality],tolerance):
+        members = [by_id[sid] for sid in group.ids]
+        amplitude,snr = np.array([quality[sid] for sid in group.ids]).T
+        lam = group_regularizations.get(group.ids,regularization)
+        y,mask,sigma = fit_inputs(members)
+        sources[group.ids] = SweepInput(dataset.b,y,mask,GlobalParameters(grid_for(members,lam)),sigma,
+            supplied_noise(members),amplitude_weights(amplitude,snr,balance),has_systematic_warning(members))
+    return sources
+
+
+def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, excluded=(), cancelled=None,
+                       group_regularizations=None):
     if not (1 <= tolerance <= 30 and 1 <= balance <= 1000 and 1e-12 <= regularization <= 100):
         raise ValueError('Nieprawidłowe parametry Adaptive Local ILT.')
     if dataset.b is None:
         return LocalResult((), {}, tuple(row['id'] for row in rows), {})
     reference = dataset.options['reference_layer']
     by_id = {row['id']: row for row in rows}
-    quality = {sid: info for sid, row in by_id.items() if sid not in excluded
-               and (info := reference_quality(row, reference)) is not None
-               and len(np.unique(dataset.b[row['fit']['fit_mask']])) >= MIN_DISTINCT_B}
+    quality = eligible_local_rows(dataset,rows,excluded)
+    group_regularizations = group_regularizations or {}
     profiles, groups, attempted, withheld = {}, [], set(), {}
     exploratory, exploration = {}, {}
     noise = estimate_spectral_noise(dataset.phased) if hasattr(dataset,'phased') else None
@@ -164,8 +189,9 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
         amplitude, snr = np.array([quality[sid] for sid in ids]).T
         d = [row['fit']['D_m2_s'] for row in members]
         y, mask, sigma = fit_inputs(members)
+        lam = group_regularizations.get(ids,regularization)
         try:
-            solution = solve_global_ilt(dataset.b, y, GlobalParameters(grid_for(members, regularization)),
+            solution = solve_global_ilt(dataset.b, y, GlobalParameters(grid_for(members, lam)),
                                         include=mask, sigma=sigma, cancelled=cancelled,
                                         roi_weights=amplitude_weights(amplitude, snr, balance))
             recovered, rejected = project(ids, solution)
@@ -179,7 +205,7 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
         dominant = (solution.diffusion[np.argmax(solution.aggregate)] if solution is not None and solution.components else None)
         rms = (float(np.sqrt(np.mean((solution.rms/solution.scales)**2))) if solution is not None else None)
         groups.append(LocalGroup(ids, (min(d), max(d)), dominant, float(amplitude.max()/amplitude.min()),
-                                 rms, solution is not None and solution.converged, rejected))
+                                 rms, solution is not None and solution.converged, rejected, regularization=lam))
         profiles.update(recovered)
 
     # Singletons have an independent exploratory inversion. A strict local split
@@ -223,7 +249,7 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
         if sid in recovered and len(recovered[sid]) >= 2:
             d = fit['D_m2_s']
             groups.append(LocalGroup((sid,), (d,d), float(solution.diffusion[np.argmax(solution.weights)]),
-                                     1., solution.rms[0]/solution.scales[0], True, (), independent=True))
+                                     1., solution.rms[0]/solution.scales[0], True, (), independent=True, regularization=regularization))
             profiles.update(recovered)
     membership = {}
     accepted = [g for g in groups if not g.independent and g.converged and g.dominant is not None

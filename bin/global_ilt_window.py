@@ -10,6 +10,8 @@ from i18n import tr
 from ilt import D_UNIT, GRID_SIZES, ILTParameters, solve_ilt
 from ilt_help import GLOBAL_ILT_HELP, ILT_WINDOW_FLAGS, add_ilt_info
 from ilt_tools import ILTPlotTools, SolveJob
+from ilt_regularization import SweepInput, has_systematic_warning, supplied_noise
+from ilt_regularization_window import RegularizationControls
 
 
 COLORS = ('#67e8f9', '#fb923c', '#a7f3d0', '#f9a8d4', '#c4b5fd', '#fde047', '#93c5fd', '#fca5a5')
@@ -34,6 +36,8 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.context = source + ' · ' + ', '.join(self.ids)
         self.sigma = np.ones_like(self.y)
         self.has_sigma = False
+        self.noise_sigma = supplied_noise(entries)
+        self.systematic = has_systematic_warning(entries)
         for column, entry in enumerate(entries):
             sigma = np.asarray(entry['sigma'], dtype=float)
             active = sigma[self.mask[:, column]]
@@ -174,6 +178,8 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
         combined.clicked.connect(lambda: self.export_png(self.plots, 'Global_ILT'))
         self.export_buttons.append(combined)
         options.addWidget(combined)
+        self.auto_lambda = RegularizationControls(self,options,self.lambda_snapshot,lambda: self.revision,
+                                                  self.apply_lambda,self.set_lambda)
 
         view = QtWidgets.QHBoxLayout()
         root.addLayout(view)
@@ -246,6 +252,7 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.start_solve()
 
     def queue_solve(self, *_):
+        self.auto_lambda.manual_override()
         self.revision += 1
         self.solution_changed.emit(None)
         if self.cancel is not None:
@@ -260,14 +267,35 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
             text += ' ' + tr('Wykresy pokazują poprzednie rozwiązanie.')
         self.status.setText(text)
 
+    def parameters(self):
+        regularization, sparsity = [self.read_number(edit) for _,edit in self.penalties]
+        grid = ILTParameters(self.minimum.value()*D_UNIT,self.maximum.value()*D_UNIT,
+                             self.points.currentData(),self.spacing.currentData(),regularization,0)
+        if not 1e-12 <= regularization <= 100:
+            raise ValueError('λ musi mieścić się w zakresie 10⁻¹²–100.')
+        return GlobalParameters(grid,sparsity,self.iterations.value(),self.read_number(self.tolerance))
+
+    def lambda_snapshot(self):
+        source = SweepInput(self.b,self.y,self.mask,self.parameters(),self.sigma if self.weighted.isChecked() else None,
+                            self.noise_sigma,systematic=self.systematic)
+        ids = tuple(self.ids)
+        return self.revision,source.current,lambda: {ids:source},self.context
+
+    def set_lambda(self,value):
+        slider,edit = self.penalties[0]
+        edit.setText(f'{value:.12g}')
+        self.penalty_changed(edit,slider)
+
+    def apply_lambda(self,recommendations):
+        previous = self.parameters().grid.regularization
+        self.set_lambda(recommendations[tuple(self.ids)].recommendation)
+        return previous
+
     def start_solve(self):
         if self.closed or self.job is not None:
             return
         try:
-            regularization, sparsity = [self.read_number(edit) for _,edit in self.penalties]
-            grid = ILTParameters(self.minimum.value()*D_UNIT, self.maximum.value()*D_UNIT,
-                                 self.points.currentData(), self.spacing.currentData(), regularization, 0)
-            params = GlobalParameters(grid, sparsity, self.iterations.value(), self.read_number(self.tolerance))
+            params = self.parameters()
         except ValueError as exc:
             self.set_status(tr(str(exc)), stale=True)
             return
@@ -443,6 +471,7 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
                 self.table.setItem(i, col, item)
 
     def done(self, result):
+        self.auto_lambda.dismiss()
         self.closed = True
         self.timer.stop()
         if self.cancel is not None:
