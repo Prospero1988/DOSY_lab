@@ -1,10 +1,10 @@
-# DOSY Lab 1.0
+# DOSY Lab 2.0.0
 
-DOSY Lab is a Windows desktop application for classical 1D diffusion NMR acquired on JEOL instruments. It opens raw JDF gradient series, processes the complex FIDs with a shared phase, and estimates the diffusion coefficient **D** from the decay of selected integrals.
+DOSY Lab is a Windows desktop application for classical 1D diffusion NMR acquired on JEOL instruments. It opens raw JDF gradient series, processes the complex FIDs with a shared phase, and estimates the diffusion coefficient **D** from the decay of selected integrals. Version 2.0.0 adds exploratory inverse Laplace analysis and several ways to visualize diffusion across selected regions of interest (ROIs).
 
 ![DOSY Lab main window with the reference spectrum, integration regions and decay plot](images/widmo-integracja.png)
 
-*Synthetic example. The main window has separate tabs for decays and residuals.*
+*Synthetic example from an earlier interface revision. The current window has separate tabs for decays and residuals and adds ILT actions to the fit table.*
 
 ## Features
 
@@ -12,13 +12,15 @@ DOSY Lab is a Windows desktop application for classical 1D diffusion NMR acquire
 - Adjust apodization, zero filling, ppm referencing, digital filter delay, shared phase and per-layer baseline subtraction.
 - Draw, edit, split and rescale integrals. Fit a monoexponential decay and inspect individual measured points, fit residuals and quality indicators.
 - Compare diffusion coefficients within a named compound group and compare summaries from separate experiments.
-- Build a 2D ppm × D map from selected integrals and the reference spectrum.
+- Import and export reusable integration regions with their IDs, groups and ppm bounds.
+- Analyze individual decays with **ILT** or solve a joint inverse problem for selected ROIs with **Global ILT**. Compare reconstructions and residuals against existing monoexponential fits.
+- Build a 2D ppm × D map with linked proton and optional diffusion projections. Inspect native D, display alignment, shared monoexponential fits, Global ILT profiles or Adaptive Local ILT groups.
 - Save projects and processing profiles, export tables, and save figures with a light background.
 - Switch the interface between Polish and English using **PL / ENG** next to **Info**.
 
 ## Installation on Windows
 
-Install Python 3.11 or newer. Download and extract the repository through **Code → Download ZIP**, or clone it with Git.
+Install Python 3.11 or newer. Extract the DOSY Lab 2.0.0 source archive, or clone the repository. When the release tag is available from your Git source, check it out to run that exact version.
 
 ~~~powershell
 git clone https://github.com/Prospero1988/DOSY_lab.git
@@ -53,6 +55,22 @@ If Windows provides `python` instead of `py`, use `python -m venv .venv` for the
 
 The generator creates 16 layers and preserves existing files. Pass a different output path to generate another copy. Use **Add integral manually** and enter `3.60; 3.68`, then repeat with `4.66; 4.74`. The expected **D** values are about **3.8 × 10⁻¹⁰ m²/s** and **8.0 × 10⁻¹⁰ m²/s**. The main table displays these as approximately **3.8** and **8.0** in its scaled D column.
 
+## Basic workflow
+
+1. **Open DOSY** and select a raw JEOL JDF. Use **Info** and **b values** to check the acquisition and the diffusion weighting.
+2. Reference and phase the spectrum, then apply a baseline correction if needed. Define the integration ranges or import an `.ints` template after referencing.
+3. Use **Fit / refresh** for the conventional monoexponential analysis. Inspect the residuals, fit inclusion and line shapes across gradient layers.
+4. Use **Analyze ILT** for a single ROI or select two or more rows and choose **Global ILT**. Check how the distributions respond to changes in regularization and compare their reconstructed decays with the measurements.
+5. Open **2D DOSY map** to inspect signals in ppm × D. Keep the original view as a reference when comparing model-dependent modes.
+
+| 2D map mode | How D is assigned |
+| --- | --- |
+| **Original DOSY map** | Uses the independent monoexponential D for each ROI. |
+| **D-aligned DOSY · display only** | Places compatible ROI profiles at a representative group D for display. |
+| **Global fit DOSY** | Fits a common monoexponential D with independent ROI amplitudes in each accepted group. |
+| **Global ILT DOSY · ROI profiles** | Uses the components of a converged Global ILT analysis. It can estimate separate spectral profiles inside eligible ROIs. |
+| **Adaptive Local ILT** | Groups compatible ROIs from conventional fits, then runs separate joint inversions and assembles the accepted profiles. |
+
 ## User guide
 
 The [user guide](INSTRUKCJA.md) walks through opening data, processing, phase and baseline correction, integration, fitting, statistics and exports.
@@ -65,7 +83,9 @@ The [user guide](INSTRUKCJA.md) walks through opening data, processing, phase an
 - [Experimental inverse Laplace analysis](ILT.md)
 - [Experimental Global ILT for selected ROIs](GLOBAL-ILT.md)
 - [Project files and exports](INSTRUKCJA.md#9-projects-and-exports)
-- [2D DOSY map from integrals](INSTRUKCJA.md#11-2d-dosy-map)
+- [2D DOSY maps, alignment and Adaptive Local ILT](DOSY-ALIGNMENT.md)
+- [Scientific methods and interpretation](SCIENTIFIC-METHODS.md)
+- [Release notes](RELEASE-2.0.0.md) and [changelog](CHANGELOG.md)
 
 ## Input and scope
 
@@ -73,6 +93,15 @@ The [user guide](INSTRUKCJA.md) walks through opening data, processing, phase an
 - Automatic **b** values come from an explicit JDF b axis or verified proton BPP-STE-LED and BPP-DSTE-LED encoding blocks, including the supported presaturation variant. The reader checks the timing and the recorded `st_coef` when available. Other sequences can use an independently calculated manual b list.
 - The application is designed for classical 1D DOSY. Processed JDFs and 3D COSY-DOSY, COSY-iDOSY and HMQC-DOSY are outside its scope.
 - Quantitative results depend on gradient calibration, the b model, integral quality and the suitability of the decay model.
+
+ILT, Global ILT and Adaptive Local ILT are exploratory. Noise, overlap, exchange and b sampling can affect the number, position and width of maxima. Similar D values alone cannot identify a compound. The 2D map uses fitted ROIs and its D-axis display width is adjustable.
+
+## Troubleshooting
+
+- For missing D values, inspect **b values** and count the distinct included b layers. Monoexponential fitting requires at least three and ILT requires at least six per ROI.
+- For rippled baselines or signed integrals with unexpected polarity, check the digital filter settings and shared phase before fitting.
+- If ILT gives an edge maximum, broaden or reposition the D grid and check the b coverage and reconstruction. If maxima change substantially with regularization, report that sensitivity.
+- If the launcher closes, use the manual installation steps above to see the error. See the [troubleshooting table](INSTRUKCJA.md#10-troubleshooting) for project and fit issues.
 
 ## Workspace and tests
 
@@ -97,4 +126,4 @@ Tests cover the synthetic example, reference acquisitions when present, numerica
 
 ## License
 
-DOSY Lab is distributed under the [MIT license](LICENSE).
+DOSY Lab is distributed under the [MIT license](LICENSE). Copyright © 2026 Prospero1988.

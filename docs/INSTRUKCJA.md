@@ -13,6 +13,9 @@
 9. [Projects and exports](#9-projects-and-exports)
 10. [Troubleshooting](#10-troubleshooting)
 11. [2D DOSY map](#11-2d-dosy-map)
+12. [Individual ILT](#12-individual-ilt)
+13. [Global ILT](#13-global-ilt)
+14. [Adaptive Local ILT](#14-adaptive-local-ilt)
 
 ## 1. Open data
 
@@ -199,4 +202,27 @@ An export bundle can contain complete measurement data and the embedded pulse pr
 
 The map places each ROI’s positive real reference spectrum at its fitted D. Orange is the default signal color. Shared points of overlapping selected ROIs are omitted until the overlap is resolved. **D band width** controls the vertical display broadening as a percentage of the largest visible D. Each ROI contributes one fitted coefficient, so mixed signals within an ROI are represented by an apparent D.
 
-The experimental branch adds [diffusion alignment and Global ILT map modes](DOSY-ALIGNMENT.md).
+The description above applies to **Original DOSY map**. Select another **Map mode** to explore different assumptions. **D-aligned DOSY · display only** moves compatible ROI profiles onto representative group positions. **Global fit DOSY** refits each compatible group using one shared D and independent ROI amplitudes. **Global ILT DOSY · ROI profiles** becomes available after a converged Global ILT for the current results. **Adaptive Local ILT** builds its own groups from the current fits. Compare each result with the original map. Use **Full screen** for an enlarged view and **Esc** to return. See the [map mode guide](DOSY-ALIGNMENT.md) for group membership, visibility, thresholds and fallback behavior.
+
+## 12. Individual ILT
+
+1. Complete the conventional fit and check its signed intensities, baseline and excluded layers. Each ROI needs six distinct included b values.
+2. Click **Analyze ILT** in the ROI's **ILT** column. The analysis uses a snapshot of the current fit data. Reopen the window after changes to the ROI or processing.
+3. Start with the default grid and penalty. Use the λ slider or field, **D min / D max**, **Grid points**, **D grid** and **Penalty** to test sensitivity. **Logarithmic D axis** only changes the view. Use **Restore defaults** to return to the starting settings.
+4. Compare experimental attenuation, monoexponential and ILT reconstructions, then inspect residuals and solver diagnostics. A smaller residual RMS can reflect model flexibility. Check grid-edge maxima and whether candidate positions persist across reasonable settings.
+5. Open **Info** for controls and definitions. Save an individual plot or a stacked PNG. Close with the title-bar **×** or **Esc**. See the [individual ILT guide](ILT.md) for density units and defaults.
+
+## 13. Global ILT
+
+1. Ctrl-click or Shift-click two or more eligible rows in the fit table, then click **Global ILT** next to **Fit / refresh**.
+2. Start with the default D grid and regularization. Adjust λ to change the ridge penalty and μ to change the preference for shared D positions. Enter μ = 0 to remove the coupling. Choose **Compare independent ILT** to overlay the separate inversion for the active ROI.
+3. Inspect the joint and individual distributions. Use the ROI selector for the attenuation and residuals. Toggle the common ROI amplitude scale or use the visibility menu to compare selected profiles.
+4. Review **Component contributions** and **Results** together. Component shares sum fitted cell masses across intervals. Treat them as fitted signal fractions under the chosen model.
+5. Use **Info** for the guide, and export individual plots or the combined PNG. For the 2D map, finish a converged solve and then select **Global ILT DOSY · ROI profiles**. Reopen Global ILT after changing the source data or selection. See the [Global ILT guide](GLOBAL-ILT.md) for weighting and convergence details.
+
+## 14. Adaptive Local ILT
+
+1. Fit the regions conventionally and open **2D DOSY map**. Select **Adaptive Local ILT** from **Map mode**.
+2. Inspect the default result before tuning **D tolerance** (5%), **Amplitude balance** (10×) and **Local λ** (1e-6). The first sets candidate group membership, the second controls when weaker signals may be downweighted, and the third controls the local ridge penalty.
+3. Open **Group diagnostics** to compare ROI counts, the original D range, amplitude ratios, recovered D, residuals and unresolved profiles. Use the group checkbox for visibility and the member checkbox to exclude an ROI from regrouping. Edits schedule a new solve.
+4. Compare with **Original DOSY map** and export the view if needed. Unresolved regions retain their original representation. See [adaptive grouping and map reconstruction](DOSY-ALIGNMENT.md#adaptive-local-ilt) and the [scientific methods](SCIENTIFIC-METHODS.md) before assigning physical meaning to separate bands.

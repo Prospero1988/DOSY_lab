@@ -1,4 +1,4 @@
-# Experimental diffusion alignment for DOSY maps
+# Diffusion alignment and Adaptive Local ILT for DOSY maps
 
 Open **2D DOSY map** after completing the integrals and fits. Use **Map mode** to compare the following views. **Original DOSY map** is the default and keeps each reference spectrum segment at its own monoexponential D.
 
