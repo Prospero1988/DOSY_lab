@@ -27,13 +27,23 @@ def quality(fit, error=''):
     d, se, r2 = (finite(fit.get(key)) for key in ('D_m2_s', 'D_standard_error_m2_s', 'R2'))
     if error or not fit.get('ok'):
         message = error or fit.get('message', 'Brak poprawnego dopasowania.')
-        return False, 'BRAK FITU', ' '.join([message, *(fit.get('measurement_warnings') or [])])
+        return False, 'NIEWAŻNY', ' '.join([message, *(fit.get('measurement_warnings') or [])])
     if d is None or d < 0:
-        return False, 'BŁĘDNE D', 'D jest brakujące, ujemne lub nieskończone/NaN.'
+        return False, 'NIEWAŻNY', 'D jest brakujące, ujemne lub nieskończone/NaN.'
     provided_warnings = fit.get('warnings') or []
     if isinstance(provided_warnings, str): provided_warnings = [provided_warnings]
-    warnings = [str(w) for w in provided_warnings]
-    warnings.extend(fit.get('measurement_warnings') or [])
+    model_info = []
+    warnings = []
+    for warning in map(str, provided_warnings):
+        if warning in ('Uwzględniono niedodatnie całki bez przycinania i odrzucania.',
+                       'Ekstrapolacja poza aktywny zakres b nie mieści się w zakresie numerycznym.'):
+            model_info.append(warning)
+        else:
+            warnings.append(warning)
+    findings = fit.get('measurement_findings')
+    if findings is None:
+        warnings.extend(fit.get('measurement_warnings') or [])
+        findings = []
     if se is None or se <= 0:
         warnings.append('Brak dodatniego, skończonego SE(D); niedostępne wagi 1/SE².')
     if r2 is None:
@@ -42,7 +52,14 @@ def quality(fit, error=''):
         warnings.append('R² poza zakresem 0–1.')
     if d == 0:
         warnings.append('D na granicy 0.')
-    return True, 'UWAGA' if warnings else 'OK', ' '.join(warnings) or 'Poprawny wynik; QC nie jest walidacją eksperymentu.'
+    status = ('UWAGA' if warnings or any(f['severity']=='warning' for f in findings)
+              else 'INFO' if findings or model_info else 'OK')
+    model = ['Dopasowanie · UWAGA: ' + ' '.join(warnings)] if warnings else []
+    if model_info:
+        model.append('Dopasowanie · INFO: ' + ' '.join(model_info))
+    measurement = [f"{'UWAGA' if f['severity']=='warning' else 'INFO'} · {f['message']}" for f in findings]
+    detail = '\n'.join(model+measurement)
+    return True, status, detail or 'Poprawny wynik; QC nie jest walidacją eksperymentu.'
 
 def descriptive_statistics(values, uncertainties=None, weighted=False):
     """SD(ddof=1), descriptive SEM, and opt-in inverse-variance mean in SI units."""

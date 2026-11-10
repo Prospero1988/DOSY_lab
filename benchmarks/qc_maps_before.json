@@ -1,0 +1,2692 @@
+{
+  "sha256": "d65b9384caddd4439fc916a4331bbd7226ac83eeb4d5de1d4242c4566d525b55",
+  "options": {
+    "lb_Hz": 0.0,
+    "gaussian_FWHM_Hz": 3.0,
+    "phase0_deg": -75.11944,
+    "phase1_deg": -141.5,
+    "pivot_ppm": -0.14138,
+    "ppm_shift": 0.0,
+    "filter_delay_samples": 19.6875,
+    "zero_fill_factor": 1,
+    "reference_layer": 1,
+    "crop_filter": true,
+    "baseline_degree": 2,
+    "baseline_per_layer": true,
+    "baseline_preview": false,
+    "baseline_enabled": true,
+    "baseline_regions": [
+      [
+        8.551672343054637,
+        11.380397060641936
+      ],
+      [
+        4.720228042740494,
+        5.290194963448382
+      ],
+      [
+        0.35048165064667813,
+        0.7410145407613431
+      ],
+      [
+        -2.224924435514893,
+        -0.6416829891040905
+      ]
+    ]
+  },
+  "project_sha256": "1031695f62961dd3aedf5194004e6536019c0ab2e0a0cb4cdc0201114cb18121",
+  "peak_rule": "saved project ROI definitions",
+  "floor_percent": 0,
+  "gain": 1,
+  "reference": 2,
+  "rows": [
+    {
+      "id": "S1",
+      "bounds": [
+        8.035770659745324,
+        8.127352391404502
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0607763735189646e-09,
+      "R2": 0.9996508394942898,
+      "RMS": 0.2843835792254898,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.009596840525077394,
+            "p_heuristic": 0.00390625
+          },
+          "phase": {
+            "effect": 0.0005474280461771081,
+            "p_heuristic": 0.658203125
+          },
+          "baseline": {
+            "effect": 0.00023501514640377385,
+            "p_heuristic": 0.001953125
+          }
+        },
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.2320267496696276,
+          0.2649050392824842,
+          0.029316799073072854,
+          -0.1010999487723123,
+          -0.10053353020351734,
+          0.2571100173889816,
+          0.35403442993535617,
+          0.07572180729430278,
+          -0.04826739264801034,
+          -0.013271740104942064,
+          -0.07879376010303064,
+          0.057960161248881155,
+          -0.22069439799134338,
+          -0.4400227653143668,
+          -0.4124146873258725,
+          -0.7553753065960991
+        ],
+        "explained_energy": 0.9998252314714741,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.07550058015865829
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.3337603106792317,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.020034227518021714
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.019717270132295923
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S2",
+      "bounds": [
+        7.186271148837779,
+        7.293642834231298
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.4270105040347244e-09,
+      "R2": 0.999976977221447,
+      "RMS": 0.12802086389589507,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Faza ROI zmienia się z b. Sprawdź część urojoną i stabilność fazy między warstwami. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.04289311028477563,
+            "p_heuristic": 0.001953125
+          },
+          "phase": {
+            "effect": 0.027991964326317557,
+            "p_heuristic": 0.001953125
+          },
+          "baseline": {
+            "effect": 0.0015071524458784883,
+            "p_heuristic": 0.001953125
+          }
+        },
+        "flagged": [
+          "shape",
+          "phase",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          1.3229860605847845,
+          1.5020716510151733,
+          0.7992605463222072,
+          0.23240853347237067,
+          -0.3416880993136659,
+          -0.8468367607191892,
+          -1.2666944638042439,
+          -1.6921277776503973,
+          -2.2098290425124394,
+          -2.5607771329013187,
+          -2.9423531559408325,
+          -3.355407604108761,
+          -3.991228900972925,
+          -4.474426224834356,
+          -4.851129094247364,
+          -5.484458334612931
+        ],
+        "explained_energy": 0.9981155565254964,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Faza ROI zmienia się z b. Sprawdź część urojoną i stabilność fazy między warstwami.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.05730098223562955
+      },
+      "independent_ILT_D": [
+        2.4171005314669464e-09
+      ],
+      "independent_ILT_rms": 0.2601489857652993,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.06676285244858
+      },
+      "global_assigned": false,
+      "adaptive_optimization": false,
+      "adaptive_rejection": null,
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S3",
+      "bounds": [
+        7.017318643880332,
+        7.186271148837779
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.086359027021954e-09,
+      "R2": 0.9997565699904304,
+      "RMS": 0.5106288063958602,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Faza ROI zmienia się z b. Sprawdź część urojoną i stabilność fazy między warstwami. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.011389294273861232,
+            "p_heuristic": 0.001953125
+          },
+          "phase": {
+            "effect": 0.004869104283646242,
+            "p_heuristic": 0.001953125
+          },
+          "baseline": {
+            "effect": 0.0001265634127790593,
+            "p_heuristic": 0.001953125
+          }
+        },
+        "flagged": [
+          "shape",
+          "phase",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          0.19845410260758295,
+          0.3247879225872814,
+          0.07719376597740715,
+          0.03790405310598704,
+          -0.0859455280613071,
+          0.06711779834842192,
+          0.15804665823097866,
+          -0.1291430332644146,
+          -0.37424008287137495,
+          -0.4068205785964067,
+          -0.38980063638229195,
+          -0.42929783340643535,
+          -0.6103616319491039,
+          -0.9450064561707255,
+          -0.9865432873170173,
+          -1.3129388944081621
+        ],
+        "explained_energy": 0.9998049058811381,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Faza ROI zmienia się z b. Sprawdź część urojoną i stabilność fazy między warstwami.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.0660758737684352
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.6266647814004807,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.01696887183676455
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.01659485853857854
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S4",
+      "bounds": [
+        5.828335127684456,
+        5.938864803824844
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.086922694945252e-09,
+      "R2": 0.9997776146439252,
+      "RMS": 0.2329019679322331,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.0021603311975386644,
+            "p_heuristic": 0.001953125
+          },
+          "phase": {
+            "effect": 0.0002767727656820258,
+            "p_heuristic": 0.70703125
+          },
+          "baseline": {
+            "effect": 0.0002134417500468676,
+            "p_heuristic": 0.001953125
+          }
+        },
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.1288025518194895,
+          0.03519913273633524,
+          -0.04372546255273046,
+          0.06747091227691465,
+          -0.1218086334403412,
+          0.13082527200512226,
+          0.41673675090239176,
+          0.07095060520556795,
+          -0.12107611138261812,
+          0.021194387491280137,
+          0.009777500778671837,
+          0.10749502638888346,
+          0.07048464582461772,
+          -0.25410671639983723,
+          -0.20953124031815043,
+          -0.39877650663720493
+        ],
+        "explained_energy": 0.9999843330090322,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.09443662186432614
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.28925777574615297,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.010392955301855064
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.009758489397051163
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S5",
+      "bounds": [
+        4.243141952457121,
+        4.293255686879857
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0958949162555026e-09,
+      "R2": 0.9997379433534143,
+      "RMS": 0.24907598777641637,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.001959844992299631,
+            "p_heuristic": 0.01171875
+          },
+          "phase": {
+            "effect": 0.000299889371251615,
+            "p_heuristic": 0.669921875
+          },
+          "baseline": {
+            "effect": 0.00011967164360853933,
+            "p_heuristic": 0.001953125
+          }
+        },
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.09541373641670563,
+          0.032808582634139806,
+          -0.06886488764658907,
+          0.10813051828481801,
+          -0.10802961394777727,
+          0.16745663413398604,
+          0.34500764478448864,
+          0.12431720239988506,
+          0.024915332653298358,
+          -0.03403480035033171,
+          -0.036126094477830606,
+          0.10020570795302962,
+          -0.04241495003349278,
+          -0.5485401297708726,
+          -0.36022008604369776,
+          -0.7515366489530506
+        ],
+        "explained_energy": 0.9999863219809759,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.041801955726231195
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.3025377283987776,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.01073607491452235
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.010045597311991832
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S6",
+      "bounds": [
+        4.097498911791045,
+        4.1627511701539825
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0922698234655632e-09,
+      "R2": 0.999697340367142,
+      "RMS": 0.2568122186987107,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.00838765408409702,
+            "p_heuristic": 0.001953125
+          },
+          "phase": {
+            "effect": 0.00016370526355654876,
+            "p_heuristic": 0.80078125
+          },
+          "baseline": {
+            "effect": 0.0001927408368672227,
+            "p_heuristic": 0.00390625
+          }
+        },
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.12020694621524519,
+          0.19680175874966951,
+          -0.02417890277232955,
+          -0.026544436969509217,
+          -0.07467832717090359,
+          0.009817658782734074,
+          0.06005750933686793,
+          0.11006295332961692,
+          0.021636833104992488,
+          -0.023166779094798848,
+          -0.013871355442723105,
+          0.1791935103117267,
+          -0.028843463811009887,
+          -0.13096800643552783,
+          -0.1773720706127397,
+          -0.4476257768413999
+        ],
+        "explained_energy": 0.9998758006708487,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.057508962746992
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.306118794318294,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.015872746776822075
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.015397562120659888
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S7",
+      "bounds": [
+        4.015020057220292,
+        4.08027231558323
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0776138989302084e-09,
+      "R2": 0.9998150269642576,
+      "RMS": 0.19670338629457412,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.00586746472786156,
+            "p_heuristic": 0.001953125
+          },
+          "phase": {
+            "effect": 0.0006983641973944993,
+            "p_heuristic": 0.28125
+          },
+          "baseline": {
+            "effect": 0.00028289994057086526,
+            "p_heuristic": 0.001953125
+          }
+        },
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.11752427706005728,
+          -0.014814467771616902,
+          -0.12993220941532138,
+          -0.04166260269674997,
+          -0.09304502642451509,
+          0.39396594122915013,
+          0.3114630286854094,
+          0.18771514201423975,
+          -0.02406869600004483,
+          0.11358492271337768,
+          0.02950371901095829,
+          0.20603094647947257,
+          -0.011471214256215903,
+          -0.2901728301935555,
+          -0.1000891152160748,
+          -0.6347331153426948
+        ],
+        "explained_energy": 0.9999333919322477,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.058354535340300905
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.250866872464975,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.012234037087810432
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.011705858400600762
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S8",
+      "bounds": [
+        3.8975659921670056,
+        3.963340268596846
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.081384190847356e-09,
+      "R2": 0.9998153052425118,
+      "RMS": 0.1996310535339461,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.0025090906783479354,
+            "p_heuristic": 0.025390625
+          },
+          "phase": {
+            "effect": 0.000890927660083146,
+            "p_heuristic": 0.375
+          },
+          "baseline": {
+            "effect": 0.00016506499315259454,
+            "p_heuristic": 0.001953125
+          }
+        },
+        "flagged": [
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.20864093514089585,
+          0.00361272866397386,
+          -0.06499687245701291,
+          0.0062970208921590606,
+          -0.027690309625230253,
+          0.21338631974626265,
+          0.31825101948311124,
+          0.21137823130954275,
+          0.1363583894558655,
+          0.09867376788481284,
+          0.16366373705367204,
+          0.14326522897118488,
+          0.046470544762927946,
+          -0.2921924545767335,
+          -0.34792202679510914,
+          -0.6571575658700664
+        ],
+        "explained_energy": 0.9999771441620402,
+        "warnings": [
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.057963754205935025
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.2547892595382677,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S9",
+      "bounds": [
+        3.8109109930610248,
+        3.8714650888218305
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.108684948649333e-09,
+      "R2": 0.9997422022892591,
+      "RMS": 0.251461226672846,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.007750980198866816,
+            "p_heuristic": 0.01171875
+          },
+          "phase": {
+            "effect": 0.0011433426278695251,
+            "p_heuristic": 0.123046875
+          },
+          "baseline": {
+            "effect": 2.678871346276573e-05,
+            "p_heuristic": 0.42578125
+          }
+        },
+        "flagged": [
+          "shape"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.011863632364923653,
+          -0.022486941817855904,
+          0.023790021073540047,
+          -0.039460767074664484,
+          0.11567550059208226,
+          0.2077046342873429,
+          0.21376214751911154,
+          0.023945080878328924,
+          0.036114920159703565,
+          -0.058022862105463,
+          -0.03751083911839412,
+          -0.003359526102055315,
+          -0.34880697820402723,
+          -0.6565636131708031,
+          -0.451132463535618,
+          -1.0478360731882603
+        ],
+        "explained_energy": 0.9998433499399556,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika."
+        ],
+        "baseline_relative_rms": 0.05021371352930805
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.3037023270673683,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.01817681276364712
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.017751002457260374
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S10",
+      "bounds": [
+        3.644387229718809,
+        3.7310422288247898
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0958115245365837e-09,
+      "R2": 0.9996530503487472,
+      "RMS": 0.24136475703696403,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.005338777291362253,
+            "p_heuristic": 0.0078125
+          },
+          "phase": {
+            "effect": 0.0016436129695857136,
+            "p_heuristic": 0.23046875
+          },
+          "baseline": {
+            "effect": 0.00013458439646059272,
+            "p_heuristic": 0.052734375
+          }
+        },
+        "flagged": [
+          "shape"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.171426026089619,
+          0.4530883687163398,
+          0.0463459529716492,
+          -0.0335809140175167,
+          -0.1301093555909633,
+          0.06212854271123648,
+          0.09076762594865773,
+          -0.07513789167264269,
+          -0.14867130802556547,
+          -0.1472644767483766,
+          -0.07840540395517846,
+          0.09809568992553606,
+          -0.21582114645107986,
+          -0.5283741734847409,
+          -0.356252578672269,
+          -0.7637672069085863
+        ],
+        "explained_energy": 0.9999161720155259,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika."
+        ],
+        "baseline_relative_rms": 0.08967650086768987
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.2830842309844922,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.01961442780663293
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.019163261727411195
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S11",
+      "bounds": [
+        -0.04006108581192125,
+        0.007888646442559821
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 3.021629870045516e-09,
+      "R2": 0.9996330882083042,
+      "RMS": 0.10421040667037276,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Faza ROI zmienia się z b. Sprawdź część urojoną i stabilność fazy między warstwami. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.022844328698523594,
+            "p_heuristic": 0.001953125
+          },
+          "phase": {
+            "effect": 0.013077672441725315,
+            "p_heuristic": 0.001953125
+          },
+          "baseline": {
+            "effect": 0.008185121351888258,
+            "p_heuristic": 0.001953125
+          }
+        },
+        "flagged": [
+          "shape",
+          "phase",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.7515132300309083,
+          -0.7826106225111858,
+          -0.036831028682104056,
+          0.0763882477307248,
+          0.37953995863475437,
+          0.7632257168211293,
+          1.1881619992703594,
+          1.3656563858190232,
+          1.3473464795769576,
+          1.4270787173610144,
+          1.4130252232741884,
+          1.4222961582729203,
+          1.5370534313381496,
+          1.5314430863718664,
+          1.8924380997021955,
+          1.2527893541933954
+        ],
+        "explained_energy": 0.9994065176869321,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Faza ROI zmienia się z b. Sprawdź część urojoną i stabilność fazy między warstwami.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.15520775377970358
+      },
+      "independent_ILT_D": [
+        3.1190729294187303e-09
+      ],
+      "independent_ILT_rms": 0.1187234646789321,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.02688978453054225
+      },
+      "global_assigned": false,
+      "adaptive_optimization": false,
+      "adaptive_rejection": null,
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S12",
+      "bounds": [
+        1.2226151968894192,
+        1.2945397952711408
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0772583777636702e-09,
+      "R2": 0.999790194936292,
+      "RMS": 0.22126918494320522,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.0033902862644597837,
+            "p_heuristic": 0.0078125
+          },
+          "phase": {
+            "effect": 0.0005627310129760821,
+            "p_heuristic": 0.328125
+          },
+          "baseline": {
+            "effect": 0.00023107625412625832,
+            "p_heuristic": 0.001953125
+          }
+        },
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.035201050393988846,
+          0.0455453928959272,
+          -0.02590857750975843,
+          0.06242695097248316,
+          -0.11481883647451842,
+          0.14502922286001332,
+          0.1634395544144702,
+          0.009533199042775282,
+          -0.06146254261459678,
+          0.08604764733558644,
+          0.11933882217647905,
+          0.02415992699203042,
+          -0.11643503193944195,
+          -0.3197640891501204,
+          -0.3678723737923589,
+          -0.718437667104456
+        ],
+        "explained_energy": 0.9999664010548196,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.05919124226688311
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.27711216904698055,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.01122590275890135
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.010725607596287923
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S13",
+      "bounds": [
+        1.408420409375534,
+        1.4743512912254457
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.08519323119361e-09,
+      "R2": 0.9997747193455017,
+      "RMS": 0.18923631343474925,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.005216986283549783,
+            "p_heuristic": 0.017578125
+          },
+          "phase": {
+            "effect": 0.0005372201127433688,
+            "p_heuristic": 0.77734375
+          },
+          "baseline": {
+            "effect": 0.00018140857836318933,
+            "p_heuristic": 0.00390625
+          }
+        },
+        "flagged": [
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.3889725682128773,
+          0.3476154449595521,
+          -0.14366925547571663,
+          -0.04603501262033133,
+          -0.1299385235492848,
+          0.3340541184611142,
+          0.5396727093320451,
+          0.23343987756698165,
+          0.035932716865293576,
+          0.018479350576473177,
+          -0.09003159919839139,
+          0.23973414543268923,
+          -0.2546233172330939,
+          -0.3009785737477685,
+          -0.21276085058870264,
+          -0.959713888752151
+        ],
+        "explained_energy": 0.9999210311075974,
+        "warnings": [
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.06664336208576327
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.23457798684808748,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S14",
+      "bounds": [
+        1.8239847555810385,
+        1.9278758421324145
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.097649054777553e-09,
+      "R2": 0.9997321600475473,
+      "RMS": 0.4494773546255955,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.002513724892934602,
+            "p_heuristic": 0.009765625
+          },
+          "phase": {
+            "effect": 0.000568150912379498,
+            "p_heuristic": 0.41796875
+          },
+          "baseline": {
+            "effect": 8.970711836919826e-05,
+            "p_heuristic": 0.00390625
+          }
+        },
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.1325009666707282,
+          0.09809428799450814,
+          -0.057640519524731204,
+          -0.11247859288727663,
+          -0.10969292668135713,
+          0.14053599686331705,
+          0.23497140065761116,
+          0.17538891949743915,
+          0.09194886103940796,
+          0.09231068438495409,
+          0.13676074198516297,
+          0.2397094197741034,
+          0.04096878022872057,
+          -0.27871659610013194,
+          -0.19301951450805063,
+          -0.5173489022199881
+        ],
+        "explained_energy": 0.9999805265624986,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.047953035120997294
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.544098848059911,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.011862938388679387
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.011158205523926374
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S15",
+      "bounds": [
+        2.2954904560834377,
+        2.395385731613607
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0896369683898174e-09,
+      "R2": 0.9997384207843462,
+      "RMS": 0.20443334023674115,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.0025926593922720982,
+            "p_heuristic": 0.01953125
+          },
+          "phase": {
+            "effect": 4.97705557760532e-06,
+            "p_heuristic": 0.990234375
+          },
+          "baseline": {
+            "effect": 0.0002927953162048862,
+            "p_heuristic": 0.001953125
+          }
+        },
+        "flagged": [
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.027011418234561897,
+          0.027833917378954662,
+          -0.1261415575286759,
+          0.010534025305009378,
+          0.023723844551771803,
+          0.0492657871038606,
+          0.15270145696733187,
+          0.0897316115307118,
+          -0.027005383162727544,
+          0.06894735825689255,
+          0.10548160381434553,
+          0.23569609771979216,
+          -0.03690381484965787,
+          -0.17433352582639322,
+          -0.26843721312455765,
+          -0.6563011029910134
+        ],
+        "explained_energy": 0.999968812548966,
+        "warnings": [
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.10608514290084016
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.2481809845953325,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S16",
+      "bounds": [
+        2.6870799361617017,
+        2.7490150069904065
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0951367069002477e-09,
+      "R2": 0.9996478506988361,
+      "RMS": 0.23917610739445871,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.00657244760612432,
+            "p_heuristic": 0.013671875
+          },
+          "phase": {
+            "effect": 0.00161790491724528,
+            "p_heuristic": 0.3359375
+          },
+          "baseline": {
+            "effect": 0.0001238571496258456,
+            "p_heuristic": 0.0546875
+          }
+        },
+        "flagged": [
+          "shape"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.19869258817337385,
+          0.5173512678006515,
+          -0.1938991509901419,
+          0.010665663394976373,
+          0.007906113956700024,
+          -0.024815703596951944,
+          0.19036087491264272,
+          0.22355817805720085,
+          -0.07420802811069027,
+          0.00377134493023064,
+          -0.19136139540680264,
+          0.18269021742682207,
+          -0.3103461073923484,
+          -0.7143404687906761,
+          -0.7374311595043626,
+          -1.1658963164618288
+        ],
+        "explained_energy": 0.9998741202596849,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika."
+        ],
+        "baseline_relative_rms": 0.06312627792928614
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.27990349859989133,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.020640303055956224
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.020191463026766353
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S17",
+      "bounds": [
+        2.6211490543117897,
+        2.6870799361617017
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0695216370305618e-09,
+      "R2": 0.9997898667399514,
+      "RMS": 0.19622464510008655,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.005218170280059793,
+            "p_heuristic": 0.005859375
+          },
+          "phase": {
+            "effect": 0.0016614494782970514,
+            "p_heuristic": 0.328125
+          },
+          "baseline": {
+            "effect": 0.00022426573282765996,
+            "p_heuristic": 0.001953125
+          }
+        },
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.3034405752425019,
+          0.29628993347641785,
+          0.04398288066369198,
+          0.37382133111117566,
+          -0.09812482874979211,
+          0.07968278315245216,
+          0.2811172850320564,
+          0.0571239421717109,
+          -0.05449522923246978,
+          -0.07598082516234148,
+          -0.2232087090913352,
+          -0.06359398666376075,
+          -0.3353509059082376,
+          -0.7508197186387654,
+          -0.7423813489067712,
+          -1.2369181696437725
+        ],
+        "explained_energy": 0.9999252701672408,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.06250089685728412
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.24474795106931566,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.016508104598829836
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.01605388700033181
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S18",
+      "bounds": [
+        2.812947983329715,
+        2.8988579202856606
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.097720413662495e-09,
+      "R2": 0.9996744973304669,
+      "RMS": 0.2209702257230073,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.007033334039875293,
+            "p_heuristic": 0.005859375
+          },
+          "phase": {
+            "effect": 7.032751862323363e-05,
+            "p_heuristic": 0.935546875
+          },
+          "baseline": {
+            "effect": 0.0001860107011711147,
+            "p_heuristic": 0.013671875
+          }
+        },
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.14955454513749528,
+          0.15867548681168436,
+          -0.07827348745134872,
+          0.08862722650899563,
+          -0.20864103310372234,
+          0.14291165681070145,
+          0.36974768198547137,
+          0.09846167723299333,
+          -0.17140577780251998,
+          0.011554120102888902,
+          0.0766681160285346,
+          0.05034265925390838,
+          0.06624200750508509,
+          -0.220515784811002,
+          -0.13159043756387442,
+          -0.8602831347207328
+        ],
+        "explained_energy": 0.9998777725236431,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.0939725065362355
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.2610114317426971,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.01628310590852925
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.015815017253376962
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S19",
+      "bounds": [
+        3.1525919201322905,
+        3.226514424024616
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.082847763853483e-09,
+      "R2": 0.9996709292810616,
+      "RMS": 0.23793613161427496,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.0013786330124151366,
+            "p_heuristic": 0.068359375
+          },
+          "phase": {
+            "effect": 0.0006549647919481483,
+            "p_heuristic": 0.3203125
+          },
+          "baseline": {
+            "effect": 0.0002563906262450365,
+            "p_heuristic": 0.001953125
+          }
+        },
+        "flagged": [
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.13175390212075833,
+          0.08389979873942233,
+          -0.13072299029923024,
+          -0.0030606599753201366,
+          -0.09039941183993139,
+          0.11518188243536508,
+          0.30676553439882837,
+          0.19619077113458075,
+          -0.05071321039103858,
+          -0.0038854286092753947,
+          0.21025578951258686,
+          0.06483344764367685,
+          0.08318140859134035,
+          -0.23758673340752698,
+          -0.06571155918125497,
+          -0.28073503833979113
+        ],
+        "explained_energy": 0.9999876383528237,
+        "warnings": [
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.07387190233211147
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.2797860047973573,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S20",
+      "bounds": [
+        3.076671510729362,
+        3.1525919201322905
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0945980483842768e-09,
+      "R2": 0.9997739116122967,
+      "RMS": 0.4305607146247041,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika. Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "checks": {
+          "shape": {
+            "effect": 0.0037068732575809608,
+            "p_heuristic": 0.009765625
+          },
+          "phase": {
+            "effect": 4.134685350272606e-05,
+            "p_heuristic": 0.955078125
+          },
+          "baseline": {
+            "effect": 9.200564208933862e-05,
+            "p_heuristic": 0.00390625
+          }
+        },
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "relative_phase_deg": [
+          -0.17142427116577583,
+          0.12756910502080165,
+          -0.08125679422265764,
+          0.07257565857450463,
+          -0.07373530976595184,
+          0.14881359996529095,
+          0.3462006440859616,
+          0.093091168855472,
+          -0.08330442232619512,
+          -0.038322687106900025,
+          0.027353956909005335,
+          0.12555656706670917,
+          -0.010851014590805896,
+          -0.31157835247598287,
+          -0.21446322571337828,
+          -0.6617676273900379
+        ],
+        "explained_energy": 0.9999641818793189,
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "baseline_relative_rms": 0.03357121412251611
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.5331457835406143,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.012448784561289734
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "reason": "spectral_mismatch",
+        "omitted_fraction": 0.0,
+        "relative_residual": 0.011800834306864549
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": null,
+      "adaptive_profile_diagnostic": null,
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    }
+  ],
+  "modes": {
+    "original": {
+      "matrix": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S2",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "visible": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S2",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "overlap_mask": false
+    },
+    "aligned": {
+      "matrix": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S2",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "visible": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S2",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "overlap_mask": false
+    },
+    "shared": {
+      "matrix": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S2",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "visible": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S2",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "overlap_mask": false
+    },
+    "global": {
+      "matrix": [
+        "S13",
+        "S15",
+        "S19",
+        "S8"
+      ],
+      "visible": [
+        "S13",
+        "S15",
+        "S19",
+        "S8"
+      ],
+      "overlap_mask": false
+    },
+    "adaptive": {
+      "matrix": [
+        "S11",
+        "S13",
+        "S15",
+        "S19",
+        "S2",
+        "S8"
+      ],
+      "visible": [
+        "S11",
+        "S13",
+        "S15",
+        "S19",
+        "S2",
+        "S8"
+      ],
+      "overlap_mask": false
+    }
+  },
+  "global_maxima": [
+    2.127792658230802e-09
+  ],
+  "global_rejected": [
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "S7",
+    "S9",
+    "S10",
+    "S11",
+    "S12",
+    "S14",
+    "S16",
+    "S17",
+    "S18",
+    "S20"
+  ],
+  "local_unresolved": [
+    "S1",
+    "S10",
+    "S11",
+    "S12",
+    "S14",
+    "S16",
+    "S17",
+    "S18",
+    "S2",
+    "S20",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "S7",
+    "S9"
+  ]
+}

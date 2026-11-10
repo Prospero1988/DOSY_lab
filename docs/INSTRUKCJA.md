@@ -127,7 +127,7 @@ The values above illustrate the file format. b values from nominal gradient ampl
 
 ## 7. Fitting and quality control
 
-Each ROI is fitted to $I(b)=I_0\exp(-bD)$ using its signed integrals. A fit requires at least three distinct active b values. D and its standard error $\mathrm{SE}(D)$ are reported in $\mathrm{m^2/s}$. The main table scales both by $`10^{-10}\ \mathrm{m^2/s}`$. Inspect **QC**, $R^2$ and the residuals before interpreting a fit. Measurement-quality warnings flag changes in ROI shape or phase with b, or a baseline correction that varies relative to the decay. An affected D may describe the whole ROI under the model. The checks preserve the fitted integrals and point selections.
+Each ROI is fitted to $I(b)=I_0\exp(-bD)$ using its signed integrals. A fit requires at least three distinct active b values. D and its standard error $\mathrm{SE}(D)$ are reported in $\mathrm{m^2/s}$. The main table scales both by $`10^{-10}\ \mathrm{m^2/s}`$. Inspect **QC**, $R^2$ and the residuals before interpreting a fit. Hover over **QC** for separate model and measurement diagnostics. **INFO** includes detected changes with no demonstrated effect on D or insufficient information. **WARNING** flags a credible risk to D. **INVALID** means the fit is unusable. An affected D may describe the whole ROI under the model. The checks preserve the fitted integrals and point selections.
 
 - **Decays** shows measured points and fitted curves. **Show I / first integral** normalizes the display. Fitting uses the original integrals.
 - **Residuals** shows measurement minus prediction for the selected ROI in a separate full-height tab.

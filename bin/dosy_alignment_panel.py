@@ -8,6 +8,7 @@ from adaptive_ilt import adaptive_local_ilt
 from dosy_alignment import alignment_plan, eligible_diffusion, ilt_profiles
 from i18n import tr
 from ilt_tools import SolveJob
+from roi_quality import estimate_spectral_noise
 
 
 ORIGINAL, ALIGNED, SHARED, ILT, ADAPTIVE = range(5)
@@ -25,6 +26,7 @@ class AlignmentPanel(QtCore.QObject):
         self.dataset, self.rows, self.snapshot = None, (), None
         self.groups, self.profiles, self.rejected = (), {}, ()
         self.withheld = {}
+        self.profile_diagnostics = {}
         self.local_groups = ()
         self.highlighted = set()
         self.highlighted_components = set()
@@ -158,6 +160,7 @@ class AlignmentPanel(QtCore.QObject):
         self.error = ''
         self.groups, self.profiles, self.rejected = (), {}, ()
         self.withheld = {}
+        self.profile_diagnostics = {}
         self.local_groups = ()
         self.highlighted.clear()
         self.highlighted_components.clear()
@@ -195,15 +198,16 @@ class AlignmentPanel(QtCore.QObject):
         def compute(_):
             if mode == ILT and snapshot is not None:
                 ids, result = snapshot
-                withheld = {}
+                withheld, diagnostics = {}, {}
                 profiles, rejected = ilt_profiles(dataset.b, dataset.ppm, dataset.spectrum.real,
                                                   dataset.options['reference_layer'], rows, ids, result,
-                                                  withheld=withheld)
-                return (), profiles, rejected, (), {}, withheld
+                                                  withheld=withheld, diagnostics=diagnostics,
+                                                  noise_sigma=estimate_spectral_noise(dataset.phased))
+                return (), profiles, rejected, (), {}, withheld, diagnostics
             if mode == ADAPTIVE:
                 local = adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, excluded, cancel.is_set)
-                return (), local.profiles, local.unresolved, local.groups, local.membership, local.withheld
-            return alignment_plan(dataset.b, rows, tolerance, excluded, shared=mode == SHARED), {}, (), (), {}, {}
+                return (), local.profiles, local.unresolved, local.groups, local.membership, local.withheld, local.diagnostics
+            return alignment_plan(dataset.b, rows, tolerance, excluded, shared=mode == SHARED), {}, (), (), {}, {}, {}
 
         self.job = SolveJob(self.revision, mode, compute)
         self.job.signals.finished.connect(self.solved)
@@ -220,7 +224,7 @@ class AlignmentPanel(QtCore.QObject):
         self.error = error
         if not error:
             (self.groups, self.profiles, self.rejected, self.local_groups,
-             self.component_membership, self.withheld) = payload
+             self.component_membership, self.withheld, self.profile_diagnostics) = payload
             self.ready = True
         self.update_tree()
         self.changed.emit()
@@ -233,7 +237,7 @@ class AlignmentPanel(QtCore.QObject):
 
     def map_data(self):
         overrides = {}
-        hidden = set(self.withheld)
+        hidden = set()
         for group in self.groups:
             d = self.active_group_d(group)
             if d is not None:
@@ -250,16 +254,43 @@ class AlignmentPanel(QtCore.QObject):
                         for sid, components in profiles.items()}
         return overrides, hidden, profiles
 
-    def withheld_note(self):
-        if not self.withheld:
-            return ''
-        items = []
-        for sid, record in self.withheld.items():
-            explanation = (f"{tr('pominięta masa na warstwie referencyjnej')}: {record['omitted_fraction']:.2%}"
-                           if record['reason'] == 'discarded_component'
-                           else tr('profil widmowy nie zgadza się z zanikiem'))
-            items.append(f'{sid} ({explanation})')
-        return tr('ROI bez przypisania D w tej rekonstrukcji') + ' ' + ', '.join(items)
+    def profile_detail(self, sid):
+        record = self.profile_diagnostics.get(sid)
+        if record is None:
+            return tr('ROI nie było wybrane do tego obliczenia ILT.')
+        reasons = {
+            'assigned':'Przypisanie ILT zaakceptowane przez kryteria rekonstrukcji.',
+            'discarded_component':'Pominięta składowa nie może zostać przypisana do pozostałego maksimum.',
+            'spectral_mismatch':'Profil widmowy nie zgadza się z zanikiem.',
+            'profile_dependent_diffusion':'Alternatywne odczyty kształtu lub fazy dają istotnie różne D dla tego ROI.',
+            'peak_mismatch':'Zanik ROI nie zgadza się z D maksimum, mimo możliwego dopasowania całego przedziału ILT.',
+            'integral_mismatch':'Przewidywane całki ILT nie zgadzają się z zanikiem ROI.',
+            'boundary_peak':'Maksimum na granicy siatki D.',
+            'no_component':'Brak dodatniej składowej powyżej progu udziału.',
+            'insufficient_profile':'Za mało punktów widmowych do rekonstrukcji.',
+            'insufficient_spectral_snr':'Za mały S/N profilu referencyjnego.',
+            'ill_conditioned_basis':'Za mało niezależnych danych do odtworzenia składowych.',
+            'spectral_solver_failed':'Nie udało się odtworzyć profilu widmowego.',
+            'solver_not_converged':'Optymalizacja ILT nie osiągnęła zbieżności.',
+            'solver_failed':'Nie udało się przeprowadzić optymalizacji ILT.',
+            'insufficient_attenuation_information':'Zanik nie spełnia kryteriów wejściowych AILT.',
+            'no_group_or_independent_split_evidence':'Brak zgodnej grupy i podstaw do niezależnego rozdzielenia.',
+            'no_stable_independent_split':'Brak stabilnego niezależnego rozdzielenia ROI.',
+            'unexplained_reference':'Część profilu referencyjnego nie ma wyjaśnienia w składowych.',
+        }
+        lines = [tr(reasons.get(record['reason'],record['reason']))]
+        if record.get('omitted_fraction'):
+            lines.append(f"{tr('Pominięta masa modelu na warstwie referencyjnej')}: {record['omitted_fraction']:.2%}")
+        if record.get('unexplained_positive_fraction') is not None:
+            lines.append(f"{tr('Niewyjaśnione dodatnie pole referencji')}: {record['unexplained_positive_fraction']:.2%}")
+        for key, limit, label in (
+            ('peak_rms','peak_limit','RMS dla D maksimum'),
+            ('integral_rms','integral_limit','RMS całek modelu ILT'),
+            ('excess_residual','spectral_limit','Reszta widmowa ponad szum'),
+        ):
+            if record.get(key) is not None:
+                lines.append(f'{tr(label)}: {record[key]:.2%} / {record[limit]:.2%}')
+        return '\n'.join(lines)
 
     def highlight_group(self, item, _):
         entry = item.data(0, USER_ROLE) if item is not None else None
@@ -364,10 +395,8 @@ class AlignmentPanel(QtCore.QObject):
                 item.setToolTip(members)
                 table.setItem(index, column, item)
         layout.addWidget(table)
-        fallback = [sid for sid in self.rejected if sid not in self.withheld]
-        layout.addWidget(QtWidgets.QLabel(tr('ROI z zachowanym oryginalnym D') + ' · ' + (', '.join(fallback) or '—')))
-        if self.withheld:
-            note = QtWidgets.QLabel(self.withheld_note())
+        if self.rejected:
+            note = QtWidgets.QLabel(tr('ROI bez przypisania D w tej rekonstrukcji') + ' · ' + ', '.join(self.rejected))
             note.setWordWrap(True)
             layout.addWidget(note)
         close = QtWidgets.QPushButton(tr('Zamknij'))

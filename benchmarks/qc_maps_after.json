@@ -1,0 +1,4944 @@
+{
+  "sha256": "d65b9384caddd4439fc916a4331bbd7226ac83eeb4d5de1d4242c4566d525b55",
+  "options": {
+    "lb_Hz": 0.0,
+    "gaussian_FWHM_Hz": 3.0,
+    "phase0_deg": -75.11944,
+    "phase1_deg": -141.5,
+    "pivot_ppm": -0.14138,
+    "ppm_shift": 0.0,
+    "filter_delay_samples": 19.6875,
+    "zero_fill_factor": 1,
+    "reference_layer": 1,
+    "crop_filter": true,
+    "baseline_degree": 2,
+    "baseline_per_layer": true,
+    "baseline_preview": false,
+    "baseline_enabled": true,
+    "baseline_regions": [
+      [
+        8.551672343054637,
+        11.380397060641936
+      ],
+      [
+        4.720228042740494,
+        5.290194963448382
+      ],
+      [
+        0.35048165064667813,
+        0.7410145407613431
+      ],
+      [
+        -2.224924435514893,
+        -0.6416829891040905
+      ]
+    ]
+  },
+  "project_sha256": "1031695f62961dd3aedf5194004e6536019c0ab2e0a0cb4cdc0201114cb18121",
+  "peak_rule": "saved project ROI definitions",
+  "floor_percent": 0,
+  "gain": 1,
+  "reference": 2,
+  "rows": [
+    {
+      "id": "S1",
+      "bounds": [
+        8.035770659745324,
+        8.127352391404502
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0607763735189646e-09,
+      "R2": 0.9996508394942898,
+      "RMS": 0.2843835792254898,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.009394097736648269,
+            "p_heuristic": 0.00390625,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.0006568306066008591,
+            "p_heuristic": 0.580078125,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.00022500732342811553,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          1021.5539802012406,
+          980.735010738948,
+          907.1465986586765,
+          776.2335538362325,
+          694.9602767292998,
+          639.7172363278659,
+          599.3664245555225,
+          571.5111171849805,
+          515.2028303067805,
+          452.75856064071206,
+          436.622398503394,
+          376.3182038084353,
+          356.8222460776092,
+          316.8540601473012,
+          272.0044308852435,
+          260.59850227442917
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.2333442875460208,
+          0.2634966048192494,
+          0.02796277270284455,
+          -0.10242720254029274,
+          -0.10181358496743005,
+          0.2558506042350246,
+          0.3528030050254877,
+          0.07450230904411241,
+          -0.04948649944933189,
+          -0.014417859200387247,
+          -0.07998690964922199,
+          0.05676718585379198,
+          -0.22188824186847933,
+          -0.4412093154072008,
+          -0.4136065481228839,
+          -0.7565462033618198
+        ],
+        "explained_energy": 0.9998156646453004,
+        "phase_noise_deg": [
+          0.056086982044636954,
+          0.05842128531805493,
+          0.06316050930647774,
+          0.07381247883720361,
+          0.08244477162585008,
+          0.08956436204722326,
+          0.09559394763903661,
+          0.10025308280412322,
+          0.11120980877162442,
+          0.12654801858985876,
+          0.13122446334450147,
+          0.15225251978513998,
+          0.16057041334661687,
+          0.18082390941784596,
+          0.21063871385609867,
+          0.21985679451581935
+        ],
+        "baseline_relative_rms": 0.07550058015865829,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.0681486022148846e-09,
+            "D_second": 2.086143713822556e-09,
+            "D_change": 1.7995111607671504e-11,
+            "screening_bound": 5.851887363375502e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.056078491886722e-09,
+            "D_second": 2.0607763735189646e-09,
+            "D_change": 4.697881632242685e-12,
+            "screening_bound": 4.478438579445277e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.3337603106792317,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005285227314913147,
+        "integral_limit": 0.009355964684657811,
+        "reference_snr_estimate": 715.5074638620517,
+        "peak_rms": 0.00991102826641668,
+        "peak_limit": 0.009355964684657813,
+        "reason": "peak_mismatch",
+        "unexplained_positive_fraction": 1.0
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.0056185975736710555,
+        "integral_limit": 0.009355964684657811,
+        "reference_snr_estimate": 715.5074638620517,
+        "peak_rms": 0.008104163688481087,
+        "peak_limit": 0.009355964684657813,
+        "relative_residual": 0.020034227518021714,
+        "excess_residual": 0.019880494707271743,
+        "relative_noise": 0.00247713593450152,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005285227314913147,
+        "integral_limit": 0.009355964684657811,
+        "reference_snr_estimate": 715.5074638620517,
+        "peak_rms": 0.00991102826641668,
+        "peak_limit": 0.009355964684657813,
+        "reason": "peak_mismatch",
+        "unexplained_positive_fraction": 1.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S2",
+      "bounds": [
+        7.186271148837779,
+        7.293642834231298
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.4270105040347244e-09,
+      "R2": 0.999976977221447,
+      "RMS": 0.12802086389589507,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "UWAGA · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nUWAGA · Faza ROI zmienia się z b. Sprawdź część urojoną i stabilność fazy między warstwami.\nUWAGA · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Faza ROI zmienia się z b. Sprawdź część urojoną i stabilność fazy między warstwami.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "phase",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.041137960830732324,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.026890281649811783,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.001440034196592663,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          1482.0985653530342,
+          1384.3979466177357,
+          1252.3109242131563,
+          1045.8629416171682,
+          915.5357110517255,
+          821.6125656016337,
+          753.853169511948,
+          705.7502994681129,
+          624.9040243774485,
+          537.4073292609027,
+          509.18699023992104,
+          432.759375522921,
+          403.5224019096482,
+          354.0106847030592,
+          299.7296859584078,
+          283.44107360582916
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          1.3419431893139944,
+          1.5205560250741812,
+          0.8179810590240397,
+          0.2512988862765064,
+          -0.3227489761912954,
+          -0.827786312819152,
+          -1.247626477366019,
+          -1.6730461568081054,
+          -2.1905166982611326,
+          -2.541373784764344,
+          -2.9228464614925738,
+          -3.3358510594795914,
+          -3.9714301919353647,
+          -4.4544506567604385,
+          -4.8311837298243905,
+          -5.464255898506843
+        ],
+        "explained_energy": 0.9980414959628533,
+        "phase_noise_deg": [
+          0.03865967867545201,
+          0.04138764494685782,
+          0.04575264546808659,
+          0.0547834583497389,
+          0.06258145689662305,
+          0.06973480496747626,
+          0.07600227526932987,
+          0.08118167409886362,
+          0.09168353346954591,
+          0.10661018220224924,
+          0.11251758103163763,
+          0.13238764294199795,
+          0.141978419926907,
+          0.1618335957557353,
+          0.1911404520690951,
+          0.20212276509714863
+        ],
+        "baseline_relative_rms": 0.05730098223562955,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.4821234551250936e-09,
+            "D_second": 2.5870529243526474e-09,
+            "D_change": 1.0492946922755381e-10,
+            "screening_bound": 2.5859610460565867e-11,
+            "exceeds_bound": true
+          },
+          "phase": {
+            "status": "compared",
+            "D_first": 2.4270105040347244e-09,
+            "D_second": 2.5328535011021055e-09,
+            "D_change": 1.0584299706738111e-10,
+            "screening_bound": 1.4406068959659874e-11,
+            "exceeds_bound": true
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.44492198082689e-09,
+            "D_second": 2.4270105040347244e-09,
+            "D_change": -1.791147679216543e-11,
+            "screening_bound": 1.3334553991125377e-11,
+            "exceeds_bound": true
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.4171005314669464e-09
+      ],
+      "independent_ILT_rms": 0.2601489857652993,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.0034973119119887284,
+        "integral_limit": 0.006184135416799283,
+        "reference_snr_estimate": 1014.0484537537398,
+        "peak_rms": 0.027476735448594275,
+        "peak_limit": 0.006184135416799231,
+        "reason": "peak_mismatch",
+        "unexplained_positive_fraction": 1.0
+      },
+      "global_assigned": false,
+      "adaptive_optimization": false,
+      "adaptive_rejection": null,
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.0034973119119887284,
+        "integral_limit": 0.006184135416799283,
+        "reference_snr_estimate": 1014.0484537537398,
+        "peak_rms": 0.027476735448594275,
+        "peak_limit": 0.006184135416799231,
+        "reason": "peak_mismatch",
+        "unexplained_positive_fraction": 1.0
+      },
+      "adaptive_profile_diagnostic": {
+        "reason": "no_group_or_independent_split_evidence",
+        "optimized": false
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S3",
+      "bounds": [
+        7.017318643880332,
+        7.186271148837779
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.086359027021954e-09,
+      "R2": 0.9997565699904304,
+      "RMS": 0.5106288063958602,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Faza ROI zmienia się z b. Sprawdź część urojoną i stabilność fazy między warstwami.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Faza ROI zmienia się z b. Sprawdź część urojoną i stabilność fazy między warstwami.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "phase",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.010984208596192924,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.004723668273533947,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.0001239160676985027,
+            "p_heuristic": 0.00390625,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          1052.469900272405,
+          1003.9317302306173,
+          925.7557572163032,
+          792.2139679025051,
+          707.6945295544766,
+          650.8718270301697,
+          608.2149029585247,
+          581.4578772354722,
+          525.2109743206379,
+          460.1747456305885,
+          443.40503547309964,
+          382.8623143613002,
+          361.9310310937379,
+          321.63353979111866,
+          276.17595788306824,
+          263.5923951372162
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          0.20400322512065044,
+          0.3302538705344754,
+          0.08271383936479773,
+          0.043438430397621554,
+          -0.08038082843095747,
+          0.07269880140508966,
+          0.1636611052042485,
+          -0.12353987546680262,
+          -0.3686309213014762,
+          -0.4011538318632811,
+          -0.3841455155659238,
+          -0.4236507738491005,
+          -0.6047073080237823,
+          -0.9393933822964726,
+          -0.9808650957591094,
+          -1.3072876312855792
+        ],
+        "explained_energy": 0.9997969619327856,
+        "phase_noise_deg": [
+          0.05443950624514841,
+          0.05707143776119766,
+          0.061890900156925624,
+          0.07232360341523406,
+          0.08096121423927771,
+          0.08802932826962902,
+          0.09420307747798136,
+          0.09853793749873213,
+          0.10909050726151928,
+          0.12450839120931513,
+          0.12921697951217712,
+          0.14964998958841777,
+          0.15830394527681804,
+          0.17813715321969167,
+          0.2074574565678525,
+          0.21736030789304484
+        ],
+        "baseline_relative_rms": 0.0660758737684352,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.1020598338280586e-09,
+            "D_second": 2.0981429686396665e-09,
+            "D_change": -3.916865188392159e-12,
+            "screening_bound": 4.6414099887322846e-11,
+            "exceeds_bound": false
+          },
+          "phase": {
+            "status": "compared",
+            "D_first": 2.086359027021954e-09,
+            "D_second": 2.1001055731771602e-09,
+            "D_change": 1.3746546155206213e-11,
+            "screening_bound": 4.1879784832640444e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.083806875794746e-09,
+            "D_second": 2.086359027021954e-09,
+            "D_change": 2.552151227208072e-12,
+            "screening_bound": 3.7740604750828026e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.6266647814004807,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004997637601378811,
+        "integral_limit": 0.008642599723192321,
+        "reference_snr_estimate": 757.2125074053125,
+        "peak_rms": 0.005543975622880165,
+        "peak_limit": 0.008642599723192344,
+        "relative_residual": 0.01696887183676455,
+        "excess_residual": 0.016806140053851615,
+        "relative_noise": 0.002344412059102563,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004599258771441723,
+        "integral_limit": 0.008642599723192321,
+        "reference_snr_estimate": 757.2125074053125,
+        "peak_rms": 0.007216801037554157,
+        "peak_limit": 0.008642599723192344,
+        "relative_residual": 0.016594858538578536,
+        "excess_residual": 0.01642837938167043,
+        "relative_noise": 0.0023447133742397486,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S4",
+      "bounds": [
+        5.828335127684456,
+        5.938864803824844
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.086922694945252e-09,
+      "R2": 0.9997776146439252,
+      "RMS": 0.2329019679322331,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.002072833329811372,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.00020502931830047568,
+            "p_heuristic": 0.763671875,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.0002079741916840268,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          857.2686670406658,
+          818.5538129075836,
+          755.5004912964878,
+          645.6227809351655,
+          577.5192208493414,
+          530.9691227202254,
+          495.61007465230574,
+          474.7011858747746,
+          428.36431621270134,
+          375.6124315779145,
+          361.68856490037217,
+          312.8919622475131,
+          296.57870494617464,
+          263.92633981584015,
+          226.70572705017716,
+          216.85224302391538
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.12839291218682344,
+          0.03560588898397227,
+          -0.043323630029483716,
+          0.0678777923468683,
+          -0.12140209365108733,
+          0.13123164197292517,
+          0.4171427017376849,
+          0.07135272803181057,
+          -0.12067018543892681,
+          0.02160182241286025,
+          0.010188887917303411,
+          0.10790087651674181,
+          0.0709046419912485,
+          -0.2536913564337699,
+          -0.20910852667955956,
+          -0.3983458009035926
+        ],
+        "explained_energy": 0.9999839548201037,
+        "phase_noise_deg": [
+          0.06683524756803098,
+          0.0699963149713262,
+          0.07583813576960706,
+          0.088744905366735,
+          0.09921007445342471,
+          0.10790781081318256,
+          0.11560641896317794,
+          0.12069844118849496,
+          0.13375453108379773,
+          0.15253925555379003,
+          0.15841148692241644,
+          0.18311614431110454,
+          0.1931883300183844,
+          0.2170889167110395,
+          0.25273016173860846,
+          0.26421368063716144
+        ],
+        "baseline_relative_rms": 0.09443662186432614,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.0962768715610325e-09,
+            "D_second": 2.0890182586184173e-09,
+            "D_change": -7.258612942615253e-12,
+            "screening_bound": 4.1691177991674306e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.0831865757886566e-09,
+            "D_second": 2.086922694945252e-09,
+            "D_change": 3.736119156595391e-12,
+            "screening_bound": 3.5969426596186366e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.28925777574615297,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004846563513407087,
+        "integral_limit": 0.00848263506363127,
+        "reference_snr_estimate": 600.4495280571973,
+        "peak_rms": 0.005396794197035923,
+        "peak_limit": 0.008482635063631281,
+        "relative_residual": 0.010392955301855064,
+        "excess_residual": 0.009963819908226798,
+        "relative_noise": 0.0029556408345366688,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004439645368065998,
+        "integral_limit": 0.00848263506363127,
+        "reference_snr_estimate": 600.4495280571973,
+        "peak_rms": 0.007088152708210945,
+        "peak_limit": 0.008482635063631281,
+        "relative_residual": 0.009758489397051163,
+        "excess_residual": 0.00929999925534673,
+        "relative_noise": 0.0029560326728421413,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S5",
+      "bounds": [
+        4.243141952457121,
+        4.293255686879857
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0958949162555026e-09,
+      "R2": 0.9997379433534143,
+      "RMS": 0.24907598777641637,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.0019432821337018477,
+            "p_heuristic": 0.01171875,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.00035605336159901294,
+            "p_heuristic": 0.611328125,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.00011676238430669464,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          1241.6026570004676,
+          1183.6710708121159,
+          1092.2270996579377,
+          933.2144227011241,
+          834.6637059428421,
+          767.917817069373,
+          718.1587169324057,
+          685.0828502168129,
+          618.5535017753333,
+          541.1838251878236,
+          522.7070613853182,
+          451.1076465126359,
+          427.63712641861554,
+          379.25110298530063,
+          326.48962388535404,
+          311.60837280937676
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.09347729674123076,
+          0.03473398112093848,
+          -0.0669426401617445,
+          0.11005197720840924,
+          -0.1061083769591878,
+          0.1693806124344594,
+          0.346937010380692,
+          0.12624806868575808,
+          0.02683794316710823,
+          -0.032104312470194706,
+          -0.03418926415421823,
+          0.10213529522067258,
+          -0.040484549100572614,
+          -0.5466279276865991,
+          -0.3582937524685935,
+          -0.7496004609797005
+        ],
+        "explained_energy": 0.9999857757187172,
+        "phase_noise_deg": [
+          0.04614662341743433,
+          0.04840514292295423,
+          0.052457742823548356,
+          0.06139613432152135,
+          0.06864532317369376,
+          0.07461184677415382,
+          0.07978145114274716,
+          0.08363330024749217,
+          0.09262856672534615,
+          0.10587108755239798,
+          0.10961340699748486,
+          0.12701108903387803,
+          0.13398190944854813,
+          0.15107559074572988,
+          0.17548965495382932,
+          0.1838702356334313
+        ],
+        "baseline_relative_rms": 0.041801955726231195,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.0998177998584185e-09,
+            "D_second": 2.1008883958469227e-09,
+            "D_change": 1.0705959885041387e-12,
+            "screening_bound": 4.3569495588866644e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.094571286306905e-09,
+            "D_second": 2.0958949162555026e-09,
+            "D_change": 1.3236299485977464e-12,
+            "screening_bound": 3.955227386452456e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.3025377283987776,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005157497526956664,
+        "integral_limit": 0.00878477573792965,
+        "reference_snr_estimate": 901.6657786806505,
+        "peak_rms": 0.004961108984588309,
+        "peak_limit": 0.008784775737929624,
+        "relative_residual": 0.010736074914522352,
+        "excess_residual": 0.010554158950569536,
+        "relative_noise": 0.0019680023923636545,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004746661424782347,
+        "integral_limit": 0.00878477573792965,
+        "reference_snr_estimate": 901.6657786806505,
+        "peak_rms": 0.0064748946061712175,
+        "peak_limit": 0.008784775737929624,
+        "relative_residual": 0.010045597311991833,
+        "excess_residual": 0.009850883499919904,
+        "relative_noise": 0.00196827834050556,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S6",
+      "bounds": [
+        4.097498911791045,
+        4.1627511701539825
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0922698234655632e-09,
+      "R2": 0.999697340367142,
+      "RMS": 0.2568122186987107,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.00815943579715754,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.00020777424868792454,
+            "p_heuristic": 0.759765625,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.00018752322125024755,
+            "p_heuristic": 0.00390625,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          881.5278886396393,
+          840.2213368236589,
+          776.4681246682004,
+          665.2670148949296,
+          593.8108423295704,
+          546.0218917629578,
+          509.93771711538585,
+          489.194092926949,
+          439.78350989301555,
+          385.8114534394583,
+          371.6994630235884,
+          320.2714737150853,
+          303.93364951892806,
+          270.39061486541937,
+          231.9518759889513,
+          221.68080775590394
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.12269125749629088,
+          0.19426707715805805,
+          -0.026679606656409654,
+          -0.02904072396670161,
+          -0.07713913407271768,
+          0.007376808619898289,
+          0.05764333775216507,
+          0.10765241454592263,
+          0.019245879709712452,
+          -0.0254870609560777,
+          -0.01624329712136402,
+          0.17682100253422606,
+          -0.03129174551508533,
+          -0.13345811461189153,
+          -0.17977951660260874,
+          -0.4500890007057867
+        ],
+        "explained_energy": 0.9998696028213512,
+        "phase_noise_deg": [
+          0.06499610422590646,
+          0.06819127960822066,
+          0.0737903070827584,
+          0.08612441953771448,
+          0.09648827008735474,
+          0.10493315095737243,
+          0.11235834965265588,
+          0.11712261523481371,
+          0.1302813090943671,
+          0.14850683351765886,
+          0.15414471180267242,
+          0.1788962707342069,
+          0.1885121393738988,
+          0.21189688492444608,
+          0.24701161269473537,
+          0.25845521793647225
+        ],
+        "baseline_relative_rms": 0.057508962746992,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.104797253784419e-09,
+            "D_second": 2.0879685176698316e-09,
+            "D_change": -1.6828736114587497e-11,
+            "screening_bound": 4.804508749364607e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.090240261406235e-09,
+            "D_second": 2.0922698234655632e-09,
+            "D_change": 2.0295620593281183e-12,
+            "screening_bound": 4.259940940689283e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.306118794318294,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005398341768108324,
+        "integral_limit": 0.009065233705657493,
+        "reference_snr_estimate": 647.274174156399,
+        "peak_rms": 0.005414366162892916,
+        "peak_limit": 0.00906523370565751,
+        "relative_residual": 0.015872746776822075,
+        "excess_residual": 0.015634712517035868,
+        "relative_noise": 0.0027385862686352598,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005008571597490431,
+        "integral_limit": 0.009065233705657493,
+        "reference_snr_estimate": 647.274174156399,
+        "peak_rms": 0.006939404433608109,
+        "peak_limit": 0.00906523370565751,
+        "relative_residual": 0.015397562120659888,
+        "excess_residual": 0.01515199991593162,
+        "relative_noise": 0.0027389446520856265,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S7",
+      "bounds": [
+        4.015020057220292,
+        4.08027231558323
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0776138989302084e-09,
+      "R2": 0.9998150269642576,
+      "RMS": 0.19670338629457412,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.005690900202860324,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.0005891750719698609,
+            "p_heuristic": 0.33984375,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.00027585288421759616,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          828.1475664986999,
+          787.8953368682188,
+          728.1696285557568,
+          622.4608481305537,
+          556.8777232186163,
+          512.4067137912427,
+          478.3889156756654,
+          457.90550532941245,
+          413.9074845353106,
+          363.2923700683907,
+          350.73272818832424,
+          302.4767152380713,
+          287.5400381632321,
+          255.74167789415708,
+          220.57487996259084,
+          210.33313120356982
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.11524471855101119,
+          -0.012564532111586858,
+          -0.12765859266409882,
+          -0.0393878788645788,
+          -0.0907432008209524,
+          0.39626385521203267,
+          0.3137712150725501,
+          0.19003319497224527,
+          -0.02175379969961955,
+          0.11592696275852847,
+          0.031841042690050544,
+          0.2083544916649795,
+          -0.00915090846785628,
+          -0.28789084589348407,
+          -0.09777420616426538,
+          -0.6324240410953881
+        ],
+        "explained_energy": 0.9999306702365521,
+        "phase_noise_deg": [
+          0.06918550705586338,
+          0.07272000471154956,
+          0.07868466114918159,
+          0.09204712993758124,
+          0.10288749392190767,
+          0.11181692307824703,
+          0.11976806154227354,
+          0.12512558468422205,
+          0.13842612437498303,
+          0.1577122064566409,
+          0.1633595840963142,
+          0.18942104865722414,
+          0.19926047686353246,
+          0.22403554039240697,
+          0.2597534072063854,
+          0.27240103085636214
+        ],
+        "baseline_relative_rms": 0.058354535340300905,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.088189127504265e-09,
+            "D_second": 2.0806542098741203e-09,
+            "D_change": -7.534917630144782e-12,
+            "screening_bound": 3.732416212238013e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.0747003998747454e-09,
+            "D_second": 2.0776138989302084e-09,
+            "D_change": 2.9134990554629543e-12,
+            "screening_bound": 3.269300795385003e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.250866872464975,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004515800843763659,
+        "integral_limit": 0.008162127173798788,
+        "reference_snr_estimate": 644.8988626646562,
+        "peak_rms": 0.005967966004089586,
+        "peak_limit": 0.008162127173798793,
+        "relative_residual": 0.012234037087810434,
+        "excess_residual": 0.0119220309697022,
+        "relative_noise": 0.0027453307675729672,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.00411377814480808,
+        "integral_limit": 0.008162127173798788,
+        "reference_snr_estimate": 644.8988626646562,
+        "peak_rms": 0.0077818700246514326,
+        "peak_limit": 0.008162127173798793,
+        "relative_residual": 0.011705858400600762,
+        "excess_residual": 0.01137929668300706,
+        "relative_noise": 0.0027456743971235862,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S8",
+      "bounds": [
+        3.8975659921670056,
+        3.963340268596846
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.081384190847356e-09,
+      "R2": 0.9998153052425118,
+      "RMS": 0.1996310535339461,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.002487742495331141,
+            "p_heuristic": 0.0234375,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.0007781525619250151,
+            "p_heuristic": 0.4140625,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.0001598999905139656,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          1190.7266202493308,
+          1133.7600699430589,
+          1050.1822185318856,
+          896.6752678509332,
+          802.8187662851748,
+          738.8103195532439,
+          690.3267568191154,
+          659.3204558231105,
+          594.5309850652802,
+          521.9061256769559,
+          503.66979167670934,
+          434.6774767846637,
+          411.966349859827,
+          364.949285139113,
+          314.24777044876913,
+          300.2891825638874
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.2090368155154165,
+          0.0031931876391187893,
+          -0.06541548924531258,
+          0.00588312883313928,
+          -0.0281084993408577,
+          0.2129649604474477,
+          0.3178376530302292,
+          0.21096715177977143,
+          0.13594410844524626,
+          0.09826600133056024,
+          0.16326447354713475,
+          0.14285181145876008,
+          0.046070147239137126,
+          -0.2925942429033732,
+          -0.3483190730678098,
+          -0.6575309550201927
+        ],
+        "explained_energy": 0.9999762389527538,
+        "phase_noise_deg": [
+          0.048118326385016764,
+          0.05053606069799323,
+          0.054557933550999346,
+          0.06389799344433016,
+          0.07136823998195067,
+          0.07755137855979431,
+          0.08299801010320548,
+          0.08690120099915559,
+          0.09637129212663263,
+          0.10978165351751056,
+          0.11375645681057996,
+          0.13181188459639723,
+          0.13907839358117433,
+          0.1569959654741497,
+          0.1823259124587056,
+          0.19080095497039132
+        ],
+        "baseline_relative_rms": 0.057963754205935025,
+        "D_comparisons": {
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.0787056925258198e-09,
+            "D_second": 2.081384190847356e-09,
+            "D_change": 2.678498321536151e-12,
+            "screening_bound": 3.275554505289217e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.2547892595382677,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.0045329270689809,
+        "integral_limit": 0.008162868243315214,
+        "reference_snr_estimate": 860.7133975245331,
+        "peak_rms": 0.00564634567536083,
+        "peak_limit": 0.008162868243315208,
+        "relative_residual": 0.011896214647080062,
+        "excess_residual": 0.011717089611899286,
+        "relative_noise": 0.0020566317016238044,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004122588638512931,
+        "integral_limit": 0.008162868243315214,
+        "reference_snr_estimate": 860.7133975245331,
+        "peak_rms": 0.007432049949715741,
+        "peak_limit": 0.008162868243315208,
+        "relative_residual": 0.01123582272868678,
+        "excess_residual": 0.011045943845303977,
+        "relative_noise": 0.0020568998412333235,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S9",
+      "bounds": [
+        3.8109109930610248,
+        3.8714650888218305
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.108684948649333e-09,
+      "R2": 0.9997422022892591,
+      "RMS": 0.251461226672846,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika."
+        ],
+        "flagged": [
+          "shape"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.007581857598378187,
+            "p_heuristic": 0.009765625,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.0011760128216854577,
+            "p_heuristic": 0.111328125,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 2.5359414146266433e-05,
+            "p_heuristic": 0.427734375,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          1158.3127105462274,
+          1106.059510322434,
+          1017.6461937464118,
+          869.0566724665581,
+          777.3856322532523,
+          716.8404234142173,
+          669.4963052084626,
+          636.7765897908431,
+          573.8825282323037,
+          504.2159124553785,
+          484.5125623882819,
+          418.0995108693978,
+          393.51143701823986,
+          347.04533061528707,
+          298.0805618468763,
+          282.8669814810232
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.0072656604626668226,
+          -0.01802275223349012,
+          0.02834037803028082,
+          -0.03490110025524532,
+          0.12028602491478785,
+          0.21232087099339395,
+          0.21841251146012663,
+          0.028631374899958928,
+          0.04079938047647184,
+          -0.05325478879922196,
+          -0.032774234257666554,
+          0.001338595947976398,
+          -0.3440983081554795,
+          -0.6519049849761044,
+          -0.44640517458254114,
+          -1.0431625254306947
+        ],
+        "explained_energy": 0.9998357483581689,
+        "phase_noise_deg": [
+          0.049464948565133,
+          0.0518016297780062,
+          0.056302325638476654,
+          0.06592872343249621,
+          0.0737033110671358,
+          0.07992842989572367,
+          0.08558047402517988,
+          0.08997784866255991,
+          0.09983864115755224,
+          0.1136334088893393,
+          0.11825402468751113,
+          0.13703782323763342,
+          0.14559962173123406,
+          0.16509300047583628,
+          0.19221193136792658,
+          0.20254853147144075
+        ],
+        "baseline_relative_rms": 0.05021371352930805,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.114752425288082e-09,
+            "D_second": 2.130539141735657e-09,
+            "D_change": 1.5786716447574707e-11,
+            "screening_bound": 5.997539031577552e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.1077280865331017e-09,
+            "D_second": 2.108684948649333e-09,
+            "D_change": 9.568621162312066e-13,
+            "screening_bound": 3.949262250558992e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.3037023270673683,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005105229155711029,
+        "integral_limit": 0.008770325155999523,
+        "reference_snr_estimate": 851.896522847765,
+        "peak_rms": 0.004230190404322988,
+        "peak_limit": 0.008770325155999553,
+        "relative_residual": 0.018176812763647115,
+        "excess_residual": 0.01805623159878889,
+        "relative_noise": 0.0020902207289141372,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.0046751887979866345,
+        "integral_limit": 0.008770325155999523,
+        "reference_snr_estimate": 851.896522847765,
+        "peak_rms": 0.005469955881646297,
+        "peak_limit": 0.008770325155999553,
+        "relative_residual": 0.017751002457260374,
+        "excess_residual": 0.017627467484366596,
+        "relative_noise": 0.002090568899907917,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S10",
+      "bounds": [
+        3.644387229718809,
+        3.7310422288247898
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0958115245365837e-09,
+      "R2": 0.9996530503487472,
+      "RMS": 0.24136475703696403,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika."
+        ],
+        "flagged": [
+          "shape"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.005285145099162803,
+            "p_heuristic": 0.005859375,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.0016831401824529038,
+            "p_heuristic": 0.1953125,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.00013153454719062071,
+            "p_heuristic": 0.05078125,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          735.1760008294993,
+          697.2521025923445,
+          645.7314522902911,
+          552.186174601154,
+          493.8103266024126,
+          453.6683526610083,
+          424.14133815334975,
+          406.0471148450689,
+          364.9527220604025,
+          320.9083057179895,
+          308.3535233586231,
+          265.83336933478347,
+          250.83808158311535,
+          221.88744489900236,
+          190.15857144143646,
+          181.46299015908002
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.17414134157893632,
+          0.4502556829754719,
+          0.04356189127331032,
+          -0.03631906441010605,
+          -0.13287235312932044,
+          0.059362143801825,
+          0.08801631290992096,
+          -0.07789318445687665,
+          -0.1513957949674969,
+          -0.1499694124627673,
+          -0.08108775210006995,
+          0.09538333807245798,
+          -0.2184277386719445,
+          -0.5309865172767746,
+          -0.35883415053808,
+          -0.7662914106894695
+        ],
+        "explained_energy": 0.9999123899761252,
+        "phase_noise_deg": [
+          0.07793481038565835,
+          0.08217361681095502,
+          0.08872998316251342,
+          0.10376154371262192,
+          0.11602781519517294,
+          0.12629432218774478,
+          0.13508634404787243,
+          0.1411059642648382,
+          0.1569945397679741,
+          0.17854207284232204,
+          0.18581128476180284,
+          0.21553142211499235,
+          0.22841560024737925,
+          0.2582172676610993,
+          0.3013012915838653,
+          0.3157386681293792
+        ],
+        "baseline_relative_rms": 0.08967650086768987,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.1042174650485834e-09,
+            "D_second": 2.1157097332443692e-09,
+            "D_change": 1.1492268195785813e-11,
+            "screening_bound": 5.706487531703242e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.0929569114695325e-09,
+            "D_second": 2.0958115245365837e-09,
+            "D_change": 2.854613067051198e-12,
+            "screening_bound": 4.5946749871684866e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.2830842309844922,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.00569509855563722,
+        "integral_limit": 0.009360288232536852,
+        "reference_snr_estimate": 524.7993655101689,
+        "peak_rms": 0.0054205488868317745,
+        "peak_limit": 0.009360288232536838,
+        "relative_residual": 0.019614427806632927,
+        "excess_residual": 0.019322570920035698,
+        "relative_noise": 0.003371057878738628,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005308251068703423,
+        "integral_limit": 0.009360288232536852,
+        "reference_snr_estimate": 524.7993655101689,
+        "peak_rms": 0.0068392756698749295,
+        "peak_limit": 0.009360288232536838,
+        "relative_residual": 0.01916326172741119,
+        "excess_residual": 0.01886434760555527,
+        "relative_noise": 0.003371496618720487,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S11",
+      "bounds": [
+        -0.04006108581192125,
+        0.007888646442559821
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 3.021629870045516e-09,
+      "R2": 0.9996330882083042,
+      "RMS": 0.10421040667037276,
+      "QC": "UWAGA",
+      "fit_warnings": [],
+      "qc_detail": "UWAGA · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Faza ROI zmienia się z b. Sprawdź część urojoną i stabilność fazy między warstwami.\nUWAGA · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Faza ROI zmienia się z b. Sprawdź część urojoną i stabilność fazy między warstwami.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "phase",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.02201076869261947,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.012382936718709008,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.007861502600784796,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          599.2639855105924,
+          552.9300465401695,
+          488.8243811364247,
+          398.95734926003684,
+          340.3672121666347,
+          303.05746205035786,
+          269.81494954540034,
+          244.3711997825869,
+          212.20819076324617,
+          177.7987478883502,
+          164.0518974569535,
+          134.3082560334543,
+          122.32417642112954,
+          103.63133209069636,
+          85.35092154743043,
+          77.05372562568886
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.7556226063779419,
+          -0.7867761975518397,
+          -0.04107917413661049,
+          0.0721958139780689,
+          0.3753551905230966,
+          0.7591383144379262,
+          1.1840944778732143,
+          1.3617557758661853,
+          1.3433791845139618,
+          1.4231275547330882,
+          1.4090443083134598,
+          1.4182821663163896,
+          1.532971732887352,
+          1.5272525401040256,
+          1.8884093846062409,
+          1.248673986664526
+        ],
+        "explained_energy": 0.9993776038696703,
+        "phase_noise_deg": [
+          0.09561088585718348,
+          0.10362242540213859,
+          0.11721158600118262,
+          0.14361355540990606,
+          0.16833462741825714,
+          0.18905809619853062,
+          0.2123494238328494,
+          0.23445843735476152,
+          0.2699923574652346,
+          0.32224352213864904,
+          0.3492427549304857,
+          0.4265809706736371,
+          0.46836793984093156,
+          0.5528414128901652,
+          0.6712345409340601,
+          0.7434986051376524
+        ],
+        "baseline_relative_rms": 0.15520775377970358,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.9354151285317356e-09,
+            "D_second": 3.1636646890469637e-09,
+            "D_change": 2.2824956051522807e-10,
+            "screening_bound": 7.840629563170821e-11,
+            "exceeds_bound": true
+          },
+          "phase": {
+            "status": "compared",
+            "D_first": 3.021629870045516e-09,
+            "D_second": 3.045188682662422e-09,
+            "D_change": 2.3558812616905956e-11,
+            "screening_bound": 7.337964203541579e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 3.1735790030046523e-09,
+            "D_second": 3.021629870045516e-09,
+            "D_change": -1.519491329591362e-10,
+            "screening_bound": 8.379373239310904e-11,
+            "exceeds_bound": true
+          }
+        }
+      },
+      "independent_ILT_D": [
+        3.1190729294187303e-09
+      ],
+      "independent_ILT_rms": 0.1187234646789321,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.007386256587600458,
+        "integral_limit": 0.010136862834573225,
+        "reference_snr_estimate": 402.28828235361846,
+        "peak_rms": 0.07196843915714357,
+        "peak_limit": 0.010136862834573235,
+        "reason": "peak_mismatch",
+        "unexplained_positive_fraction": 1.0
+      },
+      "global_assigned": false,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.007386256587600458,
+        "integral_limit": 0.010136862834573225,
+        "reference_snr_estimate": 402.28828235361846,
+        "peak_rms": 0.07196843915714357,
+        "peak_limit": 0.010136862834573235,
+        "reason": "peak_mismatch",
+        "unexplained_positive_fraction": 1.0
+      },
+      "adaptive_profile_diagnostic": {
+        "reason": "no_stable_independent_split",
+        "optimized": true
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          false,
+          false
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S12",
+      "bounds": [
+        1.2226151968894192,
+        1.2945397952711408
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0772583777636702e-09,
+      "R2": 0.999790194936292,
+      "RMS": 0.22126918494320522,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.0033459689251709532,
+            "p_heuristic": 0.0078125,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.0005849564916786456,
+            "p_heuristic": 0.302734375,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.00022152242561889398,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          983.6425553942848,
+          941.8698834421932,
+          867.7061647037907,
+          742.3430138117383,
+          664.043449805263,
+          610.7165956092608,
+          571.6338432296546,
+          545.2061029744762,
+          493.261900464927,
+          432.9211338018599,
+          417.12223782162516,
+          361.40669019487564,
+          342.79844514533903,
+          304.37310667482075,
+          261.7274043184561,
+          250.80536550190692
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.03384063439664154,
+          0.04687637084423024,
+          -0.024555543415560873,
+          0.06376908801466755,
+          -0.11347664032668837,
+          0.1463853255053327,
+          0.164788085051821,
+          0.010887961543184397,
+          -0.06011795543972547,
+          0.08742571396732106,
+          0.12072079081913818,
+          0.025519639868977817,
+          -0.11508627370084779,
+          -0.3184093838013534,
+          -0.3665085437157044,
+          -0.7170837221391895
+        ],
+        "explained_energy": 0.9999646636093543,
+        "phase_noise_deg": [
+          0.05824856813388619,
+          0.060831922644528136,
+          0.06603130306665433,
+          0.07718231332803949,
+          0.08628315100226533,
+          0.0938172872949706,
+          0.10023153330799145,
+          0.10509002030803599,
+          0.11615671188267458,
+          0.1323466997293359,
+          0.1373594060021001,
+          0.15853498499626587,
+          0.1671405178833031,
+          0.1882406886249859,
+          0.21891235122550998,
+          0.2284450580512778
+        ],
+        "baseline_relative_rms": 0.05919124226688311,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.0800626313786403e-09,
+            "D_second": 2.0871679209112927e-09,
+            "D_change": 7.10528953265236e-12,
+            "screening_bound": 4.176398550007308e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.0743343504958087e-09,
+            "D_second": 2.0772583777636702e-09,
+            "D_change": 2.9240272678615093e-12,
+            "screening_bound": 3.495696952026979e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.27711216904698055,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004716308397887107,
+        "integral_limit": 0.008375052670332016,
+        "reference_snr_estimate": 702.4171543114189,
+        "peak_rms": 0.00612359265643495,
+        "peak_limit": 0.008375052670332029,
+        "relative_residual": 0.01122590275890135,
+        "excess_residual": 0.010937563175311185,
+        "relative_noise": 0.0025279645049694904,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.0043246544067663,
+        "integral_limit": 0.008375052670332016,
+        "reference_snr_estimate": 702.4171543114189,
+        "peak_rms": 0.00791875033725117,
+        "peak_limit": 0.008375052670332029,
+        "relative_residual": 0.010725607596287923,
+        "excess_residual": 0.010423364164901786,
+        "relative_noise": 0.0025282677459854794,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S13",
+      "bounds": [
+        1.408420409375534,
+        1.4743512912254457
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.08519323119361e-09,
+      "R2": 0.9997747193455017,
+      "RMS": 0.18923631343474925,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.005134054173099808,
+            "p_heuristic": 0.013671875,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.00033236824198625486,
+            "p_heuristic": 0.837890625,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.0001721788708693855,
+            "p_heuristic": 0.00390625,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          831.0764868513038,
+          793.2355911242928,
+          732.6217027063559,
+          626.8153312917871,
+          560.6833873634391,
+          516.5950658517777,
+          482.78803381103813,
+          460.1736583730454,
+          414.38989973648444,
+          365.09023908093246,
+          351.43580776163213,
+          302.40275477561494,
+          286.5404312151817,
+          252.81193210218868,
+          218.09459694182198,
+          207.26628816328397
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.3905184884895802,
+          0.34598721105124575,
+          -0.1452788490921895,
+          -0.047616545176298174,
+          -0.13152767584018202,
+          0.3324821175075625,
+          0.5381272912328653,
+          0.23186935364399078,
+          0.03437833960869972,
+          0.016930212773526517,
+          -0.09155602111761718,
+          0.238163306356037,
+          -0.2560924028959072,
+          -0.3024607521593666,
+          -0.21421215984419562,
+          -0.9610938646145027
+        ],
+        "explained_energy": 0.9999170156831522,
+        "phase_noise_deg": [
+          0.0689416700068485,
+          0.0722303939336997,
+          0.07820651585599969,
+          0.09140767103669048,
+          0.10218915753440978,
+          0.11091042654794987,
+          0.1186767257608692,
+          0.12450892872035296,
+          0.13826505669850922,
+          0.15693563946013198,
+          0.16303284390164338,
+          0.18946742020848087,
+          0.1999555822516547,
+          0.22663143515304607,
+          0.2627074040557765,
+          0.27643122263021563
+        ],
+        "baseline_relative_rms": 0.06664336208576327,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.0993155597664123e-09,
+            "D_second": 2.098025638150947e-09,
+            "D_change": -1.2899216154652881e-12,
+            "screening_bound": 5.619809601177344e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.0824160290435962e-09,
+            "D_second": 2.08519323119361e-09,
+            "D_change": 2.7772021500138467e-12,
+            "screening_bound": 3.6423901965321505e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.23457798684808748,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004860960629177598,
+        "integral_limit": 0.008505102212915307,
+        "reference_snr_estimate": 607.7401008372732,
+        "peak_rms": 0.0055480163462288,
+        "peak_limit": 0.008505102212915297,
+        "relative_residual": 0.016765990724470103,
+        "excess_residual": 0.016509991947005816,
+        "relative_noise": 0.0029186659423134876,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004458680680709706,
+        "integral_limit": 0.008505102212915307,
+        "reference_snr_estimate": 607.7401008372732,
+        "peak_rms": 0.007255559615127933,
+        "peak_limit": 0.008505102212915297,
+        "relative_residual": 0.016314142034131222,
+        "excess_residual": 0.016050869455966087,
+        "relative_noise": 0.0029190443671417705,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S14",
+      "bounds": [
+        1.8239847555810385,
+        1.9278758421324145
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.097649054777553e-09,
+      "R2": 0.9997321600475473,
+      "RMS": 0.4494773546255955,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.0024538531770556126,
+            "p_heuristic": 0.0078125,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.00048286400767434104,
+            "p_heuristic": 0.458984375,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 8.687316979057405e-05,
+            "p_heuristic": 0.00390625,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          1497.2689115185556,
+          1423.4100205975503,
+          1316.9214907862795,
+          1125.5538774353897,
+          1005.5413732783691,
+          924.8176732603501,
+          864.9138116100345,
+          824.9199037280151,
+          745.5527675739521,
+          652.3288464618755,
+          628.7811007084233,
+          542.8700444053362,
+          514.1065642564421,
+          457.5723198630111,
+          392.26894991745127,
+          374.86283345318157
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.13470937180444278,
+          0.09586940215762818,
+          -0.059868075653708365,
+          -0.11469951761781355,
+          -0.11191416102283167,
+          0.13831121260108428,
+          0.23275172193374496,
+          0.17317436058715566,
+          0.08973327744941685,
+          0.09010270914672193,
+          0.13455143868289093,
+          0.23749815791833825,
+          0.03876598719236907,
+          -0.28092632218208113,
+          -0.19521332584197357,
+          -0.5195372066695594
+        ],
+        "explained_energy": 0.9999797643644566,
+        "phase_noise_deg": [
+          0.03826686232863533,
+          0.04025246928928282,
+          0.043507357074260365,
+          0.050904508022816666,
+          0.056980024243313575,
+          0.061953583080394975,
+          0.06624447358381247,
+          0.06945614876578161,
+          0.07685000529335753,
+          0.08783260700330554,
+          0.09112188445063008,
+          0.10554218546843121,
+          0.11144705637914508,
+          0.1252165060541149,
+          0.14606199102755796,
+          0.15284398544238706
+        ],
+        "baseline_relative_rms": 0.047953035120997294,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.104481445099214e-09,
+            "D_second": 2.0998889938236293e-09,
+            "D_change": -4.592451275584714e-12,
+            "screening_bound": 4.4766700945057927e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.0962301074887146e-09,
+            "D_second": 2.097649054777553e-09,
+            "D_change": 1.4189472888384673e-12,
+            "screening_bound": 4.00957069213658e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.544098848059911,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005197674216671347,
+        "integral_limit": 0.008828213428989758,
+        "reference_snr_estimate": 1051.4498926598205,
+        "peak_rms": 0.004882326364193485,
+        "peak_limit": 0.008828213428989724,
+        "relative_residual": 0.011862938388679387,
+        "excess_residual": 0.011742708579624304,
+        "relative_noise": 0.0016846668595365745,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004785820493126885,
+        "integral_limit": 0.008828213428989758,
+        "reference_snr_estimate": 1051.4498926598205,
+        "peak_rms": 0.006357655746297361,
+        "peak_limit": 0.008828213428989724,
+        "relative_residual": 0.011158205523926374,
+        "excess_residual": 0.011030260213668574,
+        "relative_noise": 0.0016849065650477908,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S15",
+      "bounds": [
+        2.2954904560834377,
+        2.395385731613607
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0896369683898174e-09,
+      "R2": 0.9997384207843462,
+      "RMS": 0.20443334023674115,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.0025519193061050768,
+            "p_heuristic": 0.015625,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 2.4794925831503225e-05,
+            "p_heuristic": 0.96875,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.0002833117697876104,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          615.4212713547577,
+          586.239776766094,
+          541.7270376213723,
+          462.06680341877336,
+          414.4666810013756,
+          380.45216861095776,
+          356.5562219756343,
+          339.6800416871618,
+          307.2278346982658,
+          269.0265930786772,
+          259.35762696433875,
+          224.4662118334699,
+          212.5858909243511,
+          188.7967241675005,
+          162.16092469093894,
+          155.45367673812459
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.02525440445576111,
+          0.029575968246718255,
+          -0.12440183275851949,
+          0.012278538972967623,
+          0.02547039712945403,
+          0.051001511318803934,
+          0.15444028770580845,
+          0.09148007086520973,
+          -0.02526668660739451,
+          0.07070062710209185,
+          0.10724304352864406,
+          0.2374337939950708,
+          -0.035141323075167694,
+          -0.1725846094217639,
+          -0.266671000221711,
+          -0.6545349590487527
+        ],
+        "explained_energy": 0.9999675504859893,
+        "phase_noise_deg": [
+          0.0931000167931523,
+          0.09773428726572321,
+          0.10576493388814102,
+          0.12399872128320337,
+          0.1382395199444961,
+          0.15059888199371033,
+          0.16069171447944852,
+          0.16867526121109894,
+          0.18649209689650853,
+          0.2129734786276282,
+          0.22091304119777622,
+          0.25525171920216944,
+          0.26951607429577934,
+          0.3034754079769106,
+          0.3533218611342785,
+          0.3685655457376503
+        ],
+        "baseline_relative_rms": 0.10608514290084016,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.091128446852361e-09,
+            "D_second": 2.0969147186553884e-09,
+            "D_change": 5.786271803027468e-12,
+            "screening_bound": 4.248320929979672e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.085628118456823e-09,
+            "D_second": 2.0896369683898174e-09,
+            "D_change": 4.00884993299456e-12,
+            "screening_bound": 3.958639550148506e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.2481809845953325,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.0051178333061482825,
+        "integral_limit": 0.008776818202242239,
+        "reference_snr_estimate": 438.8569233031647,
+        "peak_rms": 0.005388687170205347,
+        "peak_limit": 0.008776818202242239,
+        "relative_residual": 0.011482161383481024,
+        "excess_residual": 0.010748217343829448,
+        "relative_noise": 0.004039288794590789,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004720467689551739,
+        "integral_limit": 0.008776818202242239,
+        "reference_snr_estimate": 438.8569233031647,
+        "peak_rms": 0.006998757533136853,
+        "peak_limit": 0.008776818202242239,
+        "relative_residual": 0.010863428397770169,
+        "excess_residual": 0.010084339823290416,
+        "relative_noise": 0.004039822630002258,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S16",
+      "bounds": [
+        2.6870799361617017,
+        2.7490150069904065
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0951367069002477e-09,
+      "R2": 0.9996478506988361,
+      "RMS": 0.23917610739445871,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika."
+        ],
+        "flagged": [
+          "shape"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.006423395327010643,
+            "p_heuristic": 0.013671875,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.0016741787253667791,
+            "p_heuristic": 0.314453125,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.00011685851641854386,
+            "p_heuristic": 0.05859375,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          838.4863690721784,
+          796.9895244690043,
+          739.0526216690599,
+          631.7743395013606,
+          564.9029917436146,
+          522.3121659265313,
+          487.2412049817666,
+          463.36016314910444,
+          418.31767848828696,
+          366.75554235333567,
+          351.5869220070131,
+          303.81931925141083,
+          287.03000143021785,
+          252.26632973183888,
+          217.05958935465,
+          206.11462316851365
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.19906147290730702,
+          0.5168273190496637,
+          -0.19430604377827035,
+          0.01023763966603898,
+          0.007515781029926747,
+          -0.025237480350027812,
+          0.18996864725854198,
+          0.22321713019233902,
+          -0.07455027207114716,
+          0.003456948580210685,
+          -0.19167509107146227,
+          0.18231615216743247,
+          -0.31066721919981316,
+          -0.7147327781418249,
+          -0.7377547060946538,
+          -1.1661880126610438
+        ],
+        "explained_energy": 0.999868672502265,
+        "phase_noise_deg": [
+          0.06833246596199882,
+          0.07189012852350747,
+          0.07752605992162581,
+          0.09069019769074223,
+          0.10142588314192974,
+          0.10969653857911167,
+          0.11759217881132701,
+          0.12365262606236856,
+          0.13696671819304013,
+          0.1562230777162739,
+          0.16296266673111032,
+          0.18858388297307938,
+          0.19961411765665804,
+          0.22712068222960202,
+          0.263959072923448,
+          0.27797400130060224
+        ],
+        "baseline_relative_rms": 0.06312627792928614,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.1046043729193993e-09,
+            "D_second": 2.1131255118002885e-09,
+            "D_change": 8.52113888088915e-12,
+            "screening_bound": 6.823534848547607e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.0930898410647456e-09,
+            "D_second": 2.0951367069002477e-09,
+            "D_change": 2.0468658355020512e-12,
+            "screening_bound": 4.614726214266486e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.27990349859989133,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005720714152954921,
+        "integral_limit": 0.009397573949560041,
+        "reference_snr_estimate": 647.4586891468547,
+        "peak_rms": 0.005493645238359997,
+        "peak_limit": 0.009397573949560038,
+        "relative_residual": 0.020640303055956224,
+        "excess_residual": 0.020458339373765764,
+        "relative_noise": 0.002734677368455237,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.0053368078604311316,
+        "integral_limit": 0.009397573949560041,
+        "reference_snr_estimate": 647.4586891468547,
+        "peak_rms": 0.006920835627648863,
+        "peak_limit": 0.009397573949560038,
+        "relative_residual": 0.020191463026766353,
+        "excess_residual": 0.020005368643241303,
+        "relative_noise": 0.002735032835139327,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S17",
+      "bounds": [
+        2.6211490543117897,
+        2.6870799361617017
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0695216370305618e-09,
+      "R2": 0.9997898667399514,
+      "RMS": 0.19622464510008655,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.005112192630907625,
+            "p_heuristic": 0.005859375,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.0017447620299976744,
+            "p_heuristic": 0.267578125,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.00021595752920049036,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          900.1681036344212,
+          855.9252371613787,
+          792.6794391765171,
+          678.753657685655,
+          606.2000921058142,
+          558.8999644452643,
+          522.140192370948,
+          498.57423507688094,
+          450.1268608728802,
+          395.67657009384914,
+          380.6547340281148,
+          328.97516037716036,
+          311.2782429690586,
+          275.94069692705966,
+          237.2609937383039,
+          225.32659988333688
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.3021968381580052,
+          0.2974530355949816,
+          0.04516078540130205,
+          0.375033395201351,
+          -0.09693745435554889,
+          0.08086042331337923,
+          0.2823211432092983,
+          0.058329026846060957,
+          -0.05329030252094819,
+          -0.07478692457428815,
+          -0.22196250376630966,
+          -0.06239042919402931,
+          -0.3341014644958958,
+          -0.7495169943990201,
+          -0.7410866811148463,
+          -1.2355360547960155
+        ],
+        "explained_energy": 0.999922267502019,
+        "phase_noise_deg": [
+          0.06365011010413327,
+          0.06694014769848614,
+          0.07228113824289363,
+          0.08441316339991856,
+          0.09451621794042564,
+          0.10251520514593741,
+          0.10973242521760816,
+          0.11491912250952366,
+          0.12728778321232795,
+          0.14480431456588505,
+          0.15051857293871032,
+          0.1741636358756205,
+          0.18406508618665274,
+          0.20763625875434388,
+          0.24148610559629513,
+          0.254275842059588
+        ],
+        "baseline_relative_rms": 0.06250089685728412,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.0847172529858562e-09,
+            "D_second": 2.0959295369312863e-09,
+            "D_change": 1.1212283945430074e-11,
+            "screening_bound": 5.3379498395363855e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.065903049710979e-09,
+            "D_second": 2.0695216370305618e-09,
+            "D_change": 3.618587319582601e-12,
+            "screening_bound": 3.489622816126581e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.24474795106931566,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004271165379092167,
+        "integral_limit": 0.008362681885190104,
+        "reference_snr_estimate": 637.7862205500705,
+        "peak_rms": 0.008620815657456336,
+        "peak_limit": 0.008362681885190102,
+        "reason": "peak_mismatch",
+        "unexplained_positive_fraction": 1.0
+      },
+      "adaptive_assigned": false,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004644763208245258,
+        "integral_limit": 0.008362681885190104,
+        "reference_snr_estimate": 637.7862205500705,
+        "peak_rms": 0.006779747322299439,
+        "peak_limit": 0.008362681885190102,
+        "relative_residual": 0.01650810459882984,
+        "excess_residual": 0.016273867567232914,
+        "relative_noise": 0.002771056089304511,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004271165379092167,
+        "integral_limit": 0.008362681885190104,
+        "reference_snr_estimate": 637.7862205500705,
+        "peak_rms": 0.008620815657456336,
+        "peak_limit": 0.008362681885190102,
+        "reason": "peak_mismatch",
+        "unexplained_positive_fraction": 1.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "S18",
+      "bounds": [
+        2.812947983329715,
+        2.8988579202856606
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.097720413662495e-09,
+      "R2": 0.9996744973304669,
+      "RMS": 0.2209702257230073,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.006919885117657641,
+            "p_heuristic": 0.005859375,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.00014362723992617806,
+            "p_heuristic": 0.876953125,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.00018006379040208555,
+            "p_heuristic": 0.013671875,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          577.463578939575,
+          550.2258982863759,
+          507.9399547559165,
+          433.7835914867097,
+          388.02979699626053,
+          357.0427999748591,
+          333.2814016003576,
+          318.8489181179679,
+          287.65542656499787,
+          251.95816921456478,
+          242.94106305175845,
+          208.9431340347317,
+          197.47083010392828,
+          175.69889050983974,
+          150.312751054315,
+          142.74605686216307
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.1500941417401875,
+          0.1580221976474435,
+          -0.07887319369453913,
+          0.08806330278750964,
+          -0.20920840339975708,
+          0.14235421974773396,
+          0.36922796893825943,
+          0.0979281622648463,
+          -0.17190568893437078,
+          0.011086031905316268,
+          0.07623451717923792,
+          0.04980559858634031,
+          0.0658140468090711,
+          -0.22107285520160164,
+          -0.13207905529141048,
+          -0.8606781498387726
+        ],
+        "explained_energy": 0.9998711260774035,
+        "phase_noise_deg": [
+          0.09921973934116456,
+          0.10413126305474416,
+          0.11280027910970884,
+          0.13208356599034451,
+          0.14765807613193363,
+          0.16047301941064665,
+          0.17191369380875843,
+          0.17969514216447324,
+          0.19918093856255523,
+          0.22740095474582905,
+          0.23584067909844766,
+          0.2742143677356427,
+          0.29014395163336354,
+          0.3260951311368884,
+          0.38116783597679604,
+          0.40137035906805807
+        ],
+        "baseline_relative_rms": 0.0939725065362355,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.1146537371682986e-09,
+            "D_second": 2.1014139118864403e-09,
+            "D_change": -1.3239825281858272e-11,
+            "screening_bound": 5.2635753371084205e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.094910809420251e-09,
+            "D_second": 2.097720413662495e-09,
+            "D_change": 2.8096042422439447e-12,
+            "screening_bound": 4.4521127653764216e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.2610114317426971,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005565384274856422,
+        "integral_limit": 0.009224378768765905,
+        "reference_snr_estimate": 436.8688151852049,
+        "peak_rms": 0.005196256820916605,
+        "peak_limit": 0.009224378768765893,
+        "relative_residual": 0.01628310590852925,
+        "excess_residual": 0.015768477676619236,
+        "relative_noise": 0.004061360583639553,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005171910503948412,
+        "integral_limit": 0.009224378768765905,
+        "reference_snr_estimate": 436.8688151852049,
+        "peak_rms": 0.006601951965540939,
+        "peak_limit": 0.009224378768765893,
+        "relative_residual": 0.015815017253376962,
+        "excess_residual": 0.015284490607756421,
+        "relative_noise": 0.00406191058321287,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S19",
+      "bounds": [
+        3.1525919201322905,
+        3.226514424024616
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.082847763853483e-09,
+      "R2": 0.9996709292810616,
+      "RMS": 0.23793613161427496,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.0013668779475088503,
+            "p_heuristic": 0.056640625,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 0.0005891719992419699,
+            "p_heuristic": 0.345703125,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 0.0002487170719476981,
+            "p_heuristic": 0.001953125,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          835.3665378124952,
+          798.103153122619,
+          734.0648876001812,
+          629.5120129807069,
+          562.2162443927704,
+          516.9529394434728,
+          484.91570284770296,
+          461.5667968312163,
+          418.13875718564316,
+          366.33045773134813,
+          353.52536925738684,
+          305.1378182662458,
+          290.02144287510936,
+          258.2839160094804,
+          221.62294340622884,
+          211.0839521212412
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.1328101341458094,
+          0.08283450486067599,
+          -0.13178453513425098,
+          -0.004126123150859195,
+          -0.09146060140789283,
+          0.11412134206974395,
+          0.3057038617717401,
+          0.19513115799949138,
+          -0.05177402428442781,
+          -0.0049453040275140425,
+          0.20920247866011055,
+          0.0637778297341702,
+          0.0821236766972815,
+          -0.23864982388344821,
+          -0.06677348065957091,
+          -0.281790312235465
+        ],
+        "explained_energy": 0.999987255357214,
+        "phase_noise_deg": [
+          0.06858756241950917,
+          0.0717899042386457,
+          0.07805269640508136,
+          0.09101610938170057,
+          0.10191046882690576,
+          0.11083352086179127,
+          0.11815599632737488,
+          0.12413304251578397,
+          0.13702548512380738,
+          0.15640424024117439,
+          0.16206932751158548,
+          0.1877695037990873,
+          0.1975562338435159,
+          0.22183137984896922,
+          0.2585263573545019,
+          0.271433849507828
+        ],
+        "baseline_relative_rms": 0.07387190233211147,
+        "D_comparisons": {
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.0795431808376587e-09,
+            "D_second": 2.082847763853483e-09,
+            "D_change": 3.3045830158243207e-12,
+            "screening_bound": 4.4457980411433224e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.2797860047973573,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005468369965719628,
+        "integral_limit": 0.009229385074360916,
+        "reference_snr_estimate": 557.1422558656826,
+        "peak_rms": 0.006200816657666317,
+        "peak_limit": 0.009229385074360896,
+        "relative_residual": 0.01041114975419082,
+        "excess_residual": 0.00991088855654076,
+        "relative_noise": 0.003188467848985937,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.005106507306649423,
+        "integral_limit": 0.009229385074360916,
+        "reference_snr_estimate": 557.1422558656826,
+        "peak_rms": 0.007826320262798662,
+        "peak_limit": 0.009229385074360896,
+        "relative_residual": 0.009861450200426294,
+        "excess_residual": 0.009331634809513434,
+        "relative_noise": 0.003188854314227134,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "S20",
+      "bounds": [
+        3.076671510729362,
+        3.1525919201322905
+      ],
+      "spectrum_present": true,
+      "integrated": true,
+      "D_m2_s": 2.0945980483842768e-09,
+      "R2": 0.9997739116122967,
+      "RMS": 0.4305607146247041,
+      "QC": "INFO",
+      "fit_warnings": [],
+      "qc_detail": "INFO · Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.\nINFO · Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło.",
+      "diagnostic": {
+        "status": "flagged",
+        "warnings": [
+          "Zespolony profil ROI zmienia się z b. D opisuje całe ROI; sprawdź nakładanie sygnałów lub ogon rozpuszczalnika.",
+          "Wpływ korekcji bazy zmienia się z b. Sprawdź, czy maska obejmuje wyłącznie tło."
+        ],
+        "flagged": [
+          "shape",
+          "baseline"
+        ],
+        "checks": {
+          "shape": {
+            "effect": 0.003644485834956213,
+            "p_heuristic": 0.009765625,
+            "p_threshold": 0.016666666666666666
+          },
+          "phase": {
+            "effect": 4.0867930396779896e-05,
+            "p_heuristic": 0.958984375,
+            "p_threshold": 0.016666666666666666
+          },
+          "baseline": {
+            "effect": 8.932756733976364e-05,
+            "p_heuristic": 0.00390625,
+            "p_threshold": 0.016666666666666666
+          }
+        },
+        "min_snr": 5.0,
+        "min_distinct_b": 8,
+        "active_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "noise_source": "quiet_spectral_blocks",
+        "snr_lower_estimate": [
+          1615.9390564760206,
+          1539.3185174460532,
+          1421.8735364149031,
+          1217.3661476984937,
+          1085.826368458886,
+          999.5434921828189,
+          935.3166079113531,
+          891.7466142173683,
+          805.3407678120402,
+          705.3807574350732,
+          679.8713540009111,
+          586.7525803770194,
+          556.0593660224979,
+          494.3662152761961,
+          424.24614268511544,
+          405.0124259484297
+        ],
+        "excluded_low_information_layers": [],
+        "diagnostic_layers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "diagnostic_b_span": 681290018.1706755,
+        "relative_phase_deg": [
+          -0.17093572497416265,
+          0.1280291610004951,
+          -0.08078263756709167,
+          0.07305031083921011,
+          -0.07325446647332015,
+          0.14930077656991153,
+          0.3466940607443417,
+          0.09357887935499491,
+          -0.08281503280477553,
+          -0.03781726862760992,
+          0.027862216618197023,
+          0.12604837884745043,
+          -0.010335580922338466,
+          -0.31107650574369244,
+          -0.2139484441674379,
+          -0.6612503140668994
+        ],
+        "explained_energy": 0.9999622372553937,
+        "phase_noise_deg": [
+          0.035456653631083496,
+          0.03722151643789409,
+          0.040295977220538605,
+          0.04706535497986317,
+          0.052766987198754986,
+          0.05732195049998077,
+          0.06125815683901367,
+          0.06425118200116806,
+          0.0711447085154818,
+          0.08122671475073498,
+          0.08427434385902641,
+          0.09764880467250353,
+          0.10303868078833994,
+          0.11589694715947847,
+          0.13505252604471188,
+          0.14146584154056466
+        ],
+        "baseline_relative_rms": 0.03357121412251611,
+        "D_comparisons": {
+          "shape": {
+            "status": "compared",
+            "D_first": 2.0985773657168266e-09,
+            "D_second": 2.1021763862351835e-09,
+            "D_change": 3.599020518356914e-12,
+            "screening_bound": 4.5752898841779416e-11,
+            "exceeds_bound": false
+          },
+          "baseline": {
+            "status": "compared",
+            "D_first": 2.0934870717740385e-09,
+            "D_second": 2.0945980483842768e-09,
+            "D_change": 1.110976610238284e-12,
+            "screening_bound": 3.665280440252217e-11,
+            "exceeds_bound": false
+          }
+        }
+      },
+      "independent_ILT_D": [
+        2.127792658230802e-09
+      ],
+      "independent_ILT_rms": 0.5331457835406143,
+      "global_optimization": true,
+      "global_converged": true,
+      "global_candidate_D": [
+        2.127792658230802e-09
+      ],
+      "global_rejection": null,
+      "global_assigned": true,
+      "adaptive_optimization": true,
+      "adaptive_rejection": null,
+      "adaptive_assigned": true,
+      "global_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.127792658230802e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004890865900654569,
+        "integral_limit": 0.008511581138848152,
+        "reference_snr_estimate": 1198.6158617232272,
+        "peak_rms": 0.004843713617084012,
+        "peak_limit": 0.008511581138848149,
+        "relative_residual": 0.012448784561289734,
+        "excess_residual": 0.012360626974930006,
+        "relative_noise": 0.0014788975082940374,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "adaptive_profile_diagnostic": {
+        "optimized": true,
+        "omitted_fraction": 0.0,
+        "component_min_fraction": 0.05,
+        "candidate_D": [
+          2.148233508421013e-09
+        ],
+        "spectral_limit": 0.15,
+        "integral_rms": 0.004470540093362917,
+        "integral_limit": 0.008511581138848152,
+        "reference_snr_estimate": 1198.6158617232272,
+        "peak_rms": 0.006425438019419974,
+        "peak_limit": 0.008511581138848149,
+        "relative_residual": 0.011800834306864547,
+        "excess_residual": 0.011707771849582986,
+        "relative_noise": 0.001479110765353111,
+        "reason": "assigned",
+        "unexplained_positive_fraction": 0.0
+      },
+      "matrix_and_visible": {
+        "original": [
+          true,
+          true
+        ],
+        "aligned": [
+          true,
+          true
+        ],
+        "shared": [
+          true,
+          true
+        ],
+        "global": [
+          true,
+          true
+        ],
+        "adaptive": [
+          true,
+          true
+        ]
+      }
+    }
+  ],
+  "modes": {
+    "original": {
+      "matrix": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S2",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "visible": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S2",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "overlap_mask": false
+    },
+    "aligned": {
+      "matrix": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S2",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "visible": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S2",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "overlap_mask": false
+    },
+    "shared": {
+      "matrix": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S2",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "visible": [
+        "S1",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S2",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "overlap_mask": false
+    },
+    "global": {
+      "matrix": [
+        "S1",
+        "S10",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "visible": [
+        "S1",
+        "S10",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "overlap_mask": false
+    },
+    "adaptive": {
+      "matrix": [
+        "S10",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S18",
+        "S19",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "visible": [
+        "S10",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "S18",
+        "S19",
+        "S20",
+        "S3",
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8",
+        "S9"
+      ],
+      "overlap_mask": false
+    }
+  },
+  "global_maxima": [
+    2.127792658230802e-09
+  ],
+  "global_rejected": [
+    "S2",
+    "S11"
+  ],
+  "local_unresolved": [
+    "S1",
+    "S11",
+    "S17",
+    "S2"
+  ]
+}

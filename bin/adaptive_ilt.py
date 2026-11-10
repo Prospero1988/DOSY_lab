@@ -7,6 +7,7 @@ import numpy as np
 from dosy_alignment import cluster_diffusion, fit_shared_group, ilt_profiles
 from global_ilt import GlobalParameters, SolveCancelled, identify_components, solve_global_ilt
 from ilt import ILTParameters, MIN_DISTINCT_B, solve_ilt
+from roi_quality import estimate_spectral_noise
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,7 @@ class LocalResult:
     unresolved: tuple[str, ...]
     membership: dict  # group IDs -> (ROI, D) components matched from a separate mixed ROI
     withheld: dict = field(default_factory=dict)
+    diagnostics: dict = field(default_factory=dict)
 
 
 def amplitude_weights(amplitude, snr, limit):
@@ -136,6 +138,9 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
                and (info := reference_quality(row, reference)) is not None
                and len(np.unique(dataset.b[row['fit']['fit_mask']])) >= MIN_DISTINCT_B}
     profiles, groups, attempted, withheld = {}, [], set(), {}
+    noise = estimate_spectral_noise(dataset.phased) if hasattr(dataset,'phased') else None
+    diagnostics = {sid:dict(reason='insufficient_attenuation_information', optimized=False)
+                   for sid in by_id if sid not in quality and sid not in excluded}
 
     def check_cancelled():
         if cancelled is not None and cancelled():
@@ -143,7 +148,8 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
 
     def project(ids, solution):
         return ilt_profiles(dataset.b, dataset.ppm, dataset.spectrum.real, reference, rows, ids,
-                            solution, conserve_reference=True, withheld=withheld)
+                            solution, conserve_reference=True, withheld=withheld,
+                            diagnostics=diagnostics, noise_sigma=noise)
 
     for group in compatible_groups(dataset.b, [by_id[sid] for sid in quality], tolerance):
         check_cancelled()
@@ -162,6 +168,7 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
             raise
         except (ValueError, RuntimeError, np.linalg.LinAlgError):
             solution, recovered, rejected = None, {}, ids
+            diagnostics.update({sid:dict(reason='solver_failed',optimized=True) for sid in ids})
         dominant = (solution.diffusion[np.argmax(solution.aggregate)] if solution is not None and solution.components else None)
         rms = (float(np.sqrt(np.mean((solution.rms/solution.scales)**2))) if solution is not None else None)
         groups.append(LocalGroup(ids, (min(d), max(d)), dominant, float(amplitude.max()/amplitude.min()),
@@ -174,14 +181,19 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
         check_cancelled()
         row = by_id[sid]
         if row['fit']['RMSE'] < .003*quality[sid][0]:
+            diagnostics[sid] = dict(reason='no_group_or_independent_split_evidence',optimized=False)
             continue
         try:
             solution = separate_mixed_roi(dataset, row, regularization)
             if solution is None:
+                diagnostics[sid] = dict(reason='no_stable_independent_split',optimized=True)
                 continue
             recovered, _ = project((sid,), solution)
         except (ValueError, RuntimeError, np.linalg.LinAlgError):
+            diagnostics[sid] = dict(reason='solver_failed',optimized=True)
             continue
+        if sid in recovered and len(recovered[sid]) < 2:
+            diagnostics[sid]['reason'] = 'no_stable_independent_split'
         if sid in recovered and len(recovered[sid]) >= 2:
             d = row['fit']['D_m2_s']
             groups.append(LocalGroup((sid,), (d,d), float(solution.diffusion[np.argmax(solution.weights)]),
@@ -199,4 +211,4 @@ def adaptive_local_ilt(dataset, rows, tolerance, balance, regularization, exclud
             if len(matches) == 1:
                 membership.setdefault(matches[0].ids, []).append((sid, d))
     return LocalResult(tuple(groups), profiles, tuple(sorted(set(by_id)-set(profiles)-set(excluded))),
-                       {key: tuple(value) for key, value in membership.items()}, withheld)
+                       {key: tuple(value) for key, value in membership.items()}, withheld, diagnostics)

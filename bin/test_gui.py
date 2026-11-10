@@ -1003,9 +1003,12 @@ class InterfaceTests(unittest.TestCase):
             group = panel.tree.topLevelItem(0)
             panel.tree.setCurrentItem(group)
             self.assertEqual(panel.highlighted, {'S1','S2'})
-            self.assertTrue(any(image.opacity() < 1. for image in window.images))
+            self.assertTrue(window.unresolved_curves)
+            self.assertNotIn('S3',window.represented_peaks)
+            self.assertEqual(set(window.represented_peaks), set(panel.profiles))
+            self.assertIn('rozdzielenia', panel.profile_detail('S3'))
             group.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-            self.assertLess(len(window.images), 3)
+            self.assertFalse({'S1','S2'} & set(window.represented_peaks))
             panel.balance.setValue(3.)
             panel.regularization.setText('2e-6')
             panel.recalculate()
@@ -1015,6 +1018,43 @@ class InterfaceTests(unittest.TestCase):
             wait()
             self.assertEqual(panel.balance.value(), 10.)
             self.assertEqual(panel.regularization.text(), '1e-6')
+
+    def test_ilt_unresolved_profiles_and_native_reference_export(self):
+        from dosy_alignment_panel import ADAPTIVE
+
+        w = self.w
+        w.add_roi([3.60,3.68])
+        w.add_roi([5.26,5.33])
+        settle(w)
+        w.show_map()
+        window = w.map_window
+        panel = window.alignment
+        with QtCore.QSignalBlocker(panel.mode):
+            panel.mode.setCurrentIndex(ADAPTIVE)
+        row = w.results[0]
+        start,stop = np.searchsorted(w.dataset.ppm,row['bounds'])
+        panel.profiles = {'S1':((row['fit']['D_m2_s'],window.reference[start:stop]),)}
+        panel.profile_diagnostics = {'S1':dict(reason='assigned'), 'S2':dict(reason='peak_mismatch')}
+        panel.ready = True
+        window.render_map()
+        self.assertEqual(len(window.images),1)
+        self.assertEqual(len(window.unresolved_curves),1)
+        self.assertFalse(window.native_guides)
+        self.assertIn('Zanik',window.rois.item(1).toolTip())
+        projection = tuple(a.copy() for a in window.diffusion_trace.getData())
+        window.overlay.setCurrentIndex(0)
+        self.assertFalse(window.unresolved_curves)
+        window.overlay.setCurrentIndex(2)
+        self.assertEqual(len(window.native_guides),1)
+        self.assertEqual(len(window.unresolved_curves),1)
+        np.testing.assert_array_equal(projection,window.diffusion_trace.getData())
+        window.reset_view()
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/'overlay.png'
+            self.assertTrue(window.save_view(path))
+            image = QtGui.QImage(str(path))
+            self.assertIn('Adaptive Local ILT',image.text('DOSY reconstruction'))
+            self.assertIn('tylko odniesienie',image.text('DOSY reconstruction'))
 
     def test_dosy_map_navigation_coordinates_floor_and_export(self):
         w = self.w

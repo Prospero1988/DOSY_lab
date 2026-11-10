@@ -9,7 +9,7 @@ from scipy.stats import t as student_t
 from scipy.signal import find_peaks
 from jeol import RawData,read_jdf,validate_b,reference_layer
 from storage import require_extension
-from roi_quality import assess_roi_profile
+from roi_quality import estimate_spectral_noise, qualify_roi
 
 
 def default_options(raw):
@@ -293,29 +293,25 @@ def fit_decay(b,intensity,fit_mask=None,sigma=None):
 
 def analyze(dataset,entries):
     rows=[]
+    noise = estimate_spectral_noise(dataset.phased) if dataset.b is not None and entries else None
     for entry in deepcopy(entries):
         try:
             result=integrate(dataset,entry['bounds'])
-            fit=fit_decay(dataset.b,result['corrected_integral'],entry.get('fit_mask'),entry.get('sigma') if entry.get('weighted') else None)
+            sigma = entry.get('sigma') if entry.get('weighted') else None
+            fit=fit_decay(dataset.b,result['corrected_integral'],entry.get('fit_mask'),sigma)
             if dataset.b is not None and fit['fit_mask'].shape == dataset.b.shape:
                 try:
-                    diagnostic = assess_roi_profile(dataset,entry['bounds'],fit['fit_mask'])
+                    diagnostic,findings = qualify_roi(dataset,entry['bounds'],fit,result,sigma,noise,fit_decay)
                 except np.linalg.LinAlgError:
-                    diagnostic = dict(status='unavailable',
-                        warnings=['Nie udało się ocenić spójności zespolonego profilu ROI.'])
-                if dataset.options['baseline_enabled']:
-                    mask = fit['fit_mask']
-                    before = result['raw_integral'][mask]
-                    if before.size and np.max(np.abs(before)) > 0:
-                        delta = result['corrected_integral'][mask]-before
-                        diagnostic['baseline_relative_rms'] = float(
-                            np.linalg.norm(delta/np.max(np.abs(before)))/
-                            np.linalg.norm(before/np.max(np.abs(before))))
+                    diagnostic = dict(status='unavailable')
+                    findings = [dict(kind='information',severity='info',
+                        message='Nie udało się ocenić spójności zespolonego profilu ROI.')]
                 result['profile_diagnostics'] = diagnostic
-                fit['measurement_warnings'] = diagnostic['warnings']
+                fit['measurement_findings'] = findings
+                fit['measurement_warnings'] = [finding['message'] for finding in findings]
                 if fit['ok']:
-                    fit['interpretation'] = ('apparent' if {'shape','phase'}.intersection(diagnostic.get('flagged',()))
-                                             else 'conditional')
+                    fit['interpretation'] = ('apparent' if any(f['kind'] in ('shape','phase')
+                        and f['severity']=='warning' for f in findings) else 'conditional')
             rows.append(dict(entry,result=result,fit=fit,error=''))
         except Exception as exc:rows.append(dict(entry,result={},fit={'ok':False,'message':str(exc)},error=str(exc)))
     return rows

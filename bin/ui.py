@@ -650,7 +650,8 @@ class Window(QtWidgets.QMainWindow):
                 if not editable:item.setFlags(item.flags()&~QtCore.Qt.ItemFlag.ItemIsEditable)
                 if j==0 and e['name']!=e['id']:item.setToolTip(e['name'])
                 if j==len(values)-1:
-                    item.setToolTip(tr(detail))
+                    diagnostics = fits.get(e['id'],{}).get('result',{}).get('profile_diagnostics',{})
+                    item.setToolTip('\n'.join([tr(detail),*self.qc_metrics(diagnostics)]))
                 if j==GROUP_COLUMN:
                     item.setToolTip(tr('Dwuklik otwiera edycję. Wpisz nową grupę lub wybierz istniejącą z listy.'))
                 if j==INTEGRAL_COLUMN:
@@ -676,6 +677,36 @@ class Window(QtWidgets.QMainWindow):
         flags = QtCore.QItemSelectionModel.SelectionFlag
         self.roi_table.selectionModel().select(selection, flags.ClearAndSelect | flags.Rows)
         self._updating=False
+    @staticmethod
+    def qc_metrics(diagnostic):
+        if not diagnostic:
+            return []
+        lines = []
+        count = len(diagnostic.get('diagnostic_layers',()))
+        total = len(diagnostic.get('active_layers',()))
+        lines.append(f"{tr('Warstwy diagnostyczne')}: {count}/{total}")
+        for key, label in (('shape','Kształt'),('phase','Faza'),('baseline','Baza')):
+            check = diagnostic.get('checks',{}).get(key)
+            if check:
+                lines.append(f"{tr(label)}: {tr('efekt')} {check['effect']:.3g}, "
+                             f"p≈{check['p_heuristic']:.3g} / {check['p_threshold']:.3g}")
+            comparison = diagnostic.get('D_comparisons',{}).get(key,{})
+            if comparison.get('status')=='compared':
+                bound = number(comparison.get('screening_bound'),3)
+                lines.append(f"{tr(label)}: ΔD={comparison['D_change']:.3e} m²/s · "
+                             f"{tr('skala porównawcza')}={bound} m²/s")
+        snr = np.asarray(diagnostic.get('snr_lower_estimate',()))
+        snr = snr[np.isfinite(snr)]
+        if snr.size:
+            lines.append(f"S/N ≈ {snr.min():.2f}–{snr.max():.2f} · {tr('próg')}: {diagnostic['min_snr']:g}")
+        phase = np.asarray(diagnostic.get('relative_phase_deg',()))
+        precision = np.asarray(diagnostic.get('phase_noise_deg',()))
+        if phase.size:
+            lines.append(f"{tr('Zakres fazy')}: {phase.min():.2f}–{phase.max():.2f}°")
+        if precision.size:
+            lines.append(f"{tr('Skala szumu fazy')}: {np.nanmax(precision):.2f}°")
+        return lines
+
     def roi_edited(self,item):
         if self._updating:return
         e=self.entries[item.row()]

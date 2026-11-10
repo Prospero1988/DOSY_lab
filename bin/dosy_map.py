@@ -8,7 +8,7 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from d_statistics import finite
-from dosy_alignment_panel import ADAPTIVE, AlignmentPanel, MODE_NAMES, ORIGINAL
+from dosy_alignment_panel import ADAPTIVE, ILT, AlignmentPanel, MODE_NAMES, ORIGINAL
 from plot_export import NAVY, light_plot
 from spectrum_view import SpectrumBox
 from storage import source_save_name
@@ -41,14 +41,15 @@ def fitted_diffusion(result):
     return diffusion if fit.get('ok') and diffusion is not None and diffusion > 0 else None
 
 
-def roi_bands(ppm, reference, results, excluded=(), *, overrides=None, profiles=None):
+def roi_bands(ppm, reference, results, excluded=(), *, overrides=None, profiles=None, reconstructed_only=False):
     """Use each FFT bin at most once. Mask ambiguous bins in overlapping ROIs."""
     overrides, profiles = overrides or {}, profiles or {}
     intervals = []
     coverage = np.zeros(len(ppm) + 1, dtype=int)
     for result in results:
         diffusion = fitted_diffusion(result)
-        if diffusion is None or result['id'] in excluded or profiles.get(result['id']) == ():
+        if result['id'] in excluded or (not reconstructed_only and (
+                diffusion is None or profiles.get(result['id']) == ())):
             continue
         start, stop = np.searchsorted(ppm, result['bounds'])
         if start < stop:
@@ -59,7 +60,7 @@ def roi_bands(ppm, reference, results, excluded=(), *, overrides=None, profiles=
     bands = []
     for start, stop, sid, diffusion in intervals:
         mask = shared[start:stop]
-        if mask.all():
+        if mask.all() or (reconstructed_only and sid not in profiles):
             continue
         for center, intensity in profiles.get(sid, ((overrides.get(sid, diffusion), reference[start:stop]),)):
             bands.append(Band(ppm[start:stop], np.where(mask, 0., intensity), center, sid))
@@ -114,6 +115,11 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.excluded = set()
         self.excluded_groups = set()
         self.images = []
+        self.unresolved_curves = []
+        self.native_guides = []
+        self.overlay_items = []
+        self.map_legend = ''
+        self.represented_peaks = {}
         self.stale = True
         self.peak_intensity = 0.
         self.full_range = None
@@ -281,7 +287,17 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.rois = QtWidgets.QListWidget()
         self.rois.setToolTip(tr('Odznacz ROI, aby wyłączyć je tylko z mapy.'))
         self.rois.itemChanged.connect(self.roi_toggled)
+        self.rois.itemClicked.connect(lambda item: self.statusBar().showMessage(
+            item.toolTip().replace('\n',' · ')))
         sidebar_layout.addWidget(self.rois, 1)
+        self.overlay = QtWidgets.QComboBox()
+        self.overlay.addItems([tr('Tylko zaakceptowane składowe ILT'),
+                               tr('ILT + nierozdzielone ROI na 1D'),
+                               tr('ILT + nierozdzielone ROI i odniesienia mono D')])
+        self.overlay.setCurrentIndex(1)
+        self.overlay.currentIndexChanged.connect(self.render_map)
+        self.overlay.hide()
+        sidebar_layout.addWidget(self.overlay)
         self.alignment = AlignmentPanel(self, alignment_toolbar, adaptive_toolbar, sidebar_layout)
         content.addWidget(sidebar)
         content.setSizes([1040, 250])
@@ -402,11 +418,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                 item = QtWidgets.QListWidgetItem(f'{label}\n{detail}')
                 item.setData(QtCore.Qt.ItemDataRole.UserRole, sid)
                 item.setToolTip('\n'.join((result.get('fit') or {}).get('warnings', [])))
-                if diffusion is None:
-                    item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled)
-                else:
-                    item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
-                    item.setCheckState(QtCore.Qt.CheckState.Unchecked if sid in self.excluded else QtCore.Qt.CheckState.Checked)
+                item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(QtCore.Qt.CheckState.Unchecked if sid in self.excluded else QtCore.Qt.CheckState.Checked)
                 self.rois.addItem(item)
         first_map = not self.images
         with QtCore.QSignalBlocker(self.alignment):
@@ -450,20 +463,45 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         for image in self.images:
             self.plot.removeItem(image)
         self.images.clear()
+        for plot, item in self.overlay_items:
+            plot.removeItem(item)
+        self.overlay_items.clear()
+        self.unresolved_curves.clear()
+        self.native_guides.clear()
+        self.map_legend = ''
+        self.represented_peaks.clear()
         ppm = self.dataset.ppm
         layer = self.dataset.options['reference_layer'] + 1
         visible = [result for result in self.results if result.get('group') not in self.excluded_groups]
         overrides, hidden, profiles = self.alignment.map_data()
-        bands, overlaps = roi_bands(ppm, self.reference, visible, self.excluded | hidden,
-                                    overrides=overrides, profiles=profiles)
+        mode = self.alignment.mode.currentIndex()
+        ilt_mode = mode in (ILT, ADAPTIVE)
+        self.overlay.setVisible(ilt_mode)
+        selected = [r for r in visible if r['id'] not in self.excluded | hidden
+                    and (not ilt_mode or profiles.get(r['id']) != ())]
+        bands, overlaps = roi_bands(ppm, self.reference, selected, overrides=overrides,
+                                    profiles=profiles, reconstructed_only=ilt_mode)
         bands = [band for band in bands if np.any(band.intensity > 0)]
+        for band in bands:
+            self.represented_peaks[band.sid] = max(self.represented_peaks.get(band.sid,0.),
+                                                  float(np.max(band.intensity)))
+        if ilt_mode and self.alignment.ready:
+            self.render_ilt_overlays(selected, set(self.represented_peaks), profiles, overlaps)
+        else:
+            warnings = {row['id']: '\n'.join((row.get('fit') or {}).get('warnings', []))
+                        for row in self.results}
+            with QtCore.QSignalBlocker(self.rois):
+                for index in range(self.rois.count()):
+                    item = self.rois.item(index)
+                    item.setToolTip(warnings.get(item.data(QtCore.Qt.ItemDataRole.UserRole), ''))
         self.peak_intensity = max((np.max(band.intensity) for band in bands), default=0.)
-        self.save_button.setEnabled(bool(bands) and not self.stale and self.alignment.ready)
+        self.save_button.setEnabled(bool(bands or self.unresolved_curves) and not self.stale and self.alignment.ready)
         if not bands:
             self.diffusion_trace.setData([], [])
-            self.full_range = ((ppm[0], ppm[-1]), (0., 1.))
-            self.note.setText(self.alignment.withheld_note() or
-                              tr('Brak dodatnich sygnałów do wyświetlenia. Sprawdź dopasowania D, fazę i wybór ROI.'))
+            upper = max((record[2] for record in self.native_guides),default=.95)
+            self.full_range = ((ppm[0], ppm[-1]), (0., 1.05*upper))
+            note = self.map_legend if self.alignment.ready else tr('Obliczanie rekonstrukcji ILT…')
+            self.note.setText(note or tr('Brak dodatnich sygnałów do wyświetlenia. Sprawdź dopasowania D, fazę i wybór ROI.'))
             return
         maximum = max(band.diffusion for band in bands) / self.D_SCALE
         fwhm = self.width.value() * maximum / 100
@@ -489,27 +527,71 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         left = min(band.ppm[0] for band in bands)
         right = max(band.ppm[-1] for band in bands)
         x_margin = max(.02, .04*(right-left))
+        x_left = min([left]+[curve[0][0] for curve in self.unresolved_curves])
+        x_right = max([right]+[curve[0][-1] for curve in self.unresolved_curves])
+        native = [record[2] for record in self.native_guides]
         self.full_range = (
-            (max(ppm[0], left-x_margin), min(ppm[-1], right+x_margin)),
-            (max(0., maximum - span - d_margin), maximum + d_margin),
+            (max(ppm[0], x_left-x_margin), min(ppm[-1], x_right+x_margin)),
+            (max(0., min([maximum-span]+native)-d_margin), max([maximum]+native)+d_margin),
         )
         self.note.setText(
             tr(f'Widmo 1D: warstwa {layer} (referencja). Mapa: kształt widma w ROI przy jego D. '
             'Kolor pokazuje dodatnie intensywności. Szerokość w D jest ustawieniem graficznym.')
             + (tr(' Wspólne punkty nakładających się ROI są pominięte.') if overlaps else ''))
-        if self.alignment.mode.currentIndex() != ORIGINAL:
-            detail = tr('Poza zaakceptowanymi grupami lub profilami zachowano oryginalne D.')
-            fallback = [sid for sid in self.alignment.rejected if sid not in self.alignment.withheld]
-            if fallback:
-                detail += ' · ' + tr('ROI z zachowanym oryginalnym D') + ' ' + ', '.join(fallback)
-            if self.alignment.withheld:
-                detail += ' · ' + self.alignment.withheld_note()
+        if mode != ORIGINAL:
+            detail = self.map_legend if ilt_mode else tr('Poza zaakceptowanymi grupami lub profilami zachowano oryginalne D.')
             if self.alignment.error:
                 detail = tr('Błąd wyrównania') + ' · ' + tr(self.alignment.error)
             elif not self.alignment.ready:
                 detail = tr('Obliczanie wyrównania. Tymczasowo wyświetlana jest mapa oryginalna.')
             self.note.setText(tr(MODE_NAMES[self.alignment.mode.currentIndex()]) + ' · ' + detail)
         self.update_intensity()
+
+    def render_ilt_overlays(self, selected, represented, profiles, overlap):
+        ids = {row['id'] for row in selected}
+        unassigned = ids-represented
+        with QtCore.QSignalBlocker(self.rois):
+            for index in range(self.rois.count()):
+                item = self.rois.item(index)
+                sid = item.data(QtCore.Qt.ItemDataRole.UserRole)
+                if sid not in ids:
+                    detail = tr('ROI wyłączone z widoku.')
+                else:
+                    detail = self.alignment.profile_detail(sid)
+                    if sid in unassigned and sid in profiles:
+                        detail += '\n' + tr('Profil nie daje dodatniej mapy po maskowaniu wspólnych binów.')
+                item.setToolTip(detail)
+        for row in selected:
+            sid = row['id']
+            if sid not in unassigned or not self.overlay.currentIndex():
+                continue
+            lo, hi = sorted(row['bounds'])
+            mask = (self.dataset.ppm>=lo)&(self.dataset.ppm<=hi)
+            x = self.dataset.ppm[mask]
+            if len(x):
+                y = self.reference[mask]
+                self.unresolved_curves.append((x,y))
+                item = self.projection.plot(x,y,pen=pg.mkPen('#f59e0b',width=2))
+                self.overlay_items.append((self.projection,item))
+            native = fitted_diffusion(row)
+            if self.overlay.currentIndex()==2 and native is not None:
+                d = native/self.D_SCALE
+                self.native_guides.append((lo,hi,d))
+                item = self.plot.plot([lo,hi],[d,d],pen=pg.mkPen('#c084fc',width=2,
+                    style=QtCore.Qt.PenStyle.DashLine))
+                self.overlay_items.append((self.plot,item))
+        represented_label, unresolved_label, excluded_label = map(tr,(
+            'ROI w rekonstrukcji ILT','nierozdzielone / bez przypisania','wyłączone z widoku'))
+        self.map_legend = (f'{represented_label}: {len(represented)} · {unresolved_label}: {len(unassigned)}'
+                           f' · {excluded_label}: {len(self.results)-len(ids)}')
+        self.map_legend += ' · ' + tr('Kolor mapy = zaakceptowane profile ILT')
+        if self.overlay.currentIndex():
+            self.map_legend += ' · ' + tr('Bursztyn na 1D = zmierzony profil bez przypisania')
+        if self.overlay.currentIndex()==2:
+            self.map_legend += ' · ' + tr('Fioletowa kreska = pozycja mono D, tylko odniesienie')
+        if overlap:
+            self.map_legend += ' · ' + tr('Wspólne biny pominięto w macierzy.')
+        self.map_legend += ' · ' + tr('Wybierz ROI z listy, aby odczytać przyczynę.')
 
     def update_intensity(self):
         gain = 10 ** (self.gain.value() / 20)
@@ -518,6 +600,13 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         saturation = threshold + (self.peak_intensity - threshold) / gain
         for image in self.images:
             image.setLevels((threshold, saturation))
+        if self.map_legend:
+            self.note.setText(tr(MODE_NAMES[self.alignment.mode.currentIndex()]) + ' · ' + self.ilt_legend())
+
+    def ilt_legend(self):
+        threshold = self.peak_intensity*self.floor.value()/100
+        hidden = sum(value<=threshold for value in self.represented_peaks.values())
+        return self.map_legend + (f" · {tr('ROI poniżej progu wyświetlania')}: {hidden}" if hidden else '')
 
     def saved_color(self, key, default):
         color = QtGui.QColor(self.settings.value(key, default, type=str))
@@ -589,14 +678,15 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         try:
             mode = self.alignment.mode.currentIndex()
             title = tr(MODE_NAMES[mode])
-            if mode != ORIGINAL:
+            if mode in (ILT, ADAPTIVE):
+                title += '\n' + self.ilt_legend()
+            elif mode != ORIGINAL:
                 overrides, _, profiles = self.alignment.map_data()
                 title += f' · {tr("Przetworzone ROI")} {len(overrides) + len(profiles)}'
-                if self.alignment.withheld:
-                    title += f' · {tr("ROI bez przypisania D w tej rekonstrukcji")} {len(self.alignment.withheld)}'
             heading = QtWidgets.QLabel(title)
             heading.setStyleSheet('color: black; background: white; font-weight: bold;')
             heading.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+            heading.setWordWrap(True)
             layout.addWidget(heading)
             spectrum = light_plot(self.projection)
             map_plot = light_plot(self.plot)
@@ -622,6 +712,11 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                 layout.addWidget(spectrum)
                 layout.addWidget(map_plot)
             spectrum.plot(*self.trace.getData(), pen=pg.mkPen(navy, width=1.3))
+            for x,y in self.unresolved_curves:
+                spectrum.plot(x,y,pen=pg.mkPen('#b45309',width=2))
+            for lo,hi,d in self.native_guides:
+                map_plot.plot([lo,hi],[d,d],pen=pg.mkPen('#7e22ce',width=2,
+                    style=QtCore.Qt.PenStyle.DashLine))
             lookup = self.color_table(navy)
             for image in self.images:
                 copy = pg.ImageItem(axisOrder='row-major')
@@ -647,6 +742,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                 x_range, y_range = source.getViewBox().viewRange()
                 plot.setRange(xRange=x_range, yRange=y_range, padding=0)
             image = canvas.grab().toImage()
+            image.setText('DOSY reconstruction',title)
             image.setDotsPerMeterX(11811)
             image.setDotsPerMeterY(11811)
             return image.save(str(path), 'PNG')

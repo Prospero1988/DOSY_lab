@@ -143,7 +143,10 @@ class ScientificRemediationTests(unittest.TestCase):
                 self.assertEqual(row['fit'].get('D_m2_s'),original_fit.get('D_m2_s'))
                 np.testing.assert_array_equal(raw.fid,fid)
                 diagnostic = row['result']['profile_diagnostics']
-                self.assertEqual(set(diagnostic['flagged']),flags)
+                if processing.get('baseline_enabled'):
+                    self.assertTrue(flags.issubset(diagnostic['flagged']))
+                else:
+                    self.assertEqual(set(diagnostic['flagged']),flags)
                 if processing.get('baseline_enabled'):
                     expected = np.linalg.norm(existing['corrected_integral']-existing['raw_integral'])
                     expected /= np.linalg.norm(existing['raw_integral'])

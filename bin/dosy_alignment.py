@@ -102,12 +102,45 @@ def alignment_plan(b, rows, tolerance, excluded, shared=False):
     return groups
 
 
+def profile_residual(target, predicted, noise_energy=0.):
+    energy = np.sum(np.abs(target)**2)
+    if not energy:
+        return dict(relative_residual=None, excess_residual=None, relative_noise=None)
+    error = np.sum(np.abs(target-predicted)**2)
+    return dict(relative_residual=float(np.sqrt(error/energy)),
+                excess_residual=float(np.sqrt(max(0.,error-noise_energy)/energy)),
+                relative_noise=float(np.sqrt(noise_energy/energy)))
+
+
+def peak_attenuation_rms(b, row, diffusion, scale, fallback):
+    """Validate the peak used as the map coordinate, not its wider ILT interval."""
+    fit = row['fit']
+    y = row.get('result',{}).get('corrected_integral')
+    if y is None:
+        return None, fallback
+    mask = np.asarray(fit['fit_mask'], dtype=bool)
+    x = b[mask]-b[mask].min()
+    values = np.asarray(y)[mask]/scale
+    weights = np.ones(len(x))
+    if fit.get('weighted'):
+        sigma = np.asarray(row['sigma'],dtype=float)[mask]
+        weights = sigma.min()/sigma
+    weights /= np.linalg.norm(weights)
+    values *= weights
+    basis = np.exp(-x*diffusion)*weights
+    amplitude = max(0.,np.dot(basis,values)/np.dot(basis,basis))
+    native = np.linalg.norm(np.asarray(fit['residuals'])[mask]/scale*weights)
+    return float(np.linalg.norm(values-amplitude*basis)), float(native)
+
+
 def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution, *, conserve_reference=False,
-                 withheld=None):
-    """Estimate nonnegative ppm profiles using component decay bases fixed by ILT."""
+                 withheld=None, diagnostics=None, noise_sigma=None):
+    """Estimate spectral profiles and retain a per-ROI account of assignment."""
     profiles, rejected = {}, []
     withheld = {} if withheld is None else withheld
+    diagnostics = {} if diagnostics is None else diagnostics
     if not solution.converged:
+        diagnostics.update({sid:dict(reason='solver_not_converged', optimized=True) for sid in ids})
         return profiles, tuple(ids)
     by_id = {row['id']: row for row in rows}
     kernel = _kernel(b, solution.diffusion)
@@ -123,60 +156,114 @@ def ilt_profiles(b, ppm, spectra, reference_layer, rows, ids, solution, *, conse
         keep = (masses > 0) & (masses >= .05*masses.sum())
         peaks = [peak for peak, enabled in zip(solution.components, keep) if enabled]
         omitted = float(masses[~keep].sum()/masses.sum()) if masses.sum() > 0 else 0.
-        if len(peaks) == 1 and omitted > 0:
-            withheld[sid] = dict(reason='discarded_component', omitted_fraction=omitted)
+        record = dict(optimized=True, omitted_fraction=omitted, component_min_fraction=.05,
+                      candidate_D=tuple(float(solution.diffusion[k]) for k in peaks),
+                      spectral_limit=MAX_PROFILE_RELATIVE_RESIDUAL)
+        diagnostics[sid] = record
+
+        def reject(reason):
+            record['reason'] = reason
+            record['unexplained_positive_fraction'] = (1. if np.any(spectra[reference_layer,start:stop]>0) else None)
             rejected.append(sid)
+            withheld[sid] = record
+
+        if not peaks or stop-start < 2:
+            reject('no_component' if not peaks else 'insufficient_profile')
+            continue
+        if len(peaks) == 1 and omitted > 0:
+            reject('discarded_component')
+            continue
+        if any(peak in (0,len(solution.diffusion)-1) for peak in peaks):
+            reject('boundary_peak')
             continue
         scale = solution.scales[column]
         original_rms = entry['fit']['RMSE']/scale
-        if (not peaks or stop-start < 2 or any(peak in (0, len(solution.diffusion)-1) for peak in peaks)
-                or solution.rms[column]/scale > max(1.5*original_rms, original_rms+.005)):
-            rejected.append(sid)
-            continue
-        if len(peaks) == 1:
-            # Copy a reference trace only if the fixed decay basis explains the
-            # signed spectra, including any dispersion or negative baseline.
-            basis = prediction[mask, keep.nonzero()[0][0]] / masses[keep][0]
-            trace = spectra[reference_layer,start:stop]
-            target = spectra[mask,start:stop]
-            error = np.linalg.norm(basis[:,None]*trace-target)
-            target_norm = np.linalg.norm(target)
-            profile_flags = entry.get('result',{}).get('profile_diagnostics',{}).get('flagged',())
-            if target_norm == 0 or error > MAX_PROFILE_RELATIVE_RESIDUAL*target_norm or {'shape','phase'}.intersection(profile_flags):
-                withheld[sid] = dict(reason='spectral_mismatch', omitted_fraction=omitted,
-                                     relative_residual=float(error/target_norm) if target_norm else None)
-                rejected.append(sid)
-            else:
-                profiles[sid] = ((solution.diffusion[peaks[0]], trace),)
+        integral_limit = max(1.5*original_rms,original_rms+.005)
+        record.update(integral_rms=float(solution.rms[column]/scale), integral_limit=integral_limit)
+        if record['integral_rms'] > integral_limit:
+            reject('integral_mismatch')
             continue
         basis = prediction[mask][:,keep]/masses[keep]
         target = spectra[mask,start:stop]
-        target_scale = np.max(np.abs(target))
-        if (mask.sum() < 2*len(peaks)+2 or np.linalg.cond(basis) > 100 or not target_scale):
-            rejected.append(sid)
-            continue
-        target = target/target_scale
-        try:
-            coeff = np.array([nnls(basis, signal)[0] for signal in target.T]).T
-        except (RuntimeError, ValueError, np.linalg.LinAlgError):
-            rejected.append(sid)
-            continue
-        weights = trapezoid(coeff, x=ppm[start:stop], axis=1)
-        if (np.linalg.norm(basis@coeff-target)/np.linalg.norm(target) > MAX_PROFILE_RELATIVE_RESIDUAL or weights.sum() <= 0
-                or np.max(np.abs(weights/weights.sum()-masses[keep]/masses[keep].sum())) > .2):
-            rejected.append(sid)
-            continue
-        if conserve_reference and omitted == 0:
-            reference = np.maximum(spectra[reference_layer,start:stop]/target_scale, 0.)
-            total = coeff.sum(axis=0)
-            if reference[total == 0].sum() > .01*reference.sum() or not reference.any():
-                rejected.append(sid)
+        trace = spectra[reference_layer,start:stop]
+        if noise_sigma is not None:
+            sigma = np.asarray(noise_sigma)
+            variance = sigma[mask]**2
+            ref_noise = sigma[reference_layer]*np.sqrt(len(trace))
+            if ref_noise > 0:
+                record['reference_snr_estimate'] = float(np.linalg.norm(trace)/ref_noise)
+                if record['reference_snr_estimate'] < 5:
+                    reject('insufficient_spectral_snr')
+                    continue
+        else:
+            variance = np.zeros(mask.sum())
+        if len(peaks) == 1:
+            peak = solution.diffusion[peaks[0]]
+            rms, native = peak_attenuation_rms(b,entry,peak,scale,original_rms)
+            record.update(peak_rms=rms, peak_limit=max(1.5*native,native+.005))
+            if rms is not None and rms > record['peak_limit']:
+                reject('peak_mismatch')
                 continue
-            coeff *= np.divide(reference, total, out=np.zeros_like(total), where=total > 0)
-            weights = trapezoid(coeff, x=ppm[start:stop], axis=1)
-            if (np.linalg.norm(basis@coeff-target)/np.linalg.norm(target) > MAX_PROFILE_RELATIVE_RESIDUAL or weights.sum() <= 0
-                    or np.max(np.abs(weights/weights.sum()-masses[keep]/masses[keep].sum())) > .2):
-                rejected.append(sid)
+            concerns = entry['fit'].get('measurement_findings',())
+            if any(finding['severity']=='warning' and finding['kind'] in ('shape','phase')
+                   for finding in concerns):
+                reject('profile_dependent_diffusion')
                 continue
-        profiles[sid] = tuple((solution.diffusion[peak], trace*target_scale) for peak, trace in zip(peaks, coeff))
+            if noise_sigma is not None:
+                variance += basis[:,0]**2*sigma[reference_layer]**2
+                # Reference residual is exactly zero when it is included.
+                variance[np.flatnonzero(mask)==reference_layer] = 0.
+            record.update(profile_residual(target,basis*trace,len(trace)*variance.sum()))
+            if record['excess_residual'] is None or record['excess_residual'] > MAX_PROFILE_RELATIVE_RESIDUAL:
+                reject('spectral_mismatch')
+                continue
+            coeff = trace[None,:]
+        else:
+            # Fit subthreshold positive components as nuisance terms. Removing
+            # their bases before NNLS would leak their signal into retained peaks.
+            modeled = masses > 0
+            basis = prediction[mask][:,modeled]/masses[modeled]
+            target_scale = np.max(np.abs(target))
+            condition = np.linalg.cond(basis)
+            record['basis_condition'] = float(condition)
+            if mask.sum() < 2*np.count_nonzero(modeled)+2 or condition > 100 or not target_scale:
+                reject('ill_conditioned_basis')
+                continue
+            try:
+                coeff = np.array([nnls(basis, signal)[0] for signal in (target/target_scale).T]).T*target_scale
+            except (RuntimeError, ValueError, np.linalg.LinAlgError):
+                reject('spectral_solver_failed')
+                continue
+
+            def assess(values):
+                record.update(profile_residual(target,basis@values,len(trace)*variance.sum()))
+                areas = trapezoid(values,x=ppm[start:stop],axis=1)
+                if areas.sum() <= 0:
+                    return False
+                shares = np.max(abs(areas/areas.sum()-masses[modeled]/masses[modeled].sum()))
+                record['share_discrepancy'] = float(shares)
+                return (record['excess_residual'] is not None
+                        and record['excess_residual'] <= MAX_PROFILE_RELATIVE_RESIDUAL and shares <= .2)
+
+            if not assess(coeff):
+                reject('spectral_mismatch')
+                continue
+            reference = np.maximum(trace,0.)
+            if conserve_reference and omitted == 0:
+                total = coeff.sum(axis=0)
+                if not reference.any() or reference[total == 0].sum() > .01*reference.sum():
+                    reject('unexplained_reference')
+                    continue
+                adjusted = coeff*np.divide(reference,total,out=np.zeros_like(total),where=total>0)
+                if not assess(adjusted):
+                    reject('spectral_mismatch')
+                    continue
+                coeff = adjusted
+            coeff = coeff[keep[modeled]]
+        positive = np.maximum(trace,0.)
+        represented = np.maximum(coeff,0.).sum(axis=0)
+        area = trapezoid(positive,x=ppm[start:stop])
+        remaining = trapezoid(np.maximum(positive-represented,0.),x=ppm[start:stop])
+        record.update(reason='assigned', unexplained_positive_fraction=float(remaining/area) if area>0 else None)
+        profiles[sid] = tuple((solution.diffusion[peak], values) for peak,values in zip(peaks,coeff))
     return profiles, tuple(rejected)
