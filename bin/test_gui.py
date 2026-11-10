@@ -891,6 +891,66 @@ class InterfaceTests(unittest.TestCase):
             self.assertIs(w.results, original)
             self.assertEqual([row['fit']['D_m2_s'] for row in w.results], d_original)
 
+    def test_diffusion_projection_links_d_and_delete_clears_all_guides(self):
+        w = self.w
+        w.add_roi([3.60, 3.68])
+        w.add_roi([5.26, 5.33])
+        settle(w)
+        w.show_map()
+        window = w.map_window
+        self.assertFalse(window.diffusion_plot.isVisible())
+        window.diffusion_button.click()
+        APP.processEvents()
+        self.assertTrue(window.diffusion_plot.isVisible())
+        self.assertTrue(window.settings.value('dosy_map/diffusion_projection', False, type=bool))
+        original, d = window.diffusion_trace.getData()
+        self.assertGreater(np.max(original), 0.)
+        self.assertEqual(len(original), len(d))
+        window.floor.setValue(25.)
+        window.gain.setValue(10)
+        np.testing.assert_array_equal(window.diffusion_trace.getData()[0], original)
+        window.floor.setValue(0.)
+        window.rois.item(1).setCheckState(QtCore.Qt.CheckState.Unchecked)
+        remaining, remaining_d = window.diffusion_trace.getData()
+        self.assertLess(remaining.sum()*np.diff(remaining_d).mean(), original.sum()*np.diff(d).mean())
+
+        low, high = window.full_range[1]
+        window.plot.setYRange(low, (low+high)/2, padding=0.)
+        APP.processEvents()
+        y = (3*low+high)/4
+        window.show_coordinates(3.64, y)
+        guide = window.diffusion_projection_guide
+        self.assertTrue(guide.isVisible())
+        self.assertEqual(guide.value(), window.diffusion_guide.value())
+
+        def screen_y(plot):
+            scene = plot.getViewBox().mapViewToScene(QtCore.QPointF(0., y))
+            return plot.viewport().mapToGlobal(plot.mapFromScene(scene)).y()
+
+        def screen_x(plot):
+            scene = plot.getViewBox().mapViewToScene(QtCore.QPointF(3.64, 0.))
+            return plot.viewport().mapToGlobal(plot.mapFromScene(scene)).x()
+
+        self.assertLessEqual(abs(screen_y(window.diffusion_plot)-screen_y(window.plot)), 1)
+        self.assertLessEqual(abs(screen_x(window.projection)-screen_x(window.plot)), 1)
+        window.activateWindow()
+        window.plot.setFocus()
+        APP.processEvents()
+        with tempfile.TemporaryDirectory() as folder:
+            marked, cleared = [Path(folder)/name for name in ('marked.png', 'cleared.png')]
+            self.assertTrue(window.save_view(marked))
+            QtTest.QTest.keyClick(window.plot.viewport(), QtCore.Qt.Key.Key_Delete)
+            for item in (guide, window.diffusion_guide, window.ppm_guide, window.projection_guide, window.d_label):
+                self.assertFalse(item.isVisible())
+            self.assertTrue(window.save_view(cleared))
+            first, second = [QtGui.QImage(str(path)).convertToFormat(QtGui.QImage.Format.Format_RGB32) for path in (marked, cleared)]
+            self.assertEqual(first.size(), second.size())
+            width = window.diffusion_plot.width()
+            a, b = (np.frombuffer(image.constBits(), dtype=np.uint32).reshape(image.height(), -1) for image in (first, second))
+            self.assertGreater(np.count_nonzero(a[:, :width] != b[:, :width]), 20)
+        window.diffusion_button.click()
+        self.assertFalse(window.diffusion_plot.isVisible())
+
     def test_dosy_map_navigation_coordinates_floor_and_export(self):
         w = self.w
         w.add_roi([3.60, 3.68], group='Sacharoza')

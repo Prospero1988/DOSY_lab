@@ -21,6 +21,19 @@ class Band:
     diffusion: float
 
 
+def diffusion_projection(bands, offset, kernel, diffusion_scale):
+    """Sum the positive map intensity along ppm on a common display D grid."""
+    centers = np.array([band.diffusion/diffusion_scale for band in bands])
+    step = offset[1]-offset[0]
+    start, stop = max(0., centers.min()+offset[0]), centers.max()+offset[-1]
+    grid = np.linspace(start, stop, int(np.ceil((stop-start)/step))+1)
+    total = np.zeros_like(grid)
+    for center, band in zip(centers, bands):
+        row_sums = np.maximum(band.intensity, 0.).sum()*kernel
+        total += np.interp(grid, center+offset, row_sums, left=0., right=0.)
+    return total, grid
+
+
 def fitted_diffusion(result):
     fit = result.get('fit') or {}
     diffusion = finite(fit.get('D_m2_s'))
@@ -110,7 +123,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         for index, (name, tip) in enumerate((
             ('Zoom', tr('Przeciągnij prostokąt na mapie lub zakres ppm nad widmem 1D.')),
             (tr('Przesuwaj'), tr('Przeciągnij, aby przesunąć widok.')),
-            (tr('Punkt / prowadnice'), tr('Kliknij mapę, aby odczytać ppm i D w miejscu przecięcia prowadnic.')),
+            (tr('Punkt / prowadnice'), tr('Kliknij mapę, aby odczytać ppm i D. Delete usuwa prowadnice.')),
         )):
             button = QtWidgets.QPushButton(name)
             button.setToolTip(tip)
@@ -157,6 +170,12 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.grid_button.setChecked(self.settings.value('dosy_map/grid', True, type=bool))
         self.grid_button.setToolTip(tr('Pokaż lub ukryj siatkę na mapie i widmie 1D.'))
         toolbar.addWidget(self.grid_button)
+        self.diffusion_button = QtWidgets.QPushButton(tr('Projekcja D'))
+        self.diffusion_button.setCheckable(True)
+        self.diffusion_button.setToolTip(tr('Pokaż po lewej sumę dodatnich intensywności wzdłuż osi ppm dla każdego D.'))
+        toolbar.addWidget(self.diffusion_button)
+        delete = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key.Key_Delete), self)
+        delete.activated.connect(self.clear_guides)
         self.save_button = QtWidgets.QPushButton(tr('Zapisz widok PNG'))
         self.save_button.setEnabled(False)
         self.save_button.clicked.connect(self.choose_save)
@@ -171,10 +190,14 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.reference_view = SpectrumBox()
         self.projection = pg.PlotWidget(viewBox=self.reference_view)
         self.reference_view.bind_selection_feedback(self.projection)
-        self.graphics.addWidget(self.projection)
         self.map_view = MapViewBox()
         self.plot = pg.PlotWidget(viewBox=self.map_view)
-        self.graphics.addWidget(self.plot)
+        self.diffusion_plot = pg.PlotWidget()
+        self.diffusion_plot.setFixedWidth(185)
+        self.diffusion_spacer = QtWidgets.QWidget()
+        self.diffusion_spacer.setFixedWidth(self.diffusion_plot.width())
+        self.graphics.addWidget(self.plot_row(self.projection, self.diffusion_spacer))
+        self.graphics.addWidget(self.plot_row(self.plot, self.diffusion_plot))
         self.graphics.setSizes([210, 540])
         self.graphics.setStretchFactor(1, 1)
         self.projection.setLabel('left', '1D · Re')
@@ -182,12 +205,22 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.plot.setLabel('left', 'D / 10⁻¹⁰ [m²/s]')
         self.plot.setLabel('bottom', tr('¹H — przesunięcie chemiczne'), units='ppm')
         self.plot.getAxis('bottom').enableAutoSIPrefix(False)
+        self.diffusion_plot.setLabel('bottom', 'Σ I')
+        self.diffusion_plot.getAxis('bottom').enableAutoSIPrefix(False)
+        self.diffusion_plot.hideAxis('left')
+        for plot in (self.diffusion_plot, self.plot):
+            plot.getAxis('bottom').setHeight(45)
+        self.diffusion_plot.invertX(True)
+        self.diffusion_plot.setMouseEnabled(x=False, y=False)
+        self.diffusion_plot.hideButtons()
+        self.diffusion_plot.setLimits(xMin=0)
         for plot in (self.projection, self.plot):
             plot.invertX(True)
             plot.getAxis('left').setWidth(110)
             plot.viewport().installEventFilter(self)
         self.map_view.setLimits(yMin=0)
         self.projection.setXLink(self.plot)
+        self.diffusion_plot.setYLink(self.plot)
         self.reference_view.sigRangeChangedManually.connect(self.sync_from_projection)
         self.map_view.floor_stepped.connect(lambda steps: self.floor.setValue(self.floor.value() + steps))
         self.map_view.point_clicked.connect(self.show_coordinates)
@@ -195,8 +228,10 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.projection_guide = pg.InfiniteLine(angle=90, pen=pen)
         self.ppm_guide = pg.InfiniteLine(angle=90, pen=pen)
         self.diffusion_guide = pg.InfiniteLine(angle=0, pen=pen)
+        self.diffusion_projection_guide = pg.InfiniteLine(angle=0, pen=pen)
         for plot, guide in ((self.projection, self.projection_guide),
-                            (self.plot, self.ppm_guide), (self.plot, self.diffusion_guide)):
+                            (self.plot, self.ppm_guide), (self.plot, self.diffusion_guide),
+                            (self.diffusion_plot, self.diffusion_projection_guide)):
             plot.addItem(guide, ignoreBounds=True)
             guide.setZValue(10)
             guide.hide()
@@ -206,6 +241,10 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.d_label.hide()
         self.map_view.sigRangeChanged.connect(self.position_d_label)
         self.trace = self.projection.plot(pen=pg.mkPen(self.trace_color))
+        self.diffusion_trace = self.diffusion_plot.plot(pen=pg.mkPen(self.trace_color))
+        self.diffusion_button.setChecked(self.settings.value('dosy_map/diffusion_projection', False, type=bool))
+        self.set_diffusion_projection_visible(self.diffusion_button.isChecked())
+        self.diffusion_button.toggled.connect(self.set_diffusion_projection_visible)
         self.map_color_action.triggered.connect(lambda: self.choose_color(map_color=True))
         self.trace_color_action.triggered.connect(lambda: self.choose_color(map_color=False))
         self.grid_button.toggled.connect(self.set_grid)
@@ -233,13 +272,29 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         content.addWidget(sidebar)
         content.setSizes([1040, 250])
         content.setStretchFactor(0, 1)
-        self.coordinate = QtWidgets.QLabel(tr('Włącz Punkt / prowadnice, aby odczytać współrzędne.'))
+        self.coordinate = QtWidgets.QLabel()
         layout.addWidget(self.coordinate)
+        self.clear_guides()
         self.note = QtWidgets.QLabel()
         self.note.setWordWrap(True)
         layout.addWidget(self.note)
         self.alignment.changed.connect(self.refresh_alignment)
         self.set_tool(0)
+
+    @staticmethod
+    def plot_row(plot, left):
+        row = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout(row)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(left)
+        layout.addWidget(plot, 1)
+        return row
+
+    def set_diffusion_projection_visible(self, visible):
+        self.diffusion_spacer.setVisible(visible)
+        self.diffusion_plot.setVisible(visible)
+        self.settings.setValue('dosy_map/diffusion_projection', visible)
 
     @staticmethod
     def spin_box(toolbar, name, low, high, initial, tip):
@@ -277,7 +332,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
 
     def show_coordinates(self, ppm, diffusion):
         for guide, value in ((self.projection_guide, ppm), (self.ppm_guide, ppm),
-                             (self.diffusion_guide, diffusion)):
+                             (self.diffusion_guide, diffusion), (self.diffusion_projection_guide, diffusion)):
             guide.setPos(value)
             guide.show()
         value = f'D = {diffusion*self.D_SCALE:.3e} m²/s'
@@ -286,6 +341,12 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.position_d_label()
         self.d_label.show()
         self.d_label.updateTransform(force=True)
+
+    def clear_guides(self):
+        for item in (self.projection_guide, self.ppm_guide, self.diffusion_guide,
+                     self.diffusion_projection_guide, self.d_label):
+            item.hide()
+        self.coordinate.setText(tr('Włącz Punkt / prowadnice, aby odczytać współrzędne.'))
 
     def position_d_label(self):
         ppm, diffusion = self.ppm_guide.value(), self.diffusion_guide.value()
@@ -304,10 +365,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         if new_experiment:
             self.excluded.clear()
             self.excluded_groups.clear()
-            for guide in (self.projection_guide, self.ppm_guide, self.diffusion_guide):
-                guide.hide()
-            self.d_label.hide()
-            self.coordinate.setText(tr('Włącz Punkt / prowadnice, aby odczytać współrzędne.'))
+            self.clear_guides()
         self.reference = dataset.spectrum[dataset.options['reference_layer']].real
         self.trace.setData(dataset.ppm, self.reference)
         groups = sorted({r['group'] for r in results if r.get('group') and fitted_diffusion(r) is not None}, key=str.casefold)
@@ -388,6 +446,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.peak_intensity = max((np.max(band.intensity) for band in bands), default=0.)
         self.save_button.setEnabled(bool(bands) and not self.stale and self.alignment.ready)
         if not bands:
+            self.diffusion_trace.setData([], [])
             self.full_range = ((ppm[0], ppm[-1]), (0., 1.))
             self.note.setText(tr('Brak dodatnich sygnałów do wyświetlenia. Sprawdź dopasowania D, fazę i wybór ROI.'))
             return
@@ -395,6 +454,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         fwhm = self.width.value() * maximum / 100
         offset = np.linspace(-2*fwhm, 2*fwhm, 81)
         kernel = np.exp(-4 * np.log(2) * (offset / fwhm)**2)
+        self.diffusion_trace.setData(*diffusion_projection(bands, offset, kernel, self.D_SCALE))
+        self.diffusion_plot.enableAutoRange(axis=pg.ViewBox.XAxis)
         d_step = offset[1] - offset[0]
         ppm_step = ppm[1] - ppm[0]
         for band in bands:
@@ -456,6 +517,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             self.trace_color = color
             self.settings.setValue('dosy_map/trace_color', color.name())
             self.trace.setPen(pg.mkPen(color))
+            self.diffusion_trace.setPen(pg.mkPen(color))
 
     @staticmethod
     def color_table(color):
@@ -471,7 +533,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             image.setLookupTable(self.lookup_table)
 
     def set_grid(self, visible):
-        for plot in (self.projection, self.plot):
+        for plot in (self.projection, self.plot, self.diffusion_plot):
             plot.showGrid(x=visible, y=visible, alpha=.17)
         self.settings.setValue('dosy_map/grid', visible)
 
@@ -515,10 +577,27 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             layout.addWidget(heading)
             spectrum = light_plot(self.projection)
             map_plot = light_plot(self.plot)
-            for source, plot in ((self.projection, spectrum), (self.plot, map_plot)):
-                plot.setFixedHeight(source.height())
-                layout.addWidget(plot)
+            plots = [(self.projection, spectrum), (self.plot, map_plot)]
+            guides = [(spectrum, self.projection_guide), (map_plot, self.ppm_guide), (map_plot, self.diffusion_guide)]
             navy = QtGui.QColor(NAVY)
+            for source, plot in plots:
+                plot.setFixedHeight(source.height())
+            if self.diffusion_button.isChecked():
+                diffusion = light_plot(self.diffusion_plot)
+                diffusion.hideAxis('left')
+                for plot in (diffusion, map_plot):
+                    plot.getAxis('bottom').setHeight(self.plot.getAxis('bottom').height())
+                diffusion.setFixedSize(self.diffusion_plot.size())
+                diffusion.plot(*self.diffusion_trace.getData(), pen=pg.mkPen(navy, width=1.3))
+                spacer = QtWidgets.QWidget()
+                spacer.setFixedWidth(diffusion.width())
+                layout.addWidget(self.plot_row(spectrum, spacer))
+                layout.addWidget(self.plot_row(map_plot, diffusion))
+                plots.append((self.diffusion_plot, diffusion))
+                guides.append((diffusion, self.diffusion_projection_guide))
+            else:
+                layout.addWidget(spectrum)
+                layout.addWidget(map_plot)
             spectrum.plot(*self.trace.getData(), pen=pg.mkPen(navy, width=1.3))
             lookup = self.color_table(navy)
             for image in self.images:
@@ -527,8 +606,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                 copy.setTransform(image.transform())
                 map_plot.addItem(copy)
             pen = pg.mkPen('k', style=QtCore.Qt.PenStyle.DashLine)
-            for plot, guide in ((spectrum, self.projection_guide), (map_plot, self.ppm_guide),
-                                (map_plot, self.diffusion_guide)):
+            for plot, guide in guides:
                 if guide.isVisible():
                     line = pg.InfiniteLine(pos=guide.value(), angle=guide.angle, pen=pen)
                     line.setZValue(10)
@@ -541,7 +619,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
                 map_plot.addItem(label, ignoreBounds=True)
             canvas.resize(self.graphics.width(), layout.sizeHint().height())
             canvas.show()
-            for source, plot in ((self.projection, spectrum), (self.plot, map_plot)):
+            for source, plot in plots:
                 x_range, y_range = source.getViewBox().viewRange()
                 plot.setRange(xRange=x_range, yRange=y_range, padding=0)
             image = canvas.grab().toImage()

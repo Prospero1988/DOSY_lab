@@ -8,7 +8,7 @@ from jeol import RawData,read_jdf,manual_b,validate_b,factory_b,parameters,GAMMA
 from core import (default_options,process_fids,signed_integrals,integrate,fit_decay,analyze,
                   baseline_fit,save_profile,load_profile,initial_dataset)
 from d_statistics import build_snapshot,descriptive_statistics,summarize,diagnostic_points,export_statistics,import_statistics
-from dosy_map import roi_bands
+from dosy_map import Band, diffusion_projection, roi_bands
 from exports import export_bundle,save_project,read_project
 from generate_demo import demo_bytes, encode_fixture, ste_fixture_context
 from storage import EXAMPLES
@@ -368,6 +368,13 @@ class ProcessingTests(unittest.TestCase):
 
 
 class DosyMapTests(unittest.TestCase):
+    def test_diffusion_projection_sums_positive_rows_on_one_axis(self):
+        bands = [Band(np.arange(3.), np.array([1., -9., 2.]), 2e-10),
+                 Band(np.arange(2.), np.array([3., 2.]), 3e-10)]
+        intensity, d = diffusion_projection(bands, np.array([-1., 0., 1.]), np.array([.25, 1., .25]), 1e-10)
+        np.testing.assert_allclose(d, [1., 2., 3., 4.])
+        np.testing.assert_allclose(intensity, [.75, 4.25, 5.75, 1.25])
+
     def test_reference_profile_masks_overlap_and_excludes_invalid_fits(self):
         ppm = np.arange(7.)
         reference = np.array([1., -4., 3., -2., 7., 9., -5.])
