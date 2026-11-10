@@ -14,7 +14,7 @@ DOSY Lab is a Windows desktop application for classical 1D diffusion NMR acquire
 - Compare diffusion coefficients within a named compound group and compare summaries from separate experiments.
 - Import and export reusable integration regions with their IDs, groups and ppm bounds.
 - Analyze individual decays with **ILT** or solve a joint inverse problem for selected ROIs with **Global ILT**. Compare reconstructions and residuals against existing monoexponential fits.
-- Build a 2D ppm × D map with linked proton and optional diffusion projections. Inspect native D, display alignment, shared monoexponential fits, Global ILT profiles or Adaptive Local ILT groups.
+- Build a 2D $\mathrm{ppm}\times D$ map with linked proton and optional diffusion projections. Inspect native D, display alignment, shared monoexponential fits, Global ILT profiles or Adaptive Local ILT groups.
 - Save projects and processing profiles, export tables, and save figures with a light background.
 - Switch the interface between Polish and English using **PL / ENG** next to **Info**.
 
@@ -53,7 +53,7 @@ If Windows provides `python` instead of `py`, use `python -m venv .venv` for the
 & '.\DOSY Lab.cmd' '.\examples\DOSY_demo.jdf'
 ~~~
 
-The generator creates 16 layers and preserves existing files. Pass a different output path to generate another copy. Use **Add integral manually** and enter `3.60; 3.68`, then repeat with `4.66; 4.74`. The expected **D** values are about **3.8 × 10⁻¹⁰ m²/s** and **8.0 × 10⁻¹⁰ m²/s**. The main table displays these as approximately **3.8** and **8.0** in its scaled D column.
+The generator creates 16 layers and preserves existing files. Pass a different output path to generate another copy. Use **Add integral manually** and enter `3.60; 3.68`, then repeat with `4.66; 4.74`. The expected **D** values are about $`3.8\times 10^{-10}\ \mathrm{m^2/s}`$ and $`8.0\times 10^{-10}\ \mathrm{m^2/s}`$. The main table displays these as approximately **3.8** and **8.0** in its scaled D column.
 
 ## Basic workflow
 
@@ -61,7 +61,7 @@ The generator creates 16 layers and preserves existing files. Pass a different o
 2. Reference and phase the spectrum, then apply a baseline correction if needed. Define the integration ranges or import an `.ints` template after referencing.
 3. Use **Fit / refresh** for the conventional monoexponential analysis. Inspect the residuals, fit inclusion and line shapes across gradient layers.
 4. Use **Analyze ILT** for a single ROI or select two or more rows and choose **Global ILT**. Check how the distributions respond to changes in regularization and compare their reconstructed decays with the measurements.
-5. Open **2D DOSY map** to inspect signals in ppm × D. Keep the original view as a reference when comparing model-dependent modes.
+5. Open **2D DOSY map** to inspect signals in $\mathrm{ppm}\times D$. Keep the original view as a reference when comparing model-dependent modes.
 
 | 2D map mode | How D is assigned |
 | --- | --- |

@@ -47,8 +47,8 @@ Press **I**, **Z**, **P** or **F** directly in the main window. While editing te
 
 | Option | Meaning |
 | --- | --- |
-| **LB [Hz]** | Exponential apodization with `exp(−π · LB · t)`. |
-| **Gaussian FWHM [Hz]** | Gaussian apodization with `exp(−(π · GB · t)² / (4 ln 2))`. Both windows can be combined. Set either parameter to zero to disable its window. |
+| **LB [Hz]** | Exponential apodization with $\exp(-\pi\cdot\mathrm{LB}\cdot t)$. |
+| **Gaussian FWHM [Hz]** | Gaussian apodization with $\exp(-(\pi\cdot\mathrm{GB}\cdot t)^2/(4\ln 2))$. Both windows can be combined. Set either parameter to zero to disable its window. |
 | **Zero filling** | Pad to 1×, 2×, 4× or 8× the acquired point count. This increases the density of the FFT grid. The acquisition determines physical resolution. |
 | **PH0, PH1 and Pivot** | Shared phase settings. |
 | **Target reference value / Reference from spectrum** | Assign a known ppm value to a point on the spectrum. See [Chemical shift reference](#chemical-shift-reference). |
@@ -77,7 +77,7 @@ The correction shifts all layers, the phase pivot, integral bounds and baseline 
 4. Use **Zoom range [Z]** and **Pan spectrum [P]** to inspect the signal. Press the same key again to resume phasing. **Full range [F]** or a left double-click resets the view. Scroll to adjust the height. Use **Show Im** and **Show previous phase** to inspect the effect.
 5. Use **Preview** to check another gradient layer. **Apply shared phase to all layers** commits one correction to the full series. **Cancel** discards changes made in the dialog.
 
-PH1 is specified in degrees across the entire acquired spectral width, in order of increasing ppm. The manual correction at a given point is `PH0 + PH1 · (ppm − pivot) / SW_ppm`. The displayed ppm axis usually decreases from left to right. Values from another program may use a different pivot, sign or axis convention.
+PH1 is specified in degrees across the entire acquired spectral width, in order of increasing ppm. The manual correction at a given point is $\mathrm{PH0}+\mathrm{PH1}\cdot(\mathrm{ppm}-\mathrm{pivot})/\mathrm{SW}_{\mathrm{ppm}}$. The displayed ppm axis usually decreases from left to right. Values from another program may use a different pivot, sign or axis convention.
 
 When the JDF contains suitable decimation metadata, DOSY Lab estimates the filter delay and applies a separate shared ramp on opening a raw file. **Info** shows the applied delay. The phasing dialog can also add a manual ramp of 360° per sample of delay. Check the independent filter correction before adding that ramp.
 
@@ -103,14 +103,14 @@ The ID is shown above the peak and the integral below. Edit **Integral** to set 
 
 Use **Export integrals** next to **Fit / refresh** to save the IDs, groups and ppm bounds to a `.ints` file in `integrals`. For a similar measurement, set its chemical shift reference first, then click **Import integrals**. Confirm replacement if the current measurement already has integrals. DOSY Lab keeps the saved IDs and bounds, resets integral scaling and fit point settings, and calculates new integrals and fits from the current measurement.
 
-| Synthetic group | ppm ranges | Expected D [m²/s] |
+| Synthetic group | ppm ranges | Expected $`D\,[\mathrm{m^2/s}]`$ |
 | --- | --- | --- |
-| A | 3.60–3.68, 3.74–3.82, 5.26–5.33 | About 3.8 × 10⁻¹⁰ |
-| B | 4.66–4.74 | About 8.0 × 10⁻¹⁰ |
+| A | 3.60–3.68, 3.74–3.82, 5.26–5.33 | About $3.8\times 10^{-10}$ |
+| B | 4.66–4.74 | About $8.0\times 10^{-10}$ |
 
 ## 6. b values
 
-Open **b values** to review the gradient **g** in T/m and diffusion weighting **b** in s/m² for every layer. Repeated b values remain separate observations.
+Open **b values** to review the gradient $g$ in $\mathrm{T/m}$ and diffusion weighting $b$ in $\mathrm{s/m^2}$ for every layer. Repeated b values remain separate observations.
 
 1. Check whether b came from the JDF axis or a verified proton BPP-STE-LED or BPP-DSTE-LED model. DOSY Lab checks the embedded encoding block, timing and recorded `st_coef` when available. Supported waveform names for these models are `SQUARE`, `SINE`, `SQUARE_SINE`, `TRAPEZOID` and `S_RECTANGLE`.
 2. For other sequences, use a list calculated independently for the actual experiment. **Import CSV** accepts a single column or a named `b`, `b_s_m2` or `b_s_per_m2` column.
@@ -127,11 +127,11 @@ The values above illustrate the file format. b values from nominal gradient ampl
 
 ## 7. Fitting and quality control
 
-Each ROI is fitted to **I(b) = I₀ exp(−bD)** using its signed integrals. A fit requires at least three distinct active b values. D and its standard error SE(D) are reported in m²/s. The main table scales both by 10⁻¹⁰ m²/s. Inspect **QC**, R² and the residuals before interpreting a fit.
+Each ROI is fitted to $I(b)=I_0\exp(-bD)$ using its signed integrals. A fit requires at least three distinct active b values. D and its standard error $\operatorname{SE}(D)$ are reported in $\mathrm{m^2/s}$. The main table scales both by $`10^{-10}\ \mathrm{m^2/s}`$. Inspect **QC**, $R^2$ and the residuals before interpreting a fit.
 
 - **Decays** shows measured points and fitted curves. **Show I / first integral** normalizes the display. Fitting uses the original integrals.
 - **Residuals** shows measurement minus prediction for the selected ROI in a separate full-height tab.
-- **Integrals / fit points** shows the layer values and their fit inclusion. Excluded points stay in the project and export. Use weighted fitting when valid σ(I) values are available for the active layers.
+- **Integrals / fit points** shows the layer values and their fit inclusion. Excluded points stay in the project and export. Use weighted fitting when valid $\sigma(I)$ values are available for the active layers.
 - **Spectra in active ROI** compares line shapes across layers. Overlapping signals can produce an apparent D even when R² is high.
 - Drag a rectangle on a plot to zoom and double-click to reset. The fullscreen button is in each plot tab.
 
@@ -147,11 +147,11 @@ When b is unavailable, the decay tab still displays integrals against the gradie
 4. Use **Keep a copy for comparison** or **Load statistics snapshot** to compare separate experiments. Each keeps its own summary.
 5. **Export CSV and snapshot** saves the numerical tables and JSON snapshot. **PNG** and **SVG** save the selected plot with a white background, black labels and navy data. Grid controls are available for the D plot and the decay and residual panel.
 
-The summary includes the arithmetic mean, median, sample SD, CV, descriptive SEM, minimum, maximum and N where defined. The plot shows ±SE(D) bars, the mean and a ±1 SD band. You can add ±2 SD lines. Sample SD, CV and descriptive SEM require at least two signals.
+The summary includes the arithmetic mean, median, sample SD, CV, descriptive SEM, minimum, maximum and N where defined. The plot shows $\pm\operatorname{SE}(D)$ bars, the mean and a $`\pm1\,\mathrm{SD}`$ band. You can add $`\pm2\,\mathrm{SD}`$ lines. Sample SD, CV and descriptive SEM require at least two signals.
 
 - **SE(D)** describes uncertainty in one fit under its model.
-- **SD** describes spread across selected signals. **SEM** is descriptive SD/√N. ROIs from one experiment can share errors, including gradient calibration errors.
-- **Weighted mean by SE(D)** uses 1/SE² weights. Enable it only when all included SE values are finite, positive and comparable.
+- **SD** describes spread across selected signals. **SEM** is descriptive $\mathrm{SD}/\sqrt{N}$. ROIs from one experiment can share errors, including gradient calibration errors.
+- **Weighted mean by SE(D)** uses $1/\mathrm{SE}^2$ weights. Enable it only when all included SE values are finite, positive and comparable.
 
 ## 9. Projects and exports
 
@@ -208,14 +208,14 @@ The description above applies to **Original DOSY map**. Select another **Map mod
 
 1. Complete the conventional fit and check its signed intensities, baseline and excluded layers. Each ROI needs six distinct included b values.
 2. Click **Analyze ILT** in the ROI's **ILT** column. The analysis uses a snapshot of the current fit data. Reopen the window after changes to the ROI or processing.
-3. Start with the default grid and penalty. Use the λ slider or field, **D min / D max**, **Grid points**, **D grid** and **Penalty** to test sensitivity. **Logarithmic D axis** only changes the view. Use **Restore defaults** to return to the starting settings.
+3. Start with the default grid and penalty. Use the $\lambda$ slider or field, **D min / D max**, **Grid points**, **D grid** and **Penalty** to test sensitivity. **Logarithmic D axis** only changes the view. Use **Restore defaults** to return to the starting settings.
 4. Compare experimental attenuation, monoexponential and ILT reconstructions, then inspect residuals and solver diagnostics. A smaller residual RMS can reflect model flexibility. Check grid-edge maxima and whether candidate positions persist across reasonable settings.
 5. Open **Info** for controls and definitions. Save an individual plot or a stacked PNG. Close with the title-bar **×** or **Esc**. See the [individual ILT guide](ILT.md) for density units and defaults.
 
 ## 13. Global ILT
 
 1. Ctrl-click or Shift-click two or more eligible rows in the fit table, then click **Global ILT** next to **Fit / refresh**.
-2. Start with the default D grid and regularization. Adjust λ to change the ridge penalty and μ to change the preference for shared D positions. Enter μ = 0 to remove the coupling. Choose **Compare independent ILT** to overlay the separate inversion for the active ROI.
+2. Start with the default D grid and regularization. Adjust $\lambda$ to change the ridge penalty and $\mu$ to change the preference for shared D positions. Enter $\mu=0$ to remove the coupling. Choose **Compare independent ILT** to overlay the separate inversion for the active ROI.
 3. Inspect the joint and individual distributions. Use the ROI selector for the attenuation and residuals. Toggle the common ROI amplitude scale or use the visibility menu to compare selected profiles.
 4. Review **Component contributions** and **Results** together. Component shares sum fitted cell masses across intervals. Treat them as fitted signal fractions under the chosen model.
 5. Use **Info** for the guide, and export individual plots or the combined PNG. For the 2D map, finish a converged solve and then select **Global ILT DOSY · ROI profiles**. Reopen Global ILT after changing the source data or selection. See the [Global ILT guide](GLOBAL-ILT.md) for weighting and convergence details.
@@ -223,6 +223,6 @@ The description above applies to **Original DOSY map**. Select another **Map mod
 ## 14. Adaptive Local ILT
 
 1. Fit the regions conventionally and open **2D DOSY map**. Select **Adaptive Local ILT** from **Map mode**.
-2. Inspect the default result before tuning **D tolerance** (5%), **Amplitude balance** (10×) and **Local λ** (1e-6). The first sets candidate group membership, the second controls when weaker signals may be downweighted, and the third controls the local ridge penalty.
+2. Inspect the default result before tuning **D tolerance** (5%), **Amplitude balance** (10×) and **Local λ** ($10^{-6}$). The first sets candidate group membership, the second controls when weaker signals may be downweighted, and the third controls the local ridge penalty.
 3. Open **Group diagnostics** to compare ROI counts, the original D range, amplitude ratios, recovered D, residuals and unresolved profiles. Use the group checkbox for visibility and the member checkbox to exclude an ROI from regrouping. Edits schedule a new solve.
 4. Compare with **Original DOSY map** and export the view if needed. Unresolved regions retain their original representation. See [adaptive grouping and map reconstruction](DOSY-ALIGNMENT.md#adaptive-local-ilt) and the [scientific methods](SCIENTIFIC-METHODS.md) before assigning physical meaning to separate bands.
