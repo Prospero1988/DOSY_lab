@@ -5,6 +5,8 @@ from html import escape
 
 from PySide6 import QtWidgets
 
+from version import VERSION
+
 
 def parameter_text(parameter):
     value = parameter.get('value')
@@ -46,6 +48,14 @@ class ExperimentInfo(QtWidgets.QDialog):
         tabs.addTab(self.experiment,tr('Eksperyment'))
         tabs.addTab(self.processing,'Processing')
         tabs.addTab(self.parameters,tr('Parametry JDF'))
+        about = QtWidgets.QWidget()
+        about_layout = QtWidgets.QVBoxLayout(about)
+        about_layout.addWidget(QtWidgets.QLabel(f'DOSY Lab {VERSION}'))
+        summary = QtWidgets.QLabel(tr('Analiza klasycznych eksperymentów dyfuzyjnych JEOL.'))
+        summary.setWordWrap(True)
+        about_layout.addWidget(summary)
+        about_layout.addStretch()
+        tabs.addTab(about,tr('O programie'))
         close = QtWidgets.QPushButton(tr('Zamknij'))
         close.clicked.connect(self.close)
         close.setToolTip(tr('Wróć do analizy widma.'))

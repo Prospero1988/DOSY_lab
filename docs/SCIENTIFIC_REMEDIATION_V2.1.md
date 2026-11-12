@@ -1,6 +1,6 @@
 # DOSY Lab 2.1 — plan naprawczy
 
-Punktem odniesienia jest niezależny audyt `SCIENTIFIC_AUDIT_V2.0.md` z lokalnej gałęzi `audit/scientific-validation-v2.0` (commit `42895f1`) oraz jego `audit/results/benchmark.json`. Poniższy plan zatwierdza kolejność i kryteria przed zmianami w kodzie. Rozwój odbywa się poza wydaniem `v2.0.0`.
+Punktem odniesienia jest niezależny audyt [SCIENTIFIC_AUDIT_V2.0.md](../audit/SCIENTIFIC_AUDIT_V2.0.md) z lokalnej gałęzi `audit/scientific-validation-v2.0` (commit `42895f1`) oraz jego `audit/results/benchmark.json`. Poniższy plan zatwierdza kolejność i kryteria przed zmianami w kodzie. Rozwój odbywa się poza wydaniem `v2.0.0`.
 
 | Priorytet | Kod w wersji audytowanej | Mechanizm i wymagana zmiana | Regresja z audytu | Wpływ na wcześniejsze D |
 | --- | --- | --- | --- | --- |
@@ -22,4 +22,4 @@ Test diagnostyki profili stosuje kontrast trendu względem b na poziomie warstw.
 - **P2.** Faza rosnąca o 55° między warstwami jest sygnalizowana. Wspólna faza 25° i czysty sygnał nie uruchamiają tej flagi. Dla skażonej bazy raportowane są zmienność kształtu i fazy oraz względny RMS odejmowanej korekty. Nawet prawidłowa korekcja bazy może dać duży udział, jeśli usuwa narastający offset. To miara wpływu korekcji.
 - **I1.** Dla tych samych całek zmiana typu siatki pokazuje w próbie przesunięcie szybkiego maksimum z około 16,46 do 22,71 w jednostkach 10⁻¹⁰ m²/s. Żadna z prób nie zastępuje aktywnego rozwiązania. Panel dotyczy indywidualnego ILT. Global ILT i AILT wymagają osobnej walidacji stabilności.
 
-Regresje odtwarzalne są w [test_scientific_remediation.py](../bin/test_scientific_remediation.py). Test interfejsu sprawdza też, że próba wrażliwości nie uruchamia dopasowania monoeksponencjalnego ani nie zastępuje jego wyniku. Diagnostyka kształtu i fazy nadal wymaga walidacji na niezależnych powtórzeniach. Nie sprawdzano kalibracji sondy ani zgodności z Deltą.
+Regresje odtwarzalne są w [test_scientific_remediation.py](../tests/test_scientific_remediation.py). Test interfejsu sprawdza też, że próba wrażliwości nie uruchamia dopasowania monoeksponencjalnego ani nie zastępuje jego wyniku. Diagnostyka kształtu i fazy nadal wymaga walidacji na niezależnych powtórzeniach. Nie sprawdzano kalibracji sondy ani zgodności z Deltą.

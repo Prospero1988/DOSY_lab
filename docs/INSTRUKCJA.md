@@ -1,6 +1,6 @@
-# DOSY Lab user guide
+# DOSY Lab 2.1.0 user guide
 
-[Back to the README](README.md)
+[Back to the README](../README.md)
 
 1. [Open data](#1-open-data)
 2. [Navigation and processing](#2-navigation-and-processing)
@@ -19,7 +19,9 @@
 
 ## 1. Open data
 
-1. Start the application as described in the [README](README.md#installation-on-windows).
+**Info → About** displays the installed version. The interface is available in Polish and English through **PL / ENG**.
+
+1. Start the application as described in the [README](../README.md#installation-on-windows).
 2. Use **PL / ENG** next to **Info** to switch the interface. The application remembers your language preference.
 3. Click **Open DOSY** and choose a raw JEOL `.jdf` file. The dialog starts in `data`. DOSY Lab processes the complex FIDs and displays the layer with the lowest verified **b**, or the lowest known encoding gradient if b is unavailable.
 4. Open **Info** to inspect acquisition settings, the pulse program, processing, and the source of **b**.
@@ -113,7 +115,7 @@ Use **Export integrals** next to **Fit / refresh** to save the IDs, groups and p
 Open **b values** to review the gradient $g$ in $\mathrm{T/m}$ and diffusion weighting $b$ in $\mathrm{s/m^2}$ for every layer. Repeated b values remain separate observations.
 
 1. Check whether b came from the JDF axis or a verified proton BPP-STE-LED or BPP-DSTE-LED model. DOSY Lab checks the embedded encoding block, timing and recorded `st_coef` when available. Supported waveform names for these models are `SQUARE`, `SINE`, `SQUARE_SINE`, `TRAPEZOID` and `S_RECTANGLE`.
-2. For other sequences, use a list calculated independently for the actual experiment. **Import CSV** accepts a single column or a named `b`, `b_s_m2` or `b_s_per_m2` column.
+2. If the sources conflict, or for other sequences, use a list calculated independently for the actual experiment. **Import CSV** accepts a single column or a named `b`, `b_s_m2` or `b_s_per_m2` column.
 3. Provide exactly one finite, non-negative value per layer in acquisition order. Keep repeated values. Click **Apply manual list** and record its source.
 
 ~~~csv
@@ -187,7 +189,7 @@ An export bundle can contain complete measurement data and the embedded pulse pr
 | Good R² but inconsistent D across signals | Compare residuals, ROI spectra, b calibration, integration bounds and compound assignments. |
 | Statistics show N = 0 | Check the selected **Compound**, the **Include** column and QC. |
 | A project cannot find its JDF | Place the original JDF next to the project or in `data`. DOSY Lab verifies the source checksum. |
-| Launcher closes or dependencies are missing | Try the [manual installation](README.md#installation-on-windows) and run `bin/app.py` with the same environment. |
+| Launcher closes or dependencies are missing | Try the [manual installation](../README.md#installation-on-windows) and run `bin/app.py` with the same environment. |
 
 ## 11. 2D DOSY map
 

@@ -1,4 +1,4 @@
-# DOSY Lab 2.0.0 scientific methods
+# DOSY Lab 2.1.0 scientific methods
 
 ## Measurements and diffusion weighting
 

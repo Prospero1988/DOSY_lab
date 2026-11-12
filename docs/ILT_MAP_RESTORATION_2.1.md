@@ -45,4 +45,4 @@ Porównanie można odtworzyć poleceniem poniżej. Skrypt uruchamia archiwalne �
 & '.venv/Scripts/python.exe' benchmarks/compare_ilt_maps.py 'projects/Strychnina_CDCl3_bpp_ste_led_diffusion-1-1.proj' --summary
 ```
 
-Zmiany w projekcji są w `bin/dosy_alignment.py` i `bin/adaptive_ilt.py`. Przełącznik, diagnostyka i eksport są w `bin/dosy_map.py` i `bin/dosy_alignment_panel.py`. Testy regresji są w `bin/test_qc_maps.py` i `bin/test_gui.py`.
+Zmiany w projekcji są w `bin/dosy_alignment.py` i `bin/adaptive_ilt.py`. Przełącznik, diagnostyka i eksport są w `bin/dosy_map.py` i `bin/dosy_alignment_panel.py`. Testy regresji są w `tests/test_qc_maps.py` i `tests/test_gui.py`.

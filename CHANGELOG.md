@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.0 · 2026-11-12
+
+- Withhold conflicting automatic JEOL b values and support explicitly sourced manual b lists.
+- Stabilize bounded monoexponential fits for shifted and late b ranges, with conditional uncertainty diagnostics.
+- Separate fit and measurement QC. Add noise-aware complex-profile diagnostics and baseline sensitivity checks.
+- Add Exploratory, QC-filtered and Mono-fit reference policies for ILT maps, with unresolved-ROI overlays and policy-labelled PNG exports.
+- Add opt-in λ scans, noise-based discrepancy checks, conditional fixed-μ scans, peak stability diagnostics and per-group AILT recommendations.
+- Organize the public user guide, scientific documentation, tests, reproducible benchmarks and the historical 2.0.0 audit.
+
 ## 2.0.0 · 2026-11-10
 
 - Added exploratory Individual ILT with adjustable D grid and penalties, decay and residual comparison, solver diagnostics, and PNG export.

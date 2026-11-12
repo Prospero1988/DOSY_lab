@@ -13,6 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def measure(project, source):
     sys.path.insert(0, str(source))
+    import storage
+
+    # Archived implementations contain only bin. Resolve relocated project inputs
+    # against the same real workspace for every version.
+    storage.DATA, storage.WORK, storage.EXAMPLES = (ROOT/name for name in ('data','work','examples'))
     from dataclasses import asdict
     import numpy as np
     from scipy.integrate import trapezoid

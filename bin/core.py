@@ -7,7 +7,7 @@ from scipy.optimize import curve_fit
 from scipy.integrate import trapezoid
 from scipy.stats import t as student_t
 from scipy.signal import find_peaks
-from jeol import RawData,read_jdf,validate_b,reference_layer
+from jeol import RawData,validate_b,reference_layer
 from storage import require_extension
 from roi_quality import estimate_spectral_noise, qualify_roi
 

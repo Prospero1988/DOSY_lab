@@ -9,7 +9,7 @@ from pathlib import Path
 import uuid
 
 import numpy as np
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 import pyqtgraph as pg
 from fullscreen_plot import enable_fullscreen
 from plot_export import save_light_plot

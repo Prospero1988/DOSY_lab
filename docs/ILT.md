@@ -1,6 +1,6 @@
 # Experimental inverse Laplace analysis
 
-Launch **DOSY Lab.cmd** from the DOSY Lab 2.0.0 directory. Open a JDF or project and complete the usual processing, ROI integration and monoexponential fit. Click **Analyze ILT** in the **ILT** column for the signal you want to explore. The window displays a snapshot of that accepted fit. Reopen it after changing the processing, ROI, fit mask or weights in the main window.
+Launch **DOSY Lab.cmd** from the DOSY Lab 2.1.0 directory. Open a JDF or project and complete the usual processing, ROI integration and monoexponential fit. Click **Analyze ILT** in the **ILT** column for the signal you want to explore. The window displays a snapshot of that accepted fit. Reopen it after changing the processing, ROI, fit mask or weights in the main window.
 
 ## Controls and plots
 
@@ -32,8 +32,12 @@ The grid consists of $N$ equal cells in a dimensionless coordinate $u\in[0,1]$, 
 
 The effective kernel rank counts singular values above $10^{-6}$ of the largest singular value for the weighted data matrix. This threshold is diagnostic and does not estimate the number of diffusion components. Candidate local maxima require at least 5% prominence relative to the highest value, and the dominant bin is reported even at an edge. The software flags a dominant edge peak and strong suppression at the high-D end when present.
 
+## Regularization guidance
+
+**Auto λ / stability** previews a parameter scan without changing the active solution. Select **Apply recommendation** to use a suggested value. [Selection methods and validation](ILT_REGULARIZATION_2.1.md)
+
 ## Interpretation and validation
 
 The inverse problem is ill-conditioned. A smaller RMS is expected to be possible with a flexible model and is insufficient evidence for multiple populations. Vary $\lambda$, the grid range and the grid spacing to check which features persist. Inspect signal quality and the b coverage before interpreting a maximum. Close components can be indistinguishable at realistic noise levels. A maximum can reflect regularization, a grid boundary, overlapping NMR signals or processing errors. The width of a regularized peak is not an uncertainty estimate. The displayed SE belongs to the cached monoexponential fit. Automatic $\lambda$ selection and ILT confidence intervals are outside this experimental implementation. See [inversion and regularization for diffusion NMR](https://pubmed.ncbi.nlm.nih.gov/21683632/) and [the effect of S/N on DOSY resolution](https://mr.copernicus.org/articles/2/733/2021/).
 
-Run `.\.venv\Scripts\python.exe -m unittest discover -s bin -v` from the application directory after the launcher installs its environment. The numerical tests cover a monoexponential, a well-separated biexponential at nonzero minimum b, noisy data under different penalties, unresolved close components, low intensities, excluded and signed points, and failure paths. The offscreen Qt tests check the table action, the cached data, obsolete results, independent grid and axis controls, fullscreen and PNG exports. These synthetic fixtures establish behavior for their tested b sampling and noise, with no general resolution claim.
+Run `.\.venv\Scripts\python.exe tests\run.py` from the application directory after the launcher installs its environment. The numerical tests cover a monoexponential, a well-separated biexponential at nonzero minimum b, noisy data under different penalties, unresolved close components, low intensities, excluded and signed points, and failure paths. The offscreen Qt tests check the table action, the cached data, obsolete results, independent grid and axis controls, fullscreen and PNG exports. These synthetic fixtures establish behavior for their tested b sampling and noise, with no general resolution claim.

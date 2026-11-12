@@ -6,7 +6,6 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtWidgets
 
 from i18n import tr
-from ilt import D_UNIT
 from ilt_help import ILT_WINDOW_FLAGS
 from ilt_regularization import SweepOptions, scan
 from ilt_tools import ILTPlotTools, SolveJob

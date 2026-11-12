@@ -2,7 +2,7 @@
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-import argparse,html,json,sys,uuid
+import argparse,html,sys,uuid
 import numpy as np
 from PySide6 import QtCore,QtGui,QtWidgets
 import pyqtgraph as pg

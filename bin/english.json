@@ -752,5 +752,7 @@
   "Anulowano skan λ.": "λ scan cancelled.",
   "Zakres skanu λ musi mieścić się w 10⁻¹²–100 i zawierać 7–41 prób.": "λ scan range must be within 10⁻¹²–100 with 7–41 trials.",
   "Brak skończonych całek lub aktywnych punktów do skanu λ.": "No finite integrals or active observations for the λ scan.",
-  "Brak dodatniej skali całek do skanu λ.": "No positive integral scale for the λ scan."
+  "Brak dodatniej skali całek do skanu λ.": "No positive integral scale for the λ scan.",
+  "O programie": "About",
+  "Analiza klasycznych eksperymentów dyfuzyjnych JEOL.": "Analysis of classical JEOL diffusion experiments."
 }
