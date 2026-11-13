@@ -31,7 +31,7 @@ class PhaseWindow(QtWidgets.QDialog):
         help_label=QtWidgets.QLabel(
             tr('<b>Lewy + góra/dół</b> — PH0 &nbsp;·&nbsp; <b>Prawy + góra/dół</b> — PH1 &nbsp;·&nbsp; '
             '<b>Shift + przeciąganie</b> — precyzyjne dostrajanie<br>'
-            '<b>Lewy klik</b> — pivot &nbsp;·&nbsp; <b>Środkowy + ruch</b> — przesuwanie &nbsp;·&nbsp; '
+            '<b>Ustaw pivot</b> — włącz, aby wskazać pivot &nbsp;·&nbsp; <b>Środkowy + ruch</b> — przesuwanie &nbsp;·&nbsp; '
             '<b>Rolka</b> — wysokość widma'))
         help_label.setWordWrap(True);layout.addWidget(help_label)
         row=QtWidgets.QHBoxLayout();layout.addLayout(row)
@@ -65,8 +65,14 @@ class PhaseWindow(QtWidgets.QDialog):
         self.pan_button.setCheckable(True)
         self.pan_button.setToolTip(tr('Przeciągnij widmo lewym przyciskiem w pionie lub poziomie. Wyłącz, aby wrócić do fazowania.'))
         row.addWidget(self.pan_button)
-        self.zoom_button.toggled.connect(lambda checked:self.set_navigation(self.pan_button,checked))
-        self.pan_button.toggled.connect(lambda checked:self.set_navigation(self.zoom_button,checked))
+        self.pivot_button = QtWidgets.QPushButton(tr('Ustaw pivot'))
+        self.pivot_button.setCheckable(True)
+        self.pivot_button.setToolTip(tr('Włącz, aby kliknąć widmo, przeciągnąć prowadnicę lub wpisać pivot w ppm.'))
+        row.addWidget(self.pivot_button)
+        self.controls['pivot_ppm'].setEnabled(False)
+        self.navigation_buttons = {'zoom': self.zoom_button, 'pan': self.pan_button, 'pivot': self.pivot_button}
+        for mode, button in self.navigation_buttons.items():
+            button.toggled.connect(lambda checked, mode=mode: self.set_navigation(mode, checked))
         row.addStretch()
         for text,callback in [(tr('Cały zakres [F]'),self.reset_view),(tr('Pełny ekran'),self.toggle_fullscreen),('Reset PH0/PH1',self.reset_phase)]:
             button=QtWidgets.QPushButton(text);button.clicked.connect(callback);row.addWidget(button)
@@ -133,19 +139,22 @@ class PhaseWindow(QtWidgets.QDialog):
         self.plot.plot(x,self.preview[i].real,pen=self.appearance.pen())
         if self.imaginary.isChecked():self.plot.plot(x,self.preview[i].imag,pen=self.appearance.pen('#fb923c',QtCore.Qt.PenStyle.DotLine))
         if self.before.isChecked():self.plot.plot(x,self.dataset.phased[i].real,pen=self.appearance.pen('#64748b',QtCore.Qt.PenStyle.DashLine))
-        self.pivot=pg.InfiniteLine(self.controls['pivot_ppm'].value(),movable=not self.pan_button.isChecked(),pen=pg.mkPen('#c084fc',width=2))
+        self.pivot=pg.InfiniteLine(self.controls['pivot_ppm'].value(),movable=self.pivot_button.isChecked(),pen=pg.mkPen('#c084fc',width=2))
         self.pivot.sigPositionChangeFinished.connect(lambda line:self.set_pivot(line.value()))
         self.plot.addItem(self.pivot)
 
-    def set_navigation(self, other_button, checked):
+    def set_navigation(self, mode, checked):
         if checked:
-            with QtCore.QSignalBlocker(other_button):
-                other_button.setChecked(False)
+            for name, button in self.navigation_buttons.items():
+                if name != mode:
+                    with QtCore.QSignalBlocker(button):
+                        button.setChecked(False)
         self.view.hide_selection_preview()
-        panning = self.pan_button.isChecked()
-        self.view.mode = 'pan' if panning else 'zoom'
-        self.view.phasing = not (panning or self.zoom_button.isChecked())
-        self.pivot.setMovable(not panning)
+        self.view.mode = mode if checked else 'zoom'
+        self.view.phasing = not checked
+        editing_pivot = self.pivot_button.isChecked()
+        self.controls['pivot_ppm'].setEnabled(editing_pivot)
+        self.pivot.setMovable(editing_pivot)
 
     def reset_view(self):
         self.view.hide_selection_preview()
@@ -158,7 +167,9 @@ class PhaseWindow(QtWidgets.QDialog):
             return True
         return super().eventFilter(watched, event)
 
-    def set_pivot(self,value):self.controls['pivot_ppm'].setValue(value)
+    def set_pivot(self,value):
+        if self.pivot_button.isChecked():
+            self.controls['pivot_ppm'].setValue(value)
 
     def pivot_changed(self,value):
         # Moving the pivot is a change of coordinates, not an extra phase edit.

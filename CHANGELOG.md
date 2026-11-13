@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1 · 2026-11-13
+
+- Add main-window shortcuts **M** to edit, **D** to split and **R** to delete the selected integral.
+- Add a dedicated **Set pivot** mode to the phase correction dialog.
+- Confirm exit and offer to save the current project before closing.
+
 ## 2.1.0 · 2026-11-12
 
 - Withhold conflicting automatic JEOL b values and support explicitly sourced manual b lists.

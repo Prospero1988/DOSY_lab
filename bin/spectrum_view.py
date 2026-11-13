@@ -174,10 +174,3 @@ class PhaseBox(SpectrumBox):
             self.phase_dragged.emit(which, dy, event.isStart(), event.isFinish(), fine)
         else:
             super().mouseDragEvent(event, axis)
-
-    def mouseClickEvent(self, event):
-        if self.mode != 'pan' and event.button() == QtCore.Qt.MouseButton.LeftButton:
-            event.accept()
-            self.clicked.emit(self.mapToView(event.pos()).x())
-        else:
-            super().mouseClickEvent(event)

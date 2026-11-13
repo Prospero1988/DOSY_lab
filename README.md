@@ -1,4 +1,4 @@
-# DOSY Lab 2.1.0
+# DOSY Lab 2.1.1
 
 DOSY Lab is a Windows desktop application for classical 1D diffusion NMR acquired on JEOL instruments. It opens raw JDF gradient series, processes the complex FIDs with a shared phase, and estimates the diffusion coefficient **D** from the decay of selected integrals. Version 2.1.0 adds stricter diffusion-metadata checks, more stable monoexponential fitting, scientific quality diagnostics, separate ILT map policies and interactive regularization guidance.
 
@@ -21,7 +21,7 @@ DOSY Lab is a Windows desktop application for classical 1D diffusion NMR acquire
 
 ## Installation on Windows
 
-Use Windows with Python 3.11 or newer. The launcher needs internet access on first installation to download its Python dependencies. Extract the DOSY Lab 2.1.0 source archive, or clone the repository. When the release tag is available from your Git source, check it out to run that exact version.
+Use Windows with Python 3.11 or newer. The launcher needs internet access on first installation to download its Python dependencies. Extract the DOSY Lab 2.1.1 source archive, or clone the repository. When the release tag is available from your Git source, check it out to run that exact version.
 
 ~~~powershell
 git clone https://github.com/Prospero1988/DOSY_lab.git
@@ -98,7 +98,7 @@ The [user guide](docs/INSTRUKCJA.md) walks through opening data, processing, pha
 - [Automatic regularization and stability](docs/ILT_REGULARIZATION_2.1.md)
 - [Scientific QC and validation](docs/QC_AND_MAPS_2.1.md)
 - [Scientific audit archive and reproduction](audit/README.md)
-- [2.1.0 release notes](docs/RELEASE-2.1.0.md) and [changelog](CHANGELOG.md)
+- [2.1.1 release notes](docs/RELEASE-2.1.1.md) and [changelog](CHANGELOG.md)
 
 ## Input and scope
 

@@ -1,4 +1,4 @@
-# DOSY Lab 2.1.0 user guide
+# DOSY Lab 2.1.1 user guide
 
 [Back to the README](../README.md)
 
@@ -35,6 +35,9 @@ Changing the visible layer preserves the ppm bounds of all ROIs. The decay fit u
 | --- | --- |
 | Scroll over the spectrum | Adjust the vertical intensity scale. |
 | **Mouse integration [I]**, then drag with the left button | Mark the bounds of a new integral. |
+| **Edit integral [M]**, then drag a region or edge | Move the integral or change its bounds. |
+| **Split integral [D]**, then drag an edge inward | Split the integral at the release position. |
+| **Delete integral [R]** | Remove the active integral. |
 | **Zoom [Z]**, then drag with the left button | Zoom into a ppm interval with live selection feedback. |
 | Right-drag over the main spectrum | Zoom into a ppm interval while an integration tool is active. |
 | **Pan [P]**, then drag | Move the spectrum horizontally or vertically. |
@@ -43,7 +46,7 @@ Changing the visible layer preserves the ppm bounds of all ROIs. The decay fit u
 | **Save PNG** | Save the current spectrum view with a white background, black labels and a navy trace. |
 | **View** | Adjust line color, line width and grid visibility. |
 
-Press **I**, **Z**, **P** or **F** directly in the main window. While editing text, these keys type letters as usual.
+Press **I**, **M**, **D**, **R**, **Z**, **P** or **F** directly in the main window. While editing text, these keys type letters as usual.
 
 **Processing** shows the parameters shared by the gradient series. The order is FID apodization, zero filling, FFT, common phase correction, optional baseline subtraction and signed real-part integration.
 
@@ -74,7 +77,7 @@ The correction shifts all layers, the phase pivot, integral bounds and baseline 
 ![Interactive phasing with a shared pivot and before-correction preview](images/korekcja-fazy.png)
 
 1. Open **Phase correction**. The reference layer is shown first.
-2. Click near a peak to set the **pivot**, or enter it in ppm. The correction at the pivot is PH0.
+2. Turn on **Set pivot** beside **Zoom range** and **Pan spectrum**. Click a peak, drag the pivot guide, or enter the pivot in ppm. Turn **Set pivot** off to resume PH0 and PH1 adjustments. The phase correction at the pivot is PH0.
 3. Drag up or down with the **left mouse button** to change **PH0** and with the **right mouse button** to change **PH1**. Hold **Shift** for fine adjustment. You can set the sensitivity of each gesture.
 4. Use **Zoom range [Z]** and **Pan spectrum [P]** to inspect the signal. Press the same key again to resume phasing. **Full range [F]** or a left double-click resets the view. Scroll to adjust the height. Use **Show Im** and **Show previous phase** to inspect the effect.
 5. Use **Preview** to check another gradient layer. **Apply shared phase to all layers** commits one correction to the full series. **Cancel** discards changes made in the dialog.
@@ -156,6 +159,8 @@ The summary includes the arithmetic mean, median, sample SD, CV, descriptive SEM
 - **Weighted mean by SE(D)** uses $1/\mathrm{SE}^2$ weights. Enable it only when all included SE values are finite, positive and comparable.
 
 ## 9. Projects and exports
+
+Closing the main window opens a confirmation dialog. Choose **Save project and exit** to write the current project before closing, **Exit without saving** to leave immediately after any running operation, or **Cancel** to keep working. Cancelling the save dialog or encountering a write error keeps the application open.
 
 **Save project** and **Load project** start in `projects`. The `.proj` file stores JSON with processing, phase, manual b, ROI bounds, groups, fit masks, integral scaling and the source JDF path and SHA-256. If the JDF moves, DOSY Lab searches for the same filename next to the project and under `data`, `work` and `examples`, then verifies the checksum.
 

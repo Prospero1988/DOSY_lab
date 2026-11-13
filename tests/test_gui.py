@@ -73,7 +73,9 @@ class InterfaceTests(unittest.TestCase):
         self.w = prepared_window(settings,self.source)
     def tearDown(self):
         if self.w.worker is not None:settle(self.w)
-        self.w.close();APP.processEvents()
+        with patch.object(self.w,'confirm_exit',return_value='discard'):
+            self.w.close()
+        APP.processEvents()
 
     def test_phase_navigation_shortcuts_and_double_click_reset(self):
         self.w.show_phase()
@@ -103,6 +105,92 @@ class InterfaceTests(unittest.TestCase):
         QtTest.QTest.mouseDClick(view, QtCore.Qt.MouseButton.LeftButton, pos=view.rect().center())
         np.testing.assert_allclose(dialog.view.viewRange()[0], expected)
         dialog.reject()
+
+    def test_phase_pivot_changes_only_in_pivot_mode(self):
+        self.w.show_phase()
+        APP.processEvents()
+        dialog = self.w.phase_window
+        viewport = dialog.plot.viewport()
+        control = dialog.controls['pivot_ppm']
+
+        def click_ppm(value):
+            point = dialog.plot.mapFromScene(dialog.view.mapViewToScene(QtCore.QPointF(value,0.)))
+            QtTest.QTest.mouseClick(viewport,QtCore.Qt.MouseButton.LeftButton,pos=point)
+
+        pivot = control.value()
+        self.assertFalse(control.isEnabled())
+        self.assertFalse(dialog.pivot.movable)
+        click_ppm(5.5)
+        self.assertEqual(control.value(),pivot)
+        dialog.zoom_button.click()
+        click_ppm(5.5)
+        self.assertEqual(control.value(),pivot)
+
+        dialog.pivot_button.click()
+        self.assertFalse(dialog.zoom_button.isChecked())
+        self.assertFalse(dialog.view.phasing)
+        self.assertTrue(control.isEnabled())
+        self.assertTrue(dialog.pivot.movable)
+        preview = dialog.preview.copy()
+        click_ppm(5.5)
+        self.assertAlmostEqual(control.value(),5.5,delta=.03)
+        np.testing.assert_allclose(dialog.preview,preview,rtol=1e-7,atol=1e-7)
+
+        dialog.pan_button.click()
+        self.assertFalse(dialog.pivot_button.isChecked())
+        self.assertFalse(dialog.pivot.movable)
+        pivot = control.value()
+        click_ppm(4.)
+        self.assertEqual(control.value(),pivot)
+        dialog.pivot_button.click()
+        self.assertFalse(dialog.pan_button.isChecked())
+        dialog.pivot_button.click()
+        self.assertTrue(dialog.view.phasing)
+        self.assertFalse(control.isEnabled())
+        dialog.reject()
+
+    def test_exit_confirmation_and_cancelled_or_failed_save_keep_window_open(self):
+        w = self.w
+
+        def close_with(button_text):
+            def click():
+                dialog = APP.activeModalWidget()
+                button = next(button for button in dialog.buttons() if button.text()==button_text)
+                button.click()
+            QtCore.QTimer.singleShot(0,click)
+            return w.close()
+
+        self.assertFalse(close_with('Anuluj'))
+        with patch('ui.choose_save_file',return_value=''):
+            self.assertFalse(close_with('Zapisz projekt i wyjdź'))
+        with (patch('ui.choose_save_file',return_value='failure.proj'),
+              patch('ui.save_project',side_effect=OSError('write failed')),
+              patch.object(QtWidgets.QMessageBox,'warning') as warning):
+            self.assertFalse(close_with('Zapisz projekt i wyjdź'))
+            warning.assert_called_once()
+        self.assertTrue(w.isVisible())
+        self.assertTrue(close_with('Wyjdź bez zapisywania'))
+        self.assertFalse(w.isVisible())
+
+    def test_exit_saves_latest_project_after_pending_processing(self):
+        w = self.w
+        w.add_roi([3.60,3.68])
+        settle(w)
+        lb = w.processing.controls['lb_Hz']
+        lb.setValue(1.5)
+        self.assertTrue(w.timer.isActive())
+        path = Path(self.settings_path).with_name('exit.proj')
+        with (patch.object(w,'confirm_exit',return_value='save') as confirm,
+              patch('ui.choose_save_file',return_value=str(path))):
+            self.assertFalse(w.close())
+            self.assertTrue(w.isVisible())
+            self.assertFalse(path.exists())
+            settle(w)
+            confirm.assert_called_once()
+        self.assertFalse(w.isVisible())
+        payload = json.loads(path.read_text(encoding='utf-8'))
+        self.assertEqual(payload['processing']['lb_Hz'],1.5)
+        self.assertEqual(len(payload['rois']),1)
 
     def test_shift_scales_only_new_mouse_movement_for_both_phases(self):
         self.w.show_phase()
@@ -1372,7 +1460,7 @@ class InterfaceTests(unittest.TestCase):
         w.activateWindow()
         w.spectrum.setFocus()
         APP.processEvents()
-        for key, mode in (('i', 'roi'), ('i', 'roi'), ('p', 'pan'), ('z', 'zoom')):
+        for key, mode in (('i', 'roi'), ('i', 'roi'), ('m', 'modify'), ('d', 'split'), ('p', 'pan'), ('z', 'zoom')):
             QtTest.QTest.keyClicks(w.spectrum, key)
             self.assertEqual(w.view.mode, mode)
             self.assertTrue(w.mode_buttons[mode].isChecked())
@@ -1397,19 +1485,26 @@ class InterfaceTests(unittest.TestCase):
         w.roi_table.editItem(w.roi_table.item(0, GROUP_COLUMN))
         editor = w.roi_table.findChild(QtWidgets.QComboBox).lineEdit()
         editor.setFocus()
-        QtTest.QTest.keyClicks(editor, 'izpf')
-        self.assertEqual(editor.text(), 'izpf')
+        QtTest.QTest.keyClicks(editor, 'izpfmdr')
+        self.assertEqual(editor.text(), 'izpfmdr')
         self.assertEqual(w.view.mode, 'pan')
         QtTest.QTest.keyClick(editor, QtCore.Qt.Key.Key_Return)
         settle(w)
-        self.assertEqual(w.entries[0]['group'], 'izpf')
+        self.assertEqual(w.entries[0]['group'], 'izpfmdr')
 
         w.language_button.click()
         self.assertEqual(w.roi_button.text(), 'Mouse integration [I]')
         self.assertEqual(w.mode_buttons['pan'].text(), 'Pan [P]')
         self.assertEqual(full_range.text(), 'Full range [F]')
+        self.assertEqual(w.mode_buttons['modify'].text(), 'Edit integral [M]')
+        self.assertEqual(w.mode_buttons['split'].text(), 'Split integral [D]')
+        remove = next(button for button in buttons if button.text() == 'Delete integral [R]')
         w.language_button.click()
         self.assertEqual(w.mode_buttons['pan'].text(), 'Przesuwaj [P]')
+        self.assertEqual(remove.text(), 'Usuń całkę [R]')
+        QtTest.QTest.keyClicks(w.roi_table, 'r')
+        settle(w)
+        self.assertEqual(w.entries, [])
 
     def test_selection_feedback_visible_on_press_and_tracks_drag_before_commit(self):
         w=self.w;view=w.view;viewport=w.spectrum.viewport()
@@ -1484,7 +1579,10 @@ class InterfaceTests(unittest.TestCase):
             drag(viewport,start,finish,QtCore.Qt.MouseButton.RightButton)
             self.assertAlmostEqual(d.controls['phase1_deg'].value()-ph1,500,places=3)
             np.testing.assert_array_equal(w.dataset.phased,before)
-            old=d.preview.copy();d.set_pivot(4.7)
+            old=d.preview.copy()
+            d.pivot_button.click()
+            d.controls['pivot_ppm'].setValue(4.7)
+            d.pivot_button.click()
             np.testing.assert_allclose(d.preview,old,rtol=1e-7,atol=1e-7)
             d.layer.setCurrentIndex(8);APP.processEvents()
             expected=process_fids(w.raw,d.options())

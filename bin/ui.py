@@ -97,7 +97,7 @@ class Window(QtWidgets.QMainWindow):
         self.map_ilt = None
         self.map_individual = {}
         self.worker=None;self.job_callback=None;self.pending=False;self.revision=0;self.job_revision=0
-        self.valid=False;self._updating=False;self.close_pending=False;self.statistics_window=None;self.phase_window=None
+        self.valid=False;self._updating=False;self.close_pending=None;self.statistics_window=None;self.phase_window=None
         self.experiment_id=uuid.uuid4().hex;self.region_items={};self.base_items=[];self.next_id=1
         self.timer=QtCore.QTimer(self);self.timer.setSingleShot(True);self.timer.timeout.connect(self.start_calculation)
         root=QtWidgets.QWidget();self.setCentralWidget(root);layout=QtWidgets.QVBoxLayout(root)
@@ -137,7 +137,8 @@ class Window(QtWidgets.QMainWindow):
         self.roi_button = self.tool_button('roi',tr('Integracja myszą'),spectrum_tools,
                                            tr('Przeciągnij po widmie, aby zaznaczyć granice nowej całki.'))
         self.button(tr('Dodaj całkę ręcznie'), self.add_numeric_roi, spectrum_tools, tr('Wpisz dolną i górną granicę całkowania w ppm.'))
-        self.button(tr('Usuń całkę'), self.delete_roi, spectrum_tools, tr('Usuń całkę wybraną w tabeli.'))
+        remove_roi_button = self.button(tr('Usuń całkę'), self.delete_roi, spectrum_tools,
+                                        tr('Usuń całkę wybraną w tabeli.'))
         for key,label,hint in (
             ('modify',tr('Modyfikuj całkę'),tr('Przeciągnij środek obszaru, aby go przesunąć, lub krawędź, aby zmienić granicę.')),
             ('split',tr('Podziel całkę'),tr('Przeciągnij jedną z krawędzi do środka obszaru i puść w miejscu podziału.')),
@@ -173,9 +174,10 @@ class Window(QtWidgets.QMainWindow):
         self.reference_guide.hide()
         self.view.addItem(self.reference_guide, ignoreBounds=True)
         self.spectrum.viewport().installEventFilter(self)
-        for mode, key in (('roi', 'I'), ('zoom', 'Z'), ('pan', 'P')):
+        for mode, key in (('roi', 'I'), ('zoom', 'Z'), ('pan', 'P'), ('modify', 'M'), ('split', 'D')):
             self.spectrum_shortcut(self.mode_buttons[mode], key, lambda mode=mode: self.set_mode(mode))
         self.spectrum_shortcut(full_range_button, 'F', self.spectrum.autoRange)
+        self.spectrum_shortcut(remove_roi_button, 'R', self.delete_roi)
         self.view.bind_selection_feedback(self.spectrum)
         self.spectrum.setLabel('bottom',tr('¹H — przesunięcie chemiczne'),units='ppm');self.spectrum.setLabel('left','Re / Im',units=tr('j.u.'))
         self.spectrum.invertX(True)
@@ -303,8 +305,10 @@ class Window(QtWidgets.QMainWindow):
     @QtCore.Slot()
     def job_finished(self):
         old=self.worker;self.worker=None;old.deleteLater();self.open_button.setEnabled(True)
-        if self.close_pending:self.close();return
-        if self.pending:self.pending=False;self.timer.start(1)
+        if self.pending and self.close_pending != 'discard':
+            self.pending=False;self.timer.start(1)
+        if self.close_pending:
+            self.close()
 
     def loaded(self,payload):
         self.raw,self.dataset,self.entries,self.results,self.integral_scale=payload
@@ -969,13 +973,18 @@ class Window(QtWidgets.QMainWindow):
         options=self.processing.options();options.update(values)
         self.processing.set_options(options,len(self.raw.fid));self.request_calculation()
     def save_project(self):
-        if self.dataset is None or not self.valid:return
+        if self.dataset is None or not self.valid:
+            return False
         try:
             filename = source_save_name(self.dataset.name, '.proj')
-            path=choose_save_file(self,tr('Zapisz projekt'),PROJECTS,filename,tr(PROJECT_FILTER))
-            if path:save_project(path,self.dataset,self.entries,integral_scale=self.integral_scale)
+            path = choose_save_file(self,tr('Zapisz projekt'),PROJECTS,filename,tr(PROJECT_FILTER))
+            if not path:
+                return False
+            save_project(path,self.dataset,self.entries,integral_scale=self.integral_scale)
         except (OSError,ValueError) as exc:
             QtWidgets.QMessageBox.warning(self,tr('Zapisz projekt'),tr(str(exc)))
+            return False
+        return True
     def choose_project(self):
         try:
             path,_=QtWidgets.QFileDialog.getOpenFileName(self,tr('Wczytaj projekt'),dialog_directory(PROJECTS),tr(PROJECT_FILTER))
@@ -1070,9 +1079,45 @@ class Window(QtWidgets.QMainWindow):
             export_svg(plot.plotItem,path)
         else:
             ex=pg.exporters.ImageExporter(plot.plotItem);ex.parameters()['width']=1800;ex.export(str(path))
+    def confirm_exit(self):
+        dialog = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Question, tr('Zamknij DOSY Lab'),
+                                        tr('Czy chcesz zamknąć DOSY Lab?'), parent=self)
+        save = dialog.addButton(tr('Zapisz projekt i wyjdź'), QtWidgets.QMessageBox.ButtonRole.AcceptRole)
+        save.setEnabled(self.dataset is not None)
+        discard = dialog.addButton(tr('Wyjdź bez zapisywania'), QtWidgets.QMessageBox.ButtonRole.DestructiveRole)
+        cancel = dialog.addButton(tr('Anuluj'), QtWidgets.QMessageBox.ButtonRole.RejectRole)
+        dialog.setDefaultButton(cancel)
+        dialog.setEscapeButton(cancel)
+        dialog.exec()
+        clicked = dialog.clickedButton()
+        if clicked is save:
+            return 'save'
+        if clicked is discard:
+            return 'discard'
+        return None
+
     def closeEvent(self,event):
+        action = self.close_pending or self.confirm_exit()
+        if action is None:
+            event.ignore()
+            return
+        if self.worker is not None or (action == 'save' and self.timer.isActive()):
+            self.close_pending = action
+            if action == 'discard':
+                self.timer.stop()
+            event.ignore()
+            return
+        self.close_pending = None
+        if action == 'save':
+            if not self.valid:
+                QtWidgets.QMessageBox.warning(self, tr('Zapisz projekt'),
+                                              tr('Poczekaj na zakończenie poprawnych obliczeń przed zapisaniem projektu.'))
+                event.ignore()
+                return
+            if not self.save_project():
+                event.ignore()
+                return
         self.timer.stop()
-        if self.worker is not None and self.worker.isRunning():self.close_pending=True;event.ignore();return
         if self.statistics_window is not None:self.statistics_window.close()
         if self.map_window is not None:self.map_window.close()
         if self.ilt_window is not None:self.ilt_window.close()
