@@ -1,4 +1,4 @@
-# DOSY Lab 2.1.1 user guide
+# DOSY Lab 2.1.2 user guide
 
 [Back to the README](../README.md)
 
@@ -93,6 +93,25 @@ Choose **Select baseline** and draw several peak-free intervals, preferably on b
 The default polynomial order is **1**. **Separate polynomial for each layer** is enabled by default and fits an independent line or polynomial to each layer on the same ppm mask. Before applying the correction you may preview the reference-layer fit instead. **Apply baseline subtraction** always subtracts each layer’s own fitted baseline before integration. This also applies when reopening projects with baseline subtraction enabled.
 
 Keep the blue baseline intervals clear of all ROIs. The fit extrapolates outside the outermost mask regions. Review the preview there before applying it. In **Processing**, use **Remove region** to remove one selected interval or **Undo correction** to disable subtraction while keeping the mask. **Clear baseline** above the spectrum removes the entire mask.
+
+### Presaturation and residual solvent
+
+Use the amber **Solvent tail (presaturation)** panel in **Processing** when the residual solvent has dispersive wings of opposite sign. The JDF must record proton presaturation and the irradiation position in ppm.
+
+1. Keep the existing peak-free background regions away from the solvent. Click **Show presaturation wings** to zoom in and enter baseline selection.
+2. Draw a short peak-free interval in each orange band, between 0.15 and 1.50 ppm from the irradiation position. Keep the selections clear of the solvent core and all ROIs. The blue intervals are the fit mask. **Hide presaturation wings** clears the orange guides and keeps the blue intervals visible.
+3. When the panel says the mask is ready, turn on **Solvent tail (presaturation)**. Start with a first-order polynomial and enable **Show fitted baseline**. The yellow dashed line shows the model for the displayed layer. Check it at low, middle and high gradient.
+4. Select **Apply baseline subtraction** to recalculate the signed integrals. Check the spectrum and decay residuals before saving the project or processing profile.
+
+Each corrected layer has its own polynomial and signed inverse-distance tail. ROIs entering the ±0.15 ppm solvent core cannot be fitted in this mode. Near-solvent signals can still be distorted by the acquisition.
+
+![Synthetic spectrum with the solvent-tail option off, showing a sloping background near the solvent and a yellow dashed polynomial baseline](images/presaturation-tail-before.png)
+
+*Before solvent-tail correction. The polynomial baseline is visible in yellow, and the dispersive wings remain in the displayed spectrum.*
+
+![The same synthetic spectrum after solvent-tail correction, showing the curved yellow dashed baseline and the corrected trace](images/presaturation-tail-corrected.png)
+
+*After solvent-tail correction, at the same zoom and intensity scale. The yellow dashed line shows the fitted polynomial plus solvent tail. The pale dotted trace shows the spectrum before baseline subtraction.*
 
 ## 5. Integrals
 
@@ -191,6 +210,7 @@ An export bundle can contain complete measurement data and the embedded pulse pr
 | No D values | Verify the source of b and the number of distinct active b values. |
 | Negative or unstable integrals | Check absorption phase, baseline and possible peak overlap. Compare the same ROI across layers. |
 | Ripples before baseline correction | Inspect the filter delay and passband in **Info** and **Processing**. Check shared PH0 and PH1 against several peaks. |
+| Solvent-tail option is unavailable | Check the message in the amber Processing panel. Use **Show presaturation wings** to select clean background on both sides. |
 | Good R² but inconsistent D across signals | Compare residuals, ROI spectra, b calibration, integration bounds and compound assignments. |
 | Statistics show N = 0 | Check the selected **Compound**, the **Include** column and QC. |
 | A project cannot find its JDF | Place the original JDF next to the project or in `data`. DOSY Lab verifies the source checksum. |
@@ -215,19 +235,19 @@ The description above applies to **Original DOSY map**. Select another **Map mod
 
 1. Complete the conventional fit and check its signed intensities, baseline and excluded layers. Each ROI needs six distinct included b values.
 2. Click **Analyze ILT** in the ROI's **ILT** column. The analysis uses a snapshot of the current fit data. Reopen the window after changes to the ROI or processing.
-3. Start with the default grid and penalty. Use the $\lambda$ slider or field, **D min / D max**, **Grid points**, **D grid** and **Penalty** to test sensitivity. **Logarithmic D axis** only changes the view. Use **Restore defaults** to return to the starting settings.
+3. Start with the default grid and penalty. Use the $\lambda$ slider or type a value such as `1e-6` and press **Enter**. Use **D min / D max**, **Grid points**, **D grid** and **Penalty** to test sensitivity. **Logarithmic D axis** only changes the view. Use **Restore defaults** to return to the starting settings.
 4. Compare experimental attenuation, monoexponential and ILT reconstructions, then inspect residuals and solver diagnostics. A smaller residual RMS can reflect model flexibility. Check grid-edge maxima and whether candidate positions persist across reasonable settings.
 5. Open **Info** for controls and definitions. Save an individual plot or a stacked PNG. Close with the title-bar **×** or **Esc**. See the [individual ILT guide](ILT.md) for density units and defaults.
 
 ## 13. Global ILT
 
 1. Ctrl-click or Shift-click two or more eligible rows in the fit table, then click **Global ILT** next to **Fit / refresh**.
-2. Start with the default D grid and regularization. Adjust $\lambda$ to change the ridge penalty and $\mu$ to change the preference for shared D positions. Enter $\mu=0$ to remove the coupling. Choose **Compare independent ILT** to overlay the separate inversion for the active ROI.
+2. Start with the default D grid and regularization. Adjust $\lambda$ to change the ridge penalty and $\mu$ to change the preference for shared D positions. Press **Enter** to apply a typed value. Enter $\mu=0$ to remove the coupling. Choose **Compare independent ILT** to overlay the separate inversion for the active ROI.
 3. Inspect the joint and individual distributions. Use the ROI selector for the attenuation and residuals. Toggle the common ROI amplitude scale or use the visibility menu to compare selected profiles.
 4. Review **Component contributions** and **Results** together. Component shares sum fitted cell masses across intervals. Treat them as fitted signal fractions under the chosen model.
 5. Use **Info** for the guide, and export individual plots or the combined PNG. For the 2D map, finish a converged solve and then select **Global ILT DOSY · ROI profiles**. Reopen Global ILT after changing the source data or selection. See the [Global ILT guide](GLOBAL-ILT.md) for weighting and convergence details.
 
-Use **Auto λ / stability** in Individual ILT, Global ILT or Adaptive Local ILT to scan regularization. Click a trial to preview it and use **Apply recommendation** to change the active analysis. Global and grouped AILT scans keep μ fixed. [Methods, examples and interpretation](ILT_REGULARIZATION_2.1.md)
+Use **Auto λ / stability** in Individual ILT, Global ILT or Adaptive Local ILT to scan regularization. Click a trial to preview it and use **Apply recommendation** to change the active analysis. When none of the scans returns a clear recommendation, click **OK** in the message to close the scan and return to the analysis. Global and grouped AILT scans keep μ fixed. [Methods, examples and interpretation](ILT_REGULARIZATION_2.1.md)
 
 ## 14. Adaptive Local ILT
 

@@ -232,12 +232,21 @@ class RegularizationWindow(QtWidgets.QDialog, ILTPlotTools):
         self.show_results(*payload)
 
     def show_results(self,sources,results):
+        has_recommendation = any(result.recommendation is not None for result in results.values())
+        if results and not has_recommendation:
+            QtWidgets.QMessageBox.information(
+                self, tr('Brak jednoznacznej rekomendacji'),
+                tr('Skan λ nie dał jednoznacznej rekomendacji. Możesz ustawić λ ręcznie w oknie analizy.'),
+                QtWidgets.QMessageBox.StandardButton.Ok,
+            )
+            self.reject()
+            return
         self.sources,self.results = sources,results
         with QtCore.QSignalBlocker(self.target):
             self.target.clear()
             for key in results:
                 self.target.addItem(', '.join(key),key)
-        self.apply_button.setEnabled(any(r.recommendation is not None for r in results.values()))
+        self.apply_button.setEnabled(has_recommendation)
         for button in self.export_buttons:
             button.setEnabled(bool(results))
         if not results:

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.2 · 2026-11-17
+
+- Add optional per-layer solvent-tail baseline correction for presaturated proton DOSY with a recorded irradiation position in ppm.
+- Guide background selection in an amber Processing panel. Show or hide the orange wing guides independently of the blue mask and the yellow dashed fitted baseline.
+- Apply manually entered ILT regularization values with **Enter**, including λ in individual ILT and λ and μ in Global ILT.
+- Show a confirmation message and close the regularization scan when no clear λ recommendation is available.
+
 ## 2.1.1 · 2026-11-13
 
 - Add main-window shortcuts **M** to edit, **D** to split and **R** to delete the selected integral.

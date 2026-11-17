@@ -8,7 +8,7 @@ from d_statistics import number
 from i18n import tr
 from ilt import D_UNIT, GRID_SIZES, ILTParameters, sensitivity_trials, solve_ilt
 from ilt_help import ILT_HELP, ILT_WINDOW_FLAGS, add_ilt_info
-from ilt_tools import ILTPlotTools, SolveJob
+from ilt_tools import ILTPenaltyEdit, ILTPlotTools, SolveJob
 from ilt_regularization import SweepInput, has_systematic_warning, supplied_noise
 from ilt_regularization_window import RegularizationControls
 
@@ -83,7 +83,7 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.slider.setMinimumWidth(100)
         self.slider.valueChanged.connect(self.slider_changed)
         row.addWidget(self.slider, 1)
-        self.lambda_edit = QtWidgets.QLineEdit()
+        self.lambda_edit = ILTPenaltyEdit()
         self.lambda_edit.setMaximumWidth(90)
         self.lambda_edit.editingFinished.connect(self.lambda_changed)
         row.addWidget(self.lambda_edit)

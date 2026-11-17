@@ -34,7 +34,7 @@ The effective kernel rank counts singular values above $10^{-6}$ of the largest 
 
 ## Regularization guidance
 
-**Auto λ / stability** previews a parameter scan without changing the active solution. Select **Apply recommendation** to use a suggested value. [Selection methods and validation](ILT_REGULARIZATION_2.1.md)
+**Auto λ / stability** previews a parameter scan without changing the active solution. Select **Apply recommendation** to use a suggested value. [Selection methods and validation](ILT_REGULARIZATION_2.1.md) If the scan finds no clear recommendation, acknowledge the message to close the scan. Enter a manual λ in the analysis window and press Enter to apply it.
 
 ## Interpretation and validation
 

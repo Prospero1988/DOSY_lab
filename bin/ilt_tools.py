@@ -12,6 +12,14 @@ from i18n import tr
 from plot_export import save_light_plot
 
 
+class ILTPenaltyEdit(QtWidgets.QLineEdit):
+    def keyPressEvent(self, event):
+        super().keyPressEvent(event)
+        if event.key() in (QtCore.Qt.Key.Key_Return, QtCore.Qt.Key.Key_Enter):
+            # QLineEdit commits the value above. Prevent the dialog's default button from running too.
+            event.accept()
+
+
 class SolveSignals(QtCore.QObject):
     finished = QtCore.Signal(int, object, object, str)
 

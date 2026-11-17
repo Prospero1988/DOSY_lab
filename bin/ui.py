@@ -98,6 +98,7 @@ class Window(QtWidgets.QMainWindow):
         self.map_individual = {}
         self.worker=None;self.job_callback=None;self.pending=False;self.revision=0;self.job_revision=0
         self.valid=False;self._updating=False;self.close_pending=None;self.statistics_window=None;self.phase_window=None
+        self.solvent_baseline_guide = False
         self.experiment_id=uuid.uuid4().hex;self.region_items={};self.base_items=[];self.next_id=1
         self.timer=QtCore.QTimer(self);self.timer.setSingleShot(True);self.timer.timeout.connect(self.start_calculation)
         root=QtWidgets.QWidget();self.setCentralWidget(root);layout=QtWidgets.QVBoxLayout(root)
@@ -244,6 +245,7 @@ class Window(QtWidgets.QMainWindow):
         self.processing=ProcessingPanel(self);self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,self.processing)
         self.mode_buttons['reference'] = self.processing.reference_button
         self.processing.changed.connect(self.request_calculation);self.processing.mode_requested.connect(self.set_mode)
+        self.processing.solvent_wings_requested.connect(self.toggle_solvent_wings)
         self.statusBar().showMessage(tr('Przeciągnięcie powiększa zakres. Rolka zmienia wysokość widma. Dwuklik przywraca cały zakres.'))
         context = lambda:html.escape(self.dataset.name) if self.dataset else ''
         enable_fullscreen(self.spectrum,tr('Widmo 1D'),context,reset_view=self.spectrum.autoRange)
@@ -312,6 +314,7 @@ class Window(QtWidgets.QMainWindow):
 
     def loaded(self,payload):
         self.raw,self.dataset,self.entries,self.results,self.integral_scale=payload
+        self.set_solvent_guide_visible(False)
         self.set_map_ilt(self.dataset, (), None)
         self.clear_map_individual()
         self.roi_table.clearSelection()
@@ -320,6 +323,7 @@ class Window(QtWidgets.QMainWindow):
         self.active_id=self.entries[0]['id'] if self.entries else None
         self.reset_next_roi_id()
         self.processing.set_options(self.dataset.options,len(self.raw.fid))
+        self.processing.set_solvent_context(self.dataset)
         self.layer.blockSignals(True);self.layer.clear()
         for i,g in enumerate(self.raw.gradients):
             b='—' if self.raw.b is None else f'{self.raw.b[i]:.4e}'
@@ -356,7 +360,9 @@ class Window(QtWidgets.QMainWindow):
         for e in results:e['previous_D']=previous.get(e['id'])
         axis_shift = ds.options['ppm_shift'] - self.dataset.options['ppm_shift']
         lo, hi = self.view.viewRange()[0]
-        self.dataset=ds;self.results=results;self.accepted()
+        self.dataset=ds;self.results=results
+        self.processing.set_solvent_context(ds)
+        self.accepted()
         if axis_shift and not self.view.autoRangeEnabled()[0]:
             self.spectrum.setXRange(lo + axis_shift, hi + axis_shift, padding=0.)
 
@@ -400,13 +406,20 @@ class Window(QtWidgets.QMainWindow):
         self.view.split_regions = self.region_items
         self.clear_baseline_button.setEnabled(bool(self.processing.regions))
         d=self.dataset
+        if self.solvent_baseline_guide:
+            for bounds in self.processing.solvent_ranges():
+                wing = pg.LinearRegionItem(bounds, movable=False, brush=pg.mkBrush(245,158,11,38),
+                                           pen=pg.mkPen(245,158,11,135))
+                wing.setZValue(-3)
+                self.spectrum.addItem(wing, ignoreBounds=True)
         for k,i in enumerate(self.selected_layers()):
             color = COLORS[k % len(COLORS)] if k else self.appearance.color
             self.spectrum.plot(d.ppm,d.spectrum[i].real,pen=self.appearance.pen(color))
             if self.imaginary.isChecked():self.spectrum.plot(d.ppm,d.spectrum[i].imag,pen=self.appearance.pen(color,QtCore.Qt.PenStyle.DotLine))
             if self.processing.regions and d.options['baseline_preview'] and d.diagnostics['baseline']:
-                self.spectrum.plot(d.ppm,d.baseline[i],pen=pg.mkPen('#fbbf24',width=2,style=QtCore.Qt.PenStyle.DashLine))
                 if d.options['baseline_enabled']:self.spectrum.plot(d.ppm,d.phased[i].real,pen=self.appearance.pen('#64748b',QtCore.Qt.PenStyle.DotLine))
+                preview = self.spectrum.plot(d.ppm,d.baseline[i],pen=pg.mkPen('#fbbf24',width=2,style=QtCore.Qt.PenStyle.DashLine))
+                preview.setZValue(1)
         for e in self.entries:
             movable = self.view.mode=='modify'
             color = QtGui.QColor(e['color'])
@@ -492,6 +505,8 @@ class Window(QtWidgets.QMainWindow):
         self.residual.autoRange(padding=.05)
 
     def set_mode(self,key):
+        if key != 'baseline' and self.solvent_baseline_guide:
+            self.set_solvent_guide_visible(False)
         for mode,button in self.mode_buttons.items():
             button.setChecked(mode==key)
         if self.view.mode==key:
@@ -506,6 +521,33 @@ class Window(QtWidgets.QMainWindow):
             self.spectrum.viewport().setCursor(QtCore.Qt.CursorShape.CrossCursor)
             self.statusBar().showMessage(tr('Kliknij sygnał na widmie, aby przypisać mu wpisaną wartość ppm.'))
         self.render_spectrum()
+
+    def set_solvent_guide_visible(self, visible):
+        self.solvent_baseline_guide = visible
+        label = 'Ukryj skrzydła presaturacji' if visible else 'Pokaż skrzydła presaturacji'
+        self.processing.solvent_wings_button.setText(tr(label))
+
+    def toggle_solvent_wings(self):
+        if self.solvent_baseline_guide:
+            self.set_solvent_guide_visible(False)
+            self.render_spectrum()
+            return
+        d = self.dataset
+        wings = self.processing.solvent_ranges()
+        self.set_solvent_guide_visible(True)
+        if self.view.mode == 'baseline':
+            self.render_spectrum()
+        else:
+            self.set_mode('baseline')
+        lo, hi = max(wings[0][0], d.ppm[0]), min(wings[1][1], d.ppm[-1])
+        if hi > lo:
+            self.spectrum.setXRange(lo, hi, padding=.025)
+        visible = np.logical_or.reduce([(d.ppm >= lo) & (d.ppm <= hi) for lo, hi in wings])
+        if visible.any():
+            intensity = d.spectrum.real[self.selected_layers()][:, visible]
+            low, high = np.percentile(intensity, (3., 85.))
+            if high > low:
+                self.spectrum.setYRange(low, high, padding=.12)
 
     def clear_baseline(self):
         self.processing.clear_regions()
@@ -559,7 +601,14 @@ class Window(QtWidgets.QMainWindow):
         if self.spectrum.sceneBoundingRect().contains(pos):self.coordinate.setText(f'{self.view.mapSceneToView(pos).x():.5f} ppm')
     def range_selected(self,a,b):
         if self.dataset is None:return
-        if self.view.mode=='baseline':self.processing.add_region([a,b])
+        if self.view.mode=='baseline':
+            if self.solvent_baseline_guide:
+                try:
+                    validate_baseline_roi_overlap([(a,b)], [entry['bounds'] for entry in self.entries])
+                except ValueError as exc:
+                    self.statusBar().showMessage(tr(str(exc)), 8000)
+                    return
+            self.processing.add_region([a,b])
         else:self.add_roi([a,b])
     def add_numeric_roi(self):
         if self.dataset is None:return

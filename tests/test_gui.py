@@ -524,8 +524,17 @@ class InterfaceTests(unittest.TestCase):
             self.assertIs(dialog.fit, fit)
             dialog.slider.setValue(-63)
             dialog.slider.setValue(-55)
-            dialog.lambda_edit.setText('0.000024137')
-            dialog.lambda_changed()
+            dialog.activateWindow()
+            dialog.lambda_edit.setFocus()
+            APP.processEvents()
+            dialog.lambda_edit.selectAll()
+            QtTest.QTest.keyClicks(dialog.lambda_edit, '1e-06')
+            QtTest.QTest.keyClick(dialog.lambda_edit, QtCore.Qt.Key.Key_Return)
+            self.assertEqual(dialog.lambda_edit.text(), '1e-06')
+            wait_for(lambda: dialog.solved_parameters.regularization == 1e-6)
+            dialog.lambda_edit.selectAll()
+            QtTest.QTest.keyClicks(dialog.lambda_edit, '0.000024137')
+            QtTest.QTest.keyClick(dialog.lambda_edit, QtCore.Qt.Key.Key_Return)
             dialog.points.setCurrentIndex(dialog.points.findData(50))
             wait_for(lambda: dialog.solved_parameters.regularization == .000024137)
             self.assertEqual(dialog.solved_parameters.points, 50)
@@ -628,6 +637,44 @@ class InterfaceTests(unittest.TestCase):
             self.assertIs(w.results,original)
             dialog.close()
 
+    def test_auto_lambda_without_recommendation_closes_after_ok(self):
+        from ilt_regularization import scan
+
+        w = self.w
+        w.add_roi([3.60, 3.68])
+        settle(w)
+        w.show_ilt('S1')
+        dialog = w.ilt_window
+        controls = dialog.auto_lambda
+        previous = dialog.lambda_value()
+        popups = []
+        show_information = QtWidgets.QMessageBox.information
+
+        def no_recommendation(*args):
+            return replace(scan(*args), recommendation=None)
+
+        def confirm(parent, *args):
+            def click_ok():
+                popup = APP.activeModalWidget()
+                popups.append((popup.windowTitle(), parent.isVisible()))
+                popup.button(QtWidgets.QMessageBox.StandardButton.Ok).click()
+
+            QtCore.QTimer.singleShot(0, click_ok)
+            return show_information(parent, *args)
+
+        with (patch('ilt_regularization_window.scan', side_effect=no_recommendation),
+              patch.object(QtWidgets.QMessageBox, 'information', side_effect=confirm)):
+            controls.open()
+            self.assertIsNotNone(controls.dialog)
+            end = time.monotonic() + 12
+            while controls.dialog is not None and time.monotonic() < end:
+                APP.processEvents()
+                time.sleep(.02)
+            self.assertIsNone(controls.dialog)
+        self.assertEqual(popups, [('Brak jednoznacznej rekomendacji', True)])
+        self.assertTrue(dialog.isVisible())
+        self.assertEqual(dialog.lambda_value(), previous)
+
     def test_global_ilt_selected_rows_comparison_and_export(self):
         w = self.w
         for bounds in ([3.60, 3.68], [5.26, 5.33], [3.74, 3.82]):
@@ -669,6 +716,15 @@ class InterfaceTests(unittest.TestCase):
             self.assertEqual([item.name() for item in dialog.roi_plot.listDataItems()], ['S2'])
             dialog.log_axis.setChecked(False)
             self.assertFalse(dialog.roi_plot.getAxis('bottom').logMode)
+            lambda_edit = dialog.penalties[0][1]
+            dialog.activateWindow()
+            lambda_edit.setFocus()
+            APP.processEvents()
+            lambda_edit.selectAll()
+            QtTest.QTest.keyClicks(lambda_edit, '2e-06')
+            QtTest.QTest.keyClick(lambda_edit, QtCore.Qt.Key.Key_Enter)
+            self.assertEqual(lambda_edit.text(), '2e-06')
+            wait_for(lambda: dialog.solved_parameters.grid.regularization == 2e-6)
             dialog.penalties[1][1].setText('0')
             dialog.compare.setChecked(True)
             dialog.points.setCurrentIndex(dialog.points.findData(50))
@@ -874,6 +930,49 @@ class InterfaceTests(unittest.TestCase):
         w.processing.undo_baseline();settle(w)
         self.assertTrue(per_layer.isEnabled())
         np.testing.assert_array_equal(w.dataset.spectrum,original)
+
+    def test_solvent_tail_guides_mask_selection_and_enables_correction(self):
+        w = self.w
+        raw = synthetic(nlayers=4)
+        parameters = dict(irr_mode={'value':'Presaturation'}, irr_domain={'value':'Proton'},
+                          irr_offset={'value':4.5,'units':[dict(base_code=26,prefix_code=0,power=1)]})
+        raw = replace(raw, metadata=dict(raw.metadata, parameters=parameters))
+        w.loaded((raw, process_fids(raw), [], [], 1.))
+        panel = w.processing
+        panel.show()
+        tail = panel.controls['baseline_solvent_tail']
+        self.assertFalse(tail.isEnabled())
+        self.assertIn('po obu stronach', panel.solvent_hint.text())
+        panel.solvent_wings_button.click()
+        self.assertEqual(w.view.mode, 'baseline')
+        self.assertTrue(w.solvent_baseline_guide)
+        self.assertEqual(panel.solvent_wings_button.text(), 'Ukryj skrzydła presaturacji')
+        guide = [item for item in w.spectrum.items() if isinstance(item, pg.LinearRegionItem)]
+        self.assertEqual(len(guide), 2)
+        w.range_selected(3.72, 3.95)
+        self.assertFalse(tail.isEnabled())
+        w.range_selected(5.05, 5.28)
+        self.assertTrue(tail.isEnabled())
+        tail.click()
+        panel.controls['baseline_enabled'].setChecked(True)
+        settle(w)
+        self.assertTrue(w.dataset.options['baseline_solvent_tail'])
+        self.assertEqual(w.dataset.diagnostics['baseline']['solvent_tail_center_ppm'], 4.5)
+        self.assertEqual(len(panel.regions), 2)
+        dataset = w.dataset
+        ranges = w.view.viewRange()
+        panel.solvent_wings_button.click()
+        self.assertFalse(w.solvent_baseline_guide)
+        self.assertEqual(panel.solvent_wings_button.text(), 'Pokaż skrzydła presaturacji')
+        self.assertEqual(w.view.mode, 'baseline')
+        self.assertIs(w.dataset, dataset)
+        self.assertEqual(w.view.viewRange(), ranges)
+        self.assertEqual(len([item for item in w.spectrum.items() if isinstance(item, pg.LinearRegionItem)]), 2)
+        panel.solvent_wings_button.click()
+        self.assertTrue(w.solvent_baseline_guide)
+        w.set_mode('zoom')
+        self.assertFalse(w.solvent_baseline_guide)
+        self.assertEqual(panel.solvent_wings_button.text(), 'Pokaż skrzydła presaturacji')
 
     def test_statistics_groups_selection_and_diagnostics_never_refit(self):
         w=self.w;w.add_roi([3.60,3.68],name='H1',group='A');w.add_roi([5.26,5.33],name='H2',group='B');settle(w)

@@ -350,6 +350,51 @@ class ProcessingTests(unittest.TestCase):
         np.testing.assert_allclose(areas/areas[0],decay,atol=1e-12)
         self.assertAlmostEqual(fit_decay(dataset.b,areas)['D_m2_s']/3.86e-10,1,places=7)
 
+    def test_presaturation_tail_recovers_signed_decays_on_both_wings(self):
+        raw=synthetic()
+        x=process_fids(raw).ppm
+        distance=x-4.5
+        # Exact dispersive far-wing dependence. The finite linewidth of the
+        # solvent core is irrelevant because the fit never sees those points.
+        wing=distance/np.maximum(abs(distance),.15)**2
+        layer=np.linspace(0,1,len(raw.b))
+        background=(.3-.2*layer[:,None]+.07*distance
+                    +(layer[:,None]-.2)*wing)
+        bounds=((4.08,4.22),(4.81,4.95))
+        peaks=sum(np.exp(-((x-center)/.018)**2)*(abs(x-center)<.065)
+                  for center in (4.15,4.88))
+        decay=np.exp(-raw.b*3.86e-10)
+        fid=np.fft.ifft(np.fft.ifftshift(background+decay[:,None]*peaks,axes=1),axis=1)
+        parameters=dict(irr_mode={'value':'Presaturation'},irr_domain={'value':'Proton'},
+                        irr_offset={'value':4.5,'units':[dict(base_code=26,prefix_code=0,power=1)]})
+        raw=RawData(fid,raw.gradients,raw.b,dict(raw.metadata,parameters=parameters))
+        options=default_options(raw)
+        options.update(baseline_enabled=True,baseline_solvent_tail=True,
+                       baseline_regions=[[3.72,3.95],[4.27,4.32],[4.69,4.74],[5.05,5.28]])
+        ds=process_fids(raw,options,bounds)
+        np.testing.assert_allclose(ds.baseline,background,atol=1e-12)
+        for region in bounds:
+            areas=integrate(ds,region)['corrected_integral']
+            np.testing.assert_allclose(areas/areas[0],decay,atol=1e-12)
+            self.assertAlmostEqual(fit_decay(ds.b,areas)['D_m2_s']/3.86e-10,1,places=7)
+        with self.assertRaisesRegex(ValueError,'rdzeń presaturacji'):
+            integrate(ds,(4.4,4.6))
+        with self.assertRaisesRegex(ValueError,'po obu stronach'):
+            process_fids(raw,dict(options,baseline_regions=[[3.72,3.95]]),bounds)
+        with self.assertRaisesRegex(ValueError,'rdzeń presaturacji'):
+            process_fids(raw,dict(options,baseline_regions=[[4.4,4.6]]),bounds)
+        with self.assertRaisesRegex(ValueError,'nagłówku JDF'):
+            process_fids(synthetic(),options,bounds)
+        shift=.27
+        shifted=dict(options,ppm_shift=shift,pivot_ppm=options['pivot_ppm']+shift,
+                     baseline_regions=[[a+shift,b+shift] for a,b in options['baseline_regions']])
+        shifted_ds=process_fids(raw,shifted,[(a+shift,b+shift) for a,b in bounds])
+        np.testing.assert_allclose(shifted_ds.spectrum,ds.spectrum,atol=1e-12)
+        old=options.copy()
+        del old['baseline_solvent_tail']
+        np.testing.assert_array_equal(process_fids(raw,old).spectrum,
+                                      process_fids(raw,dict(old,baseline_solvent_tail=False)).spectrum)
+
     def test_processing_profile_roundtrip(self):
         with tempfile.TemporaryDirectory() as d:
             o=default_options(synthetic());o['phase1_deg']=7200;p=Path(d)/'profile.list';save_profile(p,o)

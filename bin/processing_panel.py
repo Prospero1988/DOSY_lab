@@ -6,7 +6,7 @@ from pathlib import Path
 import csv
 import numpy as np
 from PySide6 import QtCore,QtWidgets
-from core import save_profile,load_profile
+from core import baseline_mask, load_profile, save_profile, solvent_center_ppm, solvent_wing_ranges
 from jeol import validate_b
 from storage import PROCESSING, PROFILE_FILTER, choose_save_file, dialog_directory, source_save_name
 
@@ -14,11 +14,17 @@ from storage import PROCESSING, PROFILE_FILTER, choose_save_file, dialog_directo
 class ProcessingPanel(QtWidgets.QDockWidget):
     changed=QtCore.Signal()
     mode_requested=QtCore.Signal(str)
+    solvent_wings_requested=QtCore.Signal()
     def __init__(self,parent):
         super().__init__(tr('Processing 1D — wspólny dla warstw'),parent)
-        self.controls={};self.regions=[];self._setting=False
+        self.controls={};self.regions=[];self._setting=True
         self.source_name = None
-        widget=QtWidgets.QWidget();self.setWidget(widget);layout=QtWidgets.QVBoxLayout(widget)
+        self._dataset = None
+        scroll = QtWidgets.QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        self.setWidget(scroll)
+        widget=QtWidgets.QWidget();scroll.setWidget(widget);layout=QtWidgets.QVBoxLayout(widget)
         form=QtWidgets.QFormLayout();layout.addLayout(form)
         self.reference_target = QtWidgets.QDoubleSpinBox()
         self.reference_target.setRange(-1000., 1000.)
@@ -69,15 +75,72 @@ class ProcessingPanel(QtWidgets.QDockWidget):
         row=QtWidgets.QHBoxLayout();layout.addLayout(row)
         for text,fn in [(tr('Zaznacz bazę'),lambda:self.mode_requested.emit('baseline')),(tr('Usuń obszar'),self.remove_region),(tr('Cofnij korekcję'),self.undo_baseline)]:
             b=QtWidgets.QPushButton(text);b.clicked.connect(fn);row.addWidget(b)
+        solvent_panel = QtWidgets.QFrame()
+        solvent_panel.setObjectName('solventTailPanel')
+        solvent_panel.setStyleSheet('''
+            QFrame#solventTailPanel { background:#302619; border:1px solid #805826; border-radius:5px; }
+            QFrame#solventTailPanel QLabel, QFrame#solventTailPanel QCheckBox { background:transparent; color:#f9deb3; }
+            QFrame#solventTailPanel QCheckBox:disabled { color:#ac9a83; }
+        ''')
+        solvent_layout = QtWidgets.QVBoxLayout(solvent_panel)
+        solvent_layout.setContentsMargins(8, 6, 8, 6)
+        solvent_tail = QtWidgets.QCheckBox(tr('Ogon rozpuszczalnika (presaturacja)'))
+        solvent_tail.toggled.connect(self.emit_change)
+        self.controls['baseline_solvent_tail'] = solvent_tail
+        solvent_layout.addWidget(solvent_tail)
+        self.solvent_hint = QtWidgets.QLabel()
+        self.solvent_hint.setWordWrap(True)
+        solvent_layout.addWidget(self.solvent_hint)
+        self.solvent_wings_button = QtWidgets.QPushButton(tr('Pokaż skrzydła presaturacji'))
+        self.solvent_wings_button.clicked.connect(self.solvent_wings_requested)
+        self.solvent_wings_button.setToolTip(tr('Pokaż lub ukryj pomarańczowe pasma wokół IRR. W pasmach zaznacz fragmenty bez pików po obu stronach rozpuszczalnika.'))
+        solvent_layout.addWidget(self.solvent_wings_button)
+        layout.insertWidget(layout.indexOf(per_layer), solvent_panel)
         row=QtWidgets.QHBoxLayout();layout.addLayout(row)
         for text,fn in [(tr('Zapisz profil'),self.save),(tr('Wczytaj profil'),self.load)]:
             b=QtWidgets.QPushButton(text);b.clicked.connect(fn);row.addWidget(b)
         note=QtWidgets.QLabel(tr('FID → apodyzacja → zero filling → FFT → wspólna faza → zatwierdzona baza → całki.\nLB=GB=0: brak apodyzacji. Niebieskie obszary bazy nie mogą przecinać ROI przy zatwierdzaniu.'))
         note.setWordWrap(True);layout.addWidget(note);layout.addStretch()
+        scroll.setMinimumWidth(widget.minimumSizeHint().width() + scroll.verticalScrollBar().sizeHint().width())
+        self._setting = False
+        self.update_solvent_setup()
         self.hide()
 
     def emit_change(self,*args):
-        if not self._setting:self.changed.emit()
+        if not self._setting:
+            self.update_solvent_setup()
+            self.changed.emit()
+
+    def set_solvent_context(self, dataset):
+        self._dataset = dataset
+        self.update_solvent_setup()
+
+    def solvent_ranges(self):
+        if self._dataset is None:
+            raise ValueError('Wczytaj JDF z presaturacją, aby ustawić korekcję ogona.')
+        return solvent_wing_ranges(solvent_center_ppm(self._dataset.metadata, self.controls['ppm_shift'].value()))
+
+    def update_solvent_setup(self):
+        control = self.controls['baseline_solvent_tail']
+        self.solvent_wings_button.setEnabled(False)
+        try:
+            wings = self.solvent_ranges()
+            self.solvent_wings_button.setEnabled(True)
+            shift = self.controls['ppm_shift'].value() - self._dataset.options['ppm_shift']
+            ppm = self._dataset.ppm + shift
+            center = (wings[0][1] + wings[1][0]) / 2
+            baseline_mask(ppm, self.regions, tail_center=center)
+        except ValueError as exc:
+            control.setEnabled(control.isChecked())
+            self.solvent_hint.setText(tr(str(exc)))
+            return
+        control.setEnabled(True)
+        text = ('Maska gotowa. Włącz ogon i zatwierdź odejmowanie bazy.'
+                if not control.isChecked() else
+                'Ogon wybrany. Zatwierdź odejmowanie bazy, aby przeliczyć całki.'
+                if not self.controls['baseline_enabled'].isChecked() else
+                'Ogon wybrany. Sprawdź żółty podgląd na kilku warstwach.')
+        self.solvent_hint.setText(tr(text))
 
     def set_options(self,options,nlayers):
         self._setting=True
@@ -108,6 +171,7 @@ class ProcessingPanel(QtWidgets.QDockWidget):
     def refresh_regions(self):
         self.base_list.clear()
         for a,b in self.regions:self.base_list.addItem(f'{min(a,b):.5f} … {max(a,b):.5f} ppm')
+        self.update_solvent_setup()
 
     def add_region(self,bounds):
         self.regions.append(sorted(bounds));self.refresh_regions();self.changed.emit()

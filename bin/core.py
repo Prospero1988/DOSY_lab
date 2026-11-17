@@ -11,13 +11,16 @@ from jeol import RawData,validate_b,reference_layer
 from storage import require_extension
 from roi_quality import estimate_spectral_noise, qualify_roi
 
+SOLVENT_CORE_PPM = .15
+SOLVENT_MASK_REACH_PPM = 1.5
+
 
 def default_options(raw):
     return dict(lb_Hz=0.,gaussian_FWHM_Hz=0.,zero_fill_factor=1,
                 phase0_deg=0.,phase1_deg=0.,pivot_ppm=raw.metadata['offset_ppm'],
                 ppm_shift=0.,reference_layer=reference_layer(raw),crop_filter=True,filter_delay_samples=0.,
                 baseline_enabled=False,baseline_preview=True,baseline_degree=1,
-                baseline_per_layer=True,baseline_regions=[])
+                baseline_per_layer=True,baseline_regions=[],baseline_solvent_tail=False)
 
 
 def validate_options(options,nlayers=None):
@@ -26,6 +29,7 @@ def validate_options(options,nlayers=None):
     o.setdefault('filter_delay_samples',0.)
     o.setdefault('baseline_degree',1)
     o.setdefault('baseline_per_layer',True)
+    o.setdefault('baseline_solvent_tail',False)
     for k in ('lb_Hz','gaussian_FWHM_Hz','phase0_deg','phase1_deg','pivot_ppm','ppm_shift','filter_delay_samples'):
         if not np.isfinite(float(o[k])):raise ValueError('Nieprawidłowy parametr '+k)
         o[k]=float(o[k])
@@ -35,7 +39,7 @@ def validate_options(options,nlayers=None):
         if o[k] not in allowed:raise ValueError('Nieprawidłowy parametr '+k)
     ref=o['reference_layer']
     if not isinstance(ref,int) or ref<0 or (nlayers is not None and ref>=nlayers):raise ValueError('Nieprawidłowa warstwa referencyjna.')
-    for key in ('crop_filter','baseline_enabled','baseline_preview','baseline_per_layer'):
+    for key in ('crop_filter','baseline_enabled','baseline_preview','baseline_per_layer','baseline_solvent_tail'):
         if not isinstance(o[key],bool):raise ValueError('Nieprawidłowa flaga '+key)
     if o['baseline_enabled']:
         o['baseline_per_layer']=True
@@ -64,23 +68,64 @@ class Dataset:
     def name(self):return self.metadata['source_name']
 
 
-def baseline_fit(ppm,real,regions,degree,reference=0,per_layer=True):
+def solvent_center_ppm(metadata, ppm_shift):
+    parameters = metadata.get('parameters', {})
+    offset = parameters.get('irr_offset', {})
+    unit = next(iter(offset.get('units', ())), {})
+    value = offset.get('value')
+    if (parameters.get('irr_mode', {}).get('value') != 'Presaturation'
+            or parameters.get('irr_domain', {}).get('value') != 'Proton'
+            or unit.get('base_code') != 26 or unit.get('prefix_code') != 0 or unit.get('power') != 1
+            or not isinstance(value, (int, float)) or not np.isfinite(value)):
+        raise ValueError('Korekcja ogona wymaga presaturacji ¹H i położenia IRR w ppm w nagłówku JDF.')
+    return float(value) + ppm_shift
+
+
+def solvent_wing_ranges(center):
+    return ((center - SOLVENT_MASK_REACH_PPM, center - SOLVENT_CORE_PPM),
+            (center + SOLVENT_CORE_PPM, center + SOLVENT_MASK_REACH_PPM))
+
+
+def baseline_mask(ppm, regions, *, tail_center=None):
     mask=np.zeros(len(ppm),bool)
     for lo,hi in regions:
         lo,hi=sorted((lo,hi));mask|=(ppm>=lo)&(ppm<=hi)
+        if tail_center is not None and lo < tail_center + SOLVENT_CORE_PPM and hi > tail_center - SOLVENT_CORE_PPM:
+            raise ValueError('Obszar bazy wchodzi w rdzeń presaturacji (±0,15 ppm od IRR).')
+    if tail_center is not None and any(
+        np.count_nonzero(mask & (ppm >= lo) & (ppm <= hi)) < 2
+        for lo, hi in solvent_wing_ranges(tail_center)
+    ):
+        raise ValueError('Wskaż tło po obu stronach presaturacji, w odległości 0,15–1,50 ppm od IRR.')
+    return mask
+
+
+def baseline_fit(ppm,real,regions,degree,reference=0,per_layer=True,*,tail_center=None):
+    mask=baseline_mask(ppm,regions,tail_center=tail_center)
     if np.count_nonzero(mask)<degree+2:raise ValueError('Wskaż więcej punktów bazowych; potrzeba co najmniej rząd+2.')
     span=np.ptp(ppm)
     if span<=0:raise ValueError('Zerowa szerokość osi ppm.')
     x=2*(ppm-(ppm.min()+ppm.max())/2)/span
-    design=np.polynomial.legendre.legvander(x[mask],degree)
+    full=np.polynomial.legendre.legvander(x,degree)
+    if tail_center is not None:
+        distance = ppm - tail_center
+        # The dispersive far wing is proportional to 1/distance. The finite
+        # linear continuation inside the excluded core is only for display.
+        tail = distance / np.maximum(np.abs(distance), SOLVENT_CORE_PPM)**2
+        full = np.column_stack((full, tail))
+    if np.count_nonzero(mask) <= full.shape[1]:
+        raise ValueError('Wskaż więcej punktów bazowych; liczba punktów musi przewyższać liczbę parametrów.')
+    design=full[mask]
     condition=float(np.linalg.cond(design))
     if not np.isfinite(condition) or condition>1e10:raise ValueError('Niestabilna baza: rozmieść obszary szerzej po widmie.')
-    full=np.polynomial.legendre.legvander(x,degree)
     if per_layer:coeff=np.linalg.lstsq(design,real[:,mask].T,rcond=None)[0].T
     else:
         one=np.linalg.lstsq(design,real[reference,mask],rcond=None)[0]
         coeff=np.repeat(one[None,:],len(real),axis=0)
-    return coeff@full.T,dict(condition=condition,points=int(mask.sum()),coefficients=coeff.tolist())
+    diagnostics=dict(condition=condition,points=int(mask.sum()),coefficients=coeff.tolist())
+    if tail_center is not None:
+        diagnostics.update(solvent_tail_center_ppm=tail_center, solvent_core_halfwidth_ppm=SOLVENT_CORE_PPM)
+    return coeff@full.T,diagnostics
 
 
 def phase_radians(ppm,metadata,options):
@@ -118,8 +163,9 @@ def process_fids(raw,options=None,roi_bounds=()):
     if o['baseline_regions'] and (o['baseline_preview'] or o['baseline_enabled']):
         if o['baseline_enabled']:
             validate_baseline_roi_overlap(o['baseline_regions'], roi_bounds)
+        tail_center=solvent_center_ppm(raw.metadata,o['ppm_shift']) if o['baseline_solvent_tail'] else None
         base,diag['baseline']=baseline_fit(ppm,z.real,o['baseline_regions'],o['baseline_degree'],
-                                          o['reference_layer'],o['baseline_per_layer'])
+                                          o['reference_layer'],o['baseline_per_layer'],tail_center=tail_center)
         if min(min(x) for x in o['baseline_regions'])>ppm.min() or max(max(x) for x in o['baseline_regions'])<ppm.max():
             diag['warnings'].append('Baza jest ekstrapolowana poza skrajne wybrane obszary; sprawdź podgląd.')
     elif o['baseline_enabled']:raise ValueError('Najpierw zaznacz obszary linii bazowej.')
@@ -181,6 +227,12 @@ def signed_integrals(ppm,spectra,bounds):
 
 
 def integrate(dataset,bounds):
+    baseline = dataset.diagnostics.get('baseline')
+    if dataset.options['baseline_enabled'] and baseline and 'solvent_tail_center_ppm' in baseline:
+        low, high = sorted(bounds)
+        center = baseline['solvent_tail_center_ppm']
+        if low < center + SOLVENT_CORE_PPM and high > center - SOLVENT_CORE_PPM:
+            raise ValueError('Całka wchodzi w rdzeń presaturacji (±0,15 ppm od IRR).')
     pre=signed_integrals(dataset.ppm,dataset.phased.real,bounds)
     values=signed_integrals(dataset.ppm,dataset.spectrum.real,bounds)
     return {'raw_integral':pre,'corrected_integral':values,

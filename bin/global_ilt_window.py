@@ -9,7 +9,7 @@ from global_ilt import GlobalParameters, solve_global_ilt
 from i18n import tr
 from ilt import D_UNIT, GRID_SIZES, ILTParameters, solve_ilt
 from ilt_help import GLOBAL_ILT_HELP, ILT_WINDOW_FLAGS, add_ilt_info
-from ilt_tools import ILTPlotTools, SolveJob
+from ilt_tools import ILTPenaltyEdit, ILTPlotTools, SolveJob
 from ilt_regularization import SweepInput, has_systematic_warning, supplied_noise
 from ilt_regularization_window import RegularizationControls
 
@@ -123,7 +123,7 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
             tuning.addWidget(QtWidgets.QLabel(symbol))
             slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
             slider.setRange(lower, upper)
-            edit = QtWidgets.QLineEdit()
+            edit = ILTPenaltyEdit()
             edit.setMaximumWidth(95)
             slider.valueChanged.connect(lambda value, field=edit: self.slider_changed(value, field))
             edit.editingFinished.connect(lambda field=edit, control=slider: self.penalty_changed(field, control))
