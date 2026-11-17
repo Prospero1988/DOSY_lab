@@ -23,8 +23,9 @@ class PhaseWindow(QtWidgets.QDialog):
         self.appearance = appearance
         self.initial=deepcopy(dataset.options)
         self.previous_pivot=self.initial['pivot_ppm']
-        # Undo only the old phase, preserving the exact common apodization/FFT.
-        self.unphased=dataset.phased*np.exp(-1j*phase_radians(dataset.ppm,dataset.metadata,self.initial))[None,:]
+        # Processing has already applied apodization, FFT, referencing and filters at this stage.
+        self.before_baseline = dataset.phased
+        self.initial_phase = phase_radians(dataset.ppm, dataset.metadata, self.initial)
         self.preview=None
         self.last_drag_dy = 0.
         layout=QtWidgets.QVBoxLayout(self)
@@ -34,6 +35,9 @@ class PhaseWindow(QtWidgets.QDialog):
             '<b>Ustaw pivot</b> — włącz, aby wskazać pivot &nbsp;·&nbsp; <b>Środkowy + ruch</b> — przesuwanie &nbsp;·&nbsp; '
             '<b>Rolka</b> — wysokość widma'))
         help_label.setWordWrap(True);layout.addWidget(help_label)
+        baseline_note = QtWidgets.QLabel(tr('Podgląd fazowania: korekcja bazy i ogona presaturacji są wyłączone.'))
+        baseline_note.setWordWrap(True)
+        layout.addWidget(baseline_note)
         row=QtWidgets.QHBoxLayout();layout.addLayout(row)
         self.controls={}
         for key,label,value,low,high,step,decimals in [
@@ -128,17 +132,18 @@ class PhaseWindow(QtWidgets.QDialog):
     def refresh(self,*args):
         if not hasattr(self,'plot'):return
         o=self.options()
-        self.preview=self.unphased*np.exp(1j*phase_radians(self.dataset.ppm,self.dataset.metadata,o))[None,:]
+        phase_change = phase_radians(self.dataset.ppm, self.dataset.metadata, o) - self.initial_phase
+        self.preview = self.before_baseline * np.exp(1j * phase_change)[None, :]
         self.draw()
         self.phase_label.setText(tr(f"PH0={o['phase0_deg']:.3f}° · PH1={o['phase1_deg']:.3f}° / całe SW · pivot={o['pivot_ppm']:.6f} ppm. "
-            'Podgląd bez odejmowania bazy. Zmiany dotyczą wszystkich warstw. Ustawienia Delty nie są kopiowane.'))
+            'Zmiany dotyczą wszystkich warstw. Ustawienia Delty nie są kopiowane.'))
 
     def draw(self,*args):
         if self.preview is None:return
         self.plot.clear();i=self.layer.currentIndex();x=self.dataset.ppm
         self.plot.plot(x,self.preview[i].real,pen=self.appearance.pen())
         if self.imaginary.isChecked():self.plot.plot(x,self.preview[i].imag,pen=self.appearance.pen('#fb923c',QtCore.Qt.PenStyle.DotLine))
-        if self.before.isChecked():self.plot.plot(x,self.dataset.phased[i].real,pen=self.appearance.pen('#64748b',QtCore.Qt.PenStyle.DashLine))
+        if self.before.isChecked():self.plot.plot(x,self.before_baseline[i].real,pen=self.appearance.pen('#64748b',QtCore.Qt.PenStyle.DashLine))
         self.pivot=pg.InfiniteLine(self.controls['pivot_ppm'].value(),movable=self.pivot_button.isChecked(),pen=pg.mkPen('#c084fc',width=2))
         self.pivot.sigPositionChangeFinished.connect(lambda line:self.set_pivot(line.value()))
         self.plot.addItem(self.pivot)

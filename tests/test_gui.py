@@ -1793,5 +1793,59 @@ class InterfaceTests(unittest.TestCase):
         d.reject();APP.processEvents()
         np.testing.assert_array_equal(w.dataset.spectrum,before);self.assertEqual(w.dataset.options,options)
 
+    def test_phase_previews_bypass_baseline_and_keep_other_processing(self):
+        w = self.w
+        raw = synthetic(nlayers=4, npoints=512)
+        parameters = dict(irr_mode={'value': 'Presaturation'}, irr_domain={'value': 'Proton'},
+                          irr_offset={'value': 4.5, 'units': [dict(base_code=26, prefix_code=0, power=1)]})
+        raw = replace(raw, metadata=dict(raw.metadata, parameters=parameters, digital_filter=True,
+                                         x_sweep_clipped_Hz=900.))
+        options = dict(default_options(raw), lb_Hz=.3, gaussian_FWHM_Hz=1.2, zero_fill_factor=2,
+                       ppm_shift=.15, filter_delay_samples=2.25, phase0_deg=15., phase1_deg=25.,
+                       baseline_enabled=True, baseline_regions=[[4.02, 4.15], [5.07, 5.23]])
+
+        for tail_enabled in (False, True):
+            with self.subTest(tail_enabled=tail_enabled):
+                original = process_fids(raw, dict(options, baseline_solvent_tail=tail_enabled))
+                w.loaded((raw, original, [], [], 1.))
+                layer = 2
+                self.assertFalse(np.allclose(original.spectrum[layer], original.phased[layer]))
+                w.phase_button.click()
+                dialog = w.phase_window
+                dialog.layer.setCurrentIndex(layer)
+                dialog.imaginary.setChecked(True)
+                dialog.before.setChecked(True)
+                np.testing.assert_array_equal(dialog.preview, original.phased)
+                dialog.controls['phase0_deg'].setValue(28.)
+                dialog.controls['phase1_deg'].setValue(-40.)
+                edited = dict(original.options, phase0_deg=28., phase1_deg=-40.)
+                uncorrected = process_fids(raw, dict(edited, baseline_enabled=False, baseline_preview=False))
+                np.testing.assert_allclose(dialog.preview, uncorrected.spectrum, atol=1e-11)
+                curves = dialog.plot.listDataItems()
+                self.assertEqual(len(curves), 3)
+                for curve, expected in zip(curves, (uncorrected.spectrum[layer].real,
+                                                    uncorrected.spectrum[layer].imag,
+                                                    original.phased[layer].real)):
+                    ppm, signal = curve.getData()
+                    np.testing.assert_array_equal(ppm, original.ppm)
+                    np.testing.assert_allclose(signal, expected, atol=1e-11)
+
+                dialog.reject()
+                self.assertIs(w.dataset, original)
+                self.assertEqual(w.processing.options(), original.options)
+                w.phase_button.click()
+                dialog = w.phase_window
+                dialog.controls['phase0_deg'].setValue(28.)
+                dialog.controls['phase1_deg'].setValue(-40.)
+                dialog.apply_button.click()
+                settle(w)
+                self.assertIsNone(w.phase_window)
+                self.assertEqual(w.dataset.options, edited)
+                corrected = process_fids(raw, edited)
+                np.testing.assert_allclose(w.dataset.spectrum, corrected.spectrum, atol=1e-11)
+                self.assertFalse(np.allclose(corrected.spectrum, uncorrected.spectrum))
+                plotted = w.spectrum.listDataItems()[0].getData()[1]
+                np.testing.assert_allclose(plotted, corrected.spectrum[edited['reference_layer']].real, atol=1e-11)
+
 
 if __name__=='__main__':unittest.main()

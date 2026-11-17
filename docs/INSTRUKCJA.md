@@ -83,6 +83,8 @@ The correction shifts all layers, the phase pivot, integral bounds and baseline 
 4. Use **Zoom range [Z]** and **Pan spectrum [P]** to inspect the signal. Press the same key again to resume phasing. **Full range [F]** or a left double-click resets the view. Scroll to adjust the height. Use **Show Im** and **Show previous phase** to inspect the effect.
 5. Use **Preview** to check another gradient layer. **Apply shared phase to all layers** commits one correction to the full series. **Cancel** discards changes made in the dialog.
 
+Both phase previews use the current apodization, zero filling, chemical-shift reference and filter settings. Baseline subtraction, including presaturation tail subtraction, is off in this window. Applying the shared phase recalculates the main spectrum with the baseline settings from **Processing**. Cancel keeps the current main spectrum and its processing settings.
+
 PH1 is specified in degrees across the entire acquired spectral width, in order of increasing ppm. The manual correction at a given point is $\mathrm{PH0}+\mathrm{PH1}\cdot(\mathrm{ppm}-\mathrm{pivot})/\mathrm{SW}_{\mathrm{ppm}}$. The displayed ppm axis usually decreases from left to right. Values from another program may use a different pivot, sign or axis convention.
 
 When the JDF contains suitable decimation metadata, DOSY Lab estimates the filter delay and applies a separate shared ramp on opening a raw file. **Info** shows the applied delay. The phasing dialog can also add a manual ramp of 360° per sample of delay. Check the independent filter correction before adding that ramp.
