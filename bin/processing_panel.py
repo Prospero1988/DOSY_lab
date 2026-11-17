@@ -71,10 +71,28 @@ class ProcessingPanel(QtWidgets.QDockWidget):
         per_layer=self.controls['baseline_per_layer']
         per_layer.setChecked(True)
         per_layer.setToolTip(tr('Przełącza sposób podglądu. Zatwierdzona korekcja zawsze odejmuje osobną bazę od każdej warstwy.'))
+        self.show_baseline_regions = QtWidgets.QCheckBox(tr('Pokaż obszary bazy'))
+        self.show_baseline_regions.setChecked(True)
+        self.show_baseline_regions.setToolTip(tr('Pokaż lub ukryj niebieskie obszary bazy na widmie. Korekcja nadal korzysta z zapisanych obszarów.'))
+        layout.addWidget(self.show_baseline_regions)
         self.base_list=QtWidgets.QListWidget();self.base_list.setMaximumHeight(95);layout.addWidget(self.base_list)
-        row=QtWidgets.QHBoxLayout();layout.addLayout(row)
-        for text,fn in [(tr('Zaznacz bazę'),lambda:self.mode_requested.emit('baseline')),(tr('Usuń obszar'),self.remove_region),(tr('Cofnij korekcję'),self.undo_baseline)]:
-            b=QtWidgets.QPushButton(text);b.clicked.connect(fn);row.addWidget(b)
+        actions = QtWidgets.QGridLayout()
+        layout.addLayout(actions)
+        self.baseline_button = QtWidgets.QPushButton(tr('Zaznacz bazę'))
+        self.baseline_button.setCheckable(True)
+        self.baseline_button.setToolTip(tr('Zaznacz fragmenty bez pików, z których program wyznaczy linię bazową. Żółta linia to podgląd.'))
+        self.baseline_button.clicked.connect(lambda checked: self.mode_requested.emit('baseline' if checked else 'zoom'))
+        actions.addWidget(self.baseline_button, 0, 0)
+        remove_region = QtWidgets.QPushButton(tr('Usuń obszar'))
+        remove_region.clicked.connect(self.remove_region)
+        actions.addWidget(remove_region, 0, 1)
+        self.clear_baseline_button = QtWidgets.QPushButton(tr('Wyczyść bazę'))
+        self.clear_baseline_button.setToolTip(tr('Usuń wszystkie niebieskie obszary bazy i wyłącz jej odejmowanie.'))
+        self.clear_baseline_button.setEnabled(False)
+        actions.addWidget(self.clear_baseline_button, 1, 0)
+        undo_baseline = QtWidgets.QPushButton(tr('Cofnij korekcję'))
+        undo_baseline.clicked.connect(self.undo_baseline)
+        actions.addWidget(undo_baseline, 1, 1)
         solvent_panel = QtWidgets.QFrame()
         solvent_panel.setObjectName('solventTailPanel')
         solvent_panel.setStyleSheet('''
@@ -171,6 +189,7 @@ class ProcessingPanel(QtWidgets.QDockWidget):
     def refresh_regions(self):
         self.base_list.clear()
         for a,b in self.regions:self.base_list.addItem(f'{min(a,b):.5f} … {max(a,b):.5f} ppm')
+        self.clear_baseline_button.setEnabled(bool(self.regions))
         self.update_solvent_setup()
 
     def add_region(self,bounds):

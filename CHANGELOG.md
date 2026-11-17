@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.3 · 2026-11-17
+
+- Add a Processing preference to show or hide the blue baseline regions independently of the fitted baseline preview.
+- Put **Select baseline** and **Clear baseline** in Processing and remove their main-toolbar buttons.
+
 ## 2.1.2 · 2026-11-17
 
 - Add optional per-layer solvent-tail baseline correction for presaturated proton DOSY with a recorded irradiation position in ppm.

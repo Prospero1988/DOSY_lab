@@ -1,4 +1,4 @@
-# DOSY Lab 2.1.2 user guide
+# DOSY Lab 2.1.3 user guide
 
 [Back to the README](../README.md)
 
@@ -88,18 +88,18 @@ When the JDF contains suitable decimation metadata, DOSY Lab estimates the filte
 
 ## 4. Baseline correction
 
-Choose **Select baseline** and draw several peak-free intervals, preferably on both sides of the signals to integrate. Blue bands mark the shared mask and yellow curves preview the fitted baselines.
+Open **Processing**, choose **Select baseline**, and draw several peak-free intervals, preferably on both sides of the signals to integrate. **Show baseline regions** toggles the blue bands that mark the shared mask. **Show fitted baseline** controls the yellow dashed preview separately. The region visibility preference applies across projects. The fit uses the selected regions whether the blue bands are visible or hidden.
 
 The default polynomial order is **1**. **Separate polynomial for each layer** is enabled by default and fits an independent line or polynomial to each layer on the same ppm mask. Before applying the correction you may preview the reference-layer fit instead. **Apply baseline subtraction** always subtracts each layer’s own fitted baseline before integration. This also applies when reopening projects with baseline subtraction enabled.
 
-Keep the blue baseline intervals clear of all ROIs. The fit extrapolates outside the outermost mask regions. Review the preview there before applying it. In **Processing**, use **Remove region** to remove one selected interval or **Undo correction** to disable subtraction while keeping the mask. **Clear baseline** above the spectrum removes the entire mask.
+Keep the baseline intervals clear of all ROIs. The fit extrapolates outside the outermost mask regions. Review the preview there before applying it. In **Processing**, use **Remove region** to remove one selected interval, **Clear baseline** to remove the entire mask and disable subtraction, or **Undo correction** to disable subtraction while keeping the mask.
 
 ### Presaturation and residual solvent
 
 Use the amber **Solvent tail (presaturation)** panel in **Processing** when the residual solvent has dispersive wings of opposite sign. The JDF must record proton presaturation and the irradiation position in ppm.
 
 1. Keep the existing peak-free background regions away from the solvent. Click **Show presaturation wings** to zoom in and enter baseline selection.
-2. Draw a short peak-free interval in each orange band, between 0.15 and 1.50 ppm from the irradiation position. Keep the selections clear of the solvent core and all ROIs. The blue intervals are the fit mask. **Hide presaturation wings** clears the orange guides and keeps the blue intervals visible.
+2. Draw a short peak-free interval in each orange band, between 0.15 and 1.50 ppm from the irradiation position. Keep the selections clear of the solvent core and all ROIs. **Hide presaturation wings** clears the orange guides. **Show baseline regions** controls the visibility of the blue fit mask.
 3. When the panel says the mask is ready, turn on **Solvent tail (presaturation)**. Start with a first-order polynomial and enable **Show fitted baseline**. The yellow dashed line shows the model for the displayed layer. Check it at low, middle and high gradient.
 4. Select **Apply baseline subtraction** to recalculate the signed integrals. Check the spectrum and decay residuals before saving the project or processing profile.
 
@@ -220,7 +220,7 @@ An export bundle can contain complete measurement data and the embedded pulse pr
 
 ![2D DOSY map with the linked 1D spectrum, ROI list and crosshair](images/mapa-dosy-2d.png)
 
-1. Define integrals and complete their fits. Click **2D DOSY map** next to **Clear baseline**.
+1. Define integrals and complete their fits. Click **2D DOSY map** on the main spectrum toolbar.
 2. Use **Groups / compounds** to hide an entire group or **Signals** to hide individual ROIs. Turning a group back on preserves individual selections. A displayed ROI must have a successful fit with finite, positive D. The checkboxes affect the map only.
 3. Use **Zoom [Z]** to drag a rectangle, **Pan [P]** to move, or **Full range [F]** to reset. The ppm zoom is linked to the 1D spectrum above.
 4. Use **Point / crosshair** to read ppm and D. The vertical guide extends into the proton spectrum. Enable **D projection** to sum the positive map intensity across ppm for each D and show the horizontal guide on the left. The sum uses the displayed ROIs before the visual floor and gain are applied. Press **Delete** to clear the guides and label. PNG export includes the projection and guides when visible.

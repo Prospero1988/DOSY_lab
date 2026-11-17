@@ -146,12 +146,8 @@ class Window(QtWidgets.QMainWindow):
             ('zoom','Zoom',tr('Przeciągnij, aby powiększyć zakres ppm.')),
             ('pan',tr('Przesuwaj'),tr('Przeciągnij, aby przesunąć widok widma.')),
             ('pivot',tr('Ustaw pivot'),tr('Kliknij widmo, aby ustawić punkt obrotu korekcji fazy.')),
-            ('baseline',tr('Zaznacz bazę'),tr('Zaznacz fragmenty bez pików, z których program wyznaczy linię bazową. Żółta linia to podgląd.')),
         ):
             self.tool_button(key,label,spectrum_tools,hint)
-        self.clear_baseline_button = self.button(tr('Wyczyść bazę'),self.clear_baseline,spectrum_tools,
-                                                 tr('Usuń wszystkie niebieskie obszary bazy i wyłącz jej odejmowanie.'))
-        self.clear_baseline_button.setEnabled(False)
         self.map_button = self.button(tr('Mapa DOSY 2D'), self.show_map, spectrum_tools,
                                       tr('Pokaż mapę ppm × D z całek i aktualnych dopasowań.'))
         self.map_button.setEnabled(False)
@@ -244,6 +240,10 @@ class Window(QtWidgets.QMainWindow):
         vertical.setSizes([560,330]);bottom.setSizes([680,750])
         self.processing=ProcessingPanel(self);self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,self.processing)
         self.mode_buttons['reference'] = self.processing.reference_button
+        self.mode_buttons['baseline'] = self.processing.baseline_button
+        self.processing.clear_baseline_button.clicked.connect(self.clear_baseline)
+        self.processing.show_baseline_regions.setChecked(self.settings.value('spectrum/showBaselineRegions', True, type=bool))
+        self.processing.show_baseline_regions.toggled.connect(self.set_baseline_region_visibility)
         self.processing.changed.connect(self.request_calculation);self.processing.mode_requested.connect(self.set_mode)
         self.processing.solvent_wings_requested.connect(self.toggle_solvent_wings)
         self.statusBar().showMessage(tr('Przeciągnięcie powiększa zakres. Rolka zmienia wysokość widma. Dwuklik przywraca cały zakres.'))
@@ -404,7 +404,6 @@ class Window(QtWidgets.QMainWindow):
         self.signal_labels = {}
         self.spectrum.clear();self.region_items={};self.base_items=[]
         self.view.split_regions = self.region_items
-        self.clear_baseline_button.setEnabled(bool(self.processing.regions))
         d=self.dataset
         if self.solvent_baseline_guide:
             for bounds in self.processing.solvent_ranges():
@@ -440,7 +439,10 @@ class Window(QtWidgets.QMainWindow):
             item.sigRegionChanged.connect(self.position_integral_labels)
         for bounds in self.processing.regions:
             item=pg.LinearRegionItem(bounds,movable=False,brush=pg.mkBrush(60,110,200,35),pen=pg.mkPen('#3b82f6'))
-            item.setZValue(-2);self.spectrum.addItem(item);self.base_items.append(item)
+            item.setZValue(-2)
+            item.setVisible(self.processing.show_baseline_regions.isChecked())
+            self.spectrum.addItem(item, ignoreBounds=True)
+            self.base_items.append(item)
         self.pivot_line=pg.InfiniteLine(self.processing.controls['pivot_ppm'].value(),movable=self.view.mode=='pivot',pen=pg.mkPen('#c084fc',style=QtCore.Qt.PenStyle.DashLine))
         self.pivot_line.setAcceptedMouseButtons(QtCore.Qt.MouseButton.LeftButton if self.view.mode=='pivot' else QtCore.Qt.MouseButton.NoButton)
         self.pivot_line.sigPositionChangeFinished.connect(lambda line:self.pivot_clicked(line.value()))
@@ -548,6 +550,11 @@ class Window(QtWidgets.QMainWindow):
             low, high = np.percentile(intensity, (3., 85.))
             if high > low:
                 self.spectrum.setYRange(low, high, padding=.12)
+
+    def set_baseline_region_visibility(self, visible):
+        self.settings.setValue('spectrum/showBaselineRegions', visible)
+        for item in self.base_items:
+            item.setVisible(visible)
 
     def clear_baseline(self):
         self.processing.clear_regions()

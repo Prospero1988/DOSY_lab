@@ -349,17 +349,48 @@ class InterfaceTests(unittest.TestCase):
         w.processing.add_region([5.65,6.1])
         w.processing.controls['baseline_enabled'].setChecked(True)
         settle(w)
-        self.assertTrue(w.clear_baseline_button.isEnabled())
+        panel = w.processing
+        self.assertTrue(panel.clear_baseline_button.isEnabled())
         self.assertFalse(np.array_equal(before,w.dataset.spectrum))
-        w.mode_buttons['baseline'].click()
-        w.clear_baseline_button.click()
+        panel.baseline_button.click()
+        self.assertEqual(w.view.mode, 'baseline')
+        panel.clear_baseline_button.click()
         settle(w)
+        self.assertFalse(panel.clear_baseline_button.isEnabled())
+        self.assertFalse(panel.baseline_button.isChecked())
         self.assertEqual(w.processing.regions,[])
         self.assertEqual(w.base_items,[])
         self.assertFalse(w.dataset.options['baseline_enabled'])
         self.assertIsNone(w.dataset.diagnostics['baseline'])
         self.assertEqual(w.view.mode,'zoom')
         np.testing.assert_array_equal(w.dataset.spectrum,before)
+
+    def test_baseline_region_visibility_is_independent_of_processing(self):
+        w = self.w
+        panel = w.processing
+        panel.show()
+        panel.add_region([2.65, 2.95])
+        panel.add_region([5.65, 6.1])
+        panel.controls['baseline_enabled'].setChecked(True)
+        settle(w)
+        toolbar_labels = {button.text() for button in w.centralWidget().findChildren(QtWidgets.QPushButton)}
+        self.assertFalse({'Zaznacz bazę', 'Wyczyść bazę'} & toolbar_labels)
+        self.assertEqual(len(w.base_items), 2)
+        self.assertTrue(all(item.isVisible() for item in w.base_items))
+        dataset, revision = w.dataset, w.revision
+        panel.show_baseline_regions.click()
+        self.assertTrue(all(not item.isVisible() for item in w.base_items))
+        self.assertFalse(w.settings.value('spectrum/showBaselineRegions', type=bool))
+        self.assertIs(w.dataset, dataset)
+        self.assertEqual(w.revision, revision)
+        self.assertEqual(panel.base_list.count(), 2)
+        self.assertTrue(any(curve.opts['pen'].color().name() == '#fbbf24'
+                            for curve in w.spectrum.listDataItems()))
+        w.layer.setCurrentIndex(1)
+        self.assertTrue(all(not item.isVisible() for item in w.base_items))
+        panel.show_baseline_regions.click()
+        self.assertTrue(all(item.isVisible() for item in w.base_items))
+        self.assertEqual(w.revision, revision)
 
     def test_dialogs_start_in_workspace_folders_and_filter_extensions(self):
         w=self.w

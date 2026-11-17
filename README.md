@@ -1,6 +1,6 @@
-# DOSY Lab 2.1.2
+# DOSY Lab 2.1.3
 
-DOSY Lab is a Windows desktop application for classical 1D diffusion NMR acquired on JEOL instruments. It opens raw JDF gradient series, processes the complex FIDs with a shared phase, and estimates the diffusion coefficient **D** from the decay of selected integrals. Version 2.1.2 adds an optional dispersive solvent-tail baseline for presaturated spectra and fixes keyboard entry of ILT regularization parameters.
+DOSY Lab is a Windows desktop application for classical 1D diffusion NMR acquired on JEOL instruments. It opens raw JDF gradient series, processes the complex FIDs with a shared phase, and estimates the diffusion coefficient **D** from the decay of selected integrals. Version 2.1.3 moves baseline controls into **Processing** and adds a separate toggle for the shaded baseline regions.
 
 ![DOSY Lab main window with the reference spectrum, integration regions and decay plot](docs/images/widmo-integracja.png)
 
@@ -21,13 +21,13 @@ DOSY Lab is a Windows desktop application for classical 1D diffusion NMR acquire
 
 ## Presaturation baseline correction
 
-In **Processing**, the amber **Solvent tail (presaturation)** panel helps you select peak-free background on both sides of the residual solvent signal. Enable **Show fitted baseline** to see the fitted correction as a yellow dashed line. Once you apply subtraction, DOSY Lab integrates the corrected signed spectrum using the existing ROI bounds. [Step-by-step guide and before/after comparison](docs/INSTRUKCJA.md#presaturation-and-residual-solvent)
+In **Processing**, the amber **Solvent tail (presaturation)** panel helps you select peak-free background on both sides of the residual solvent signal. Enable **Show fitted baseline** to see the fitted correction as a yellow dashed line. Use **Show baseline regions** to control the blue shading separately. Once you apply subtraction, DOSY Lab integrates the corrected signed spectrum using the existing ROI bounds. [Step-by-step guide and before/after comparison](docs/INSTRUKCJA.md#presaturation-and-residual-solvent)
 
 ![Synthetic DOSY spectrum after solvent-tail correction, showing the yellow dashed fitted baseline and the corrected spectrum](docs/images/presaturation-tail-corrected.png)
 
 ## Installation on Windows
 
-Use Windows with Python 3.11 or newer. The launcher needs internet access on first installation to download its Python dependencies. Extract the DOSY Lab 2.1.2 source archive, or clone the repository. To run this release exactly, check out the `v2.1.2` tag.
+Use Windows with Python 3.11 or newer. The launcher needs internet access on first installation to download its Python dependencies. Extract the DOSY Lab 2.1.3 source archive, or clone the repository. To run this release exactly, check out the `v2.1.3` tag.
 
 ~~~powershell
 git clone https://github.com/Prospero1988/DOSY_lab.git
@@ -104,7 +104,7 @@ The [user guide](docs/INSTRUKCJA.md) walks through opening data, processing, pha
 - [Automatic regularization and stability](docs/ILT_REGULARIZATION_2.1.md)
 - [Scientific QC and validation](docs/QC_AND_MAPS_2.1.md)
 - [Scientific audit archive and reproduction](audit/README.md)
-- [2.1.2 release notes](docs/RELEASE-2.1.2.md) and [changelog](CHANGELOG.md)
+- [2.1.3 release notes](docs/RELEASE-2.1.3.md) and [changelog](CHANGELOG.md)
 
 ## Input and scope
 

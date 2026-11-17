@@ -48,6 +48,8 @@
   "Zaznacz bazę": "Select baseline",
   "Zaznacz fragmenty bez pików, z których program wyznaczy linię bazową. Żółta linia to podgląd.": "Select peak-free regions for the baseline fit. The yellow line is the preview.",
   "Wyczyść bazę": "Clear baseline",
+  "Pokaż obszary bazy": "Show baseline regions",
+  "Pokaż lub ukryj niebieskie obszary bazy na widmie. Korekcja nadal korzysta z zapisanych obszarów.": "Show or hide the blue baseline regions on the spectrum. The correction still uses the selected regions.",
   "Usuń wszystkie niebieskie obszary bazy i wyłącz jej odejmowanie.": "Clear all blue baseline regions and disable baseline subtraction.",
   "Mapa DOSY 2D": "2D DOSY map",
   "Pokaż mapę ppm × D z całek i aktualnych dopasowań.": "Show a ppm × D map based on integrals and current fits.",
