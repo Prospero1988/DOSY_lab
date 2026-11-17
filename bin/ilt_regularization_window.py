@@ -6,6 +6,7 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtWidgets
 
 from i18n import tr
+from notices import NoticeLabel
 from ilt_help import ILT_WINDOW_FLAGS
 from ilt_regularization import SweepOptions, scan
 from ilt_tools import ILTPlotTools, SolveJob
@@ -133,8 +134,7 @@ class RegularizationWindow(QtWidgets.QDialog, ILTPlotTools):
         self.target = QtWidgets.QComboBox()
         self.target.currentIndexChanged.connect(self.render)
         layout.addWidget(self.target)
-        self.status = QtWidgets.QLabel()
-        self.status.setWordWrap(True)
+        self.status = NoticeLabel()
         layout.addWidget(self.status)
         tabs = QtWidgets.QTabWidget()
         layout.addWidget(tabs,1)
@@ -179,7 +179,7 @@ class RegularizationWindow(QtWidgets.QDialog, ILTPlotTools):
     def settings_changed(self,*_):
         self.apply_button.setEnabled(False)
         if self.results:
-            self.status.setText(tr('Ustawienia skanu zmienione. Przelicz skan, aby zastosować wynik.'))
+            self.status.set_notice(tr('Ustawienia skanu zmienione. Przelicz skan, aby zastosować wynik.'))
 
     def cancel_scan(self):
         if self.cancel is not None:
@@ -193,7 +193,7 @@ class RegularizationWindow(QtWidgets.QDialog, ILTPlotTools):
             options = SweepOptions(*(float(w.text().strip().replace(',','.')) for w in (self.minimum,self.maximum)),
                                    self.count.value(),self.method.currentData(),self.noise.isChecked(),self.grid.isChecked())
         except ValueError:
-            self.status.setText(tr('Wpisz prawidłową wartość liczbową.'))
+            self.status.set_notice(tr('Wpisz prawidłową wartość liczbową.'), 'error')
             return
         if options in self.cache:
             self.show_results(*self.cache[options])
@@ -204,7 +204,7 @@ class RegularizationWindow(QtWidgets.QDialog, ILTPlotTools):
         for widget in self.inputs:
             widget.setEnabled(False)
         self.apply_button.setEnabled(False)
-        self.status.setText(tr('Obliczanie skanu λ…'))
+        self.status.set_notice(tr('Obliczanie skanu λ…'))
         for button in self.export_buttons:
             button.setEnabled(False)
 
@@ -224,7 +224,7 @@ class RegularizationWindow(QtWidgets.QDialog, ILTPlotTools):
         for widget in self.inputs:
             widget.setEnabled(True)
         if error:
-            self.status.setText(tr(error))
+            self.status.set_notice(tr(error), 'error')
             return
         if len(self.cache)>=4:
             self.cache.pop(next(iter(self.cache)))
@@ -250,7 +250,7 @@ class RegularizationWindow(QtWidgets.QDialog, ILTPlotTools):
         for button in self.export_buttons:
             button.setEnabled(bool(results))
         if not results:
-            self.status.setText(tr('Brak zgodnych grup ROI do skanu λ.'))
+            self.status.set_notice(tr('Brak zgodnych grup ROI do skanu λ.'), 'warning')
         self.render()
 
     def scatter(self,plot,x,y,indices=None):
@@ -298,9 +298,9 @@ class RegularizationWindow(QtWidgets.QDialog, ILTPlotTools):
         rec = f'{result.recommendation:.5g}' if result.recommendation else '—'
         band = f'{result.interval[0]:.3g}–{result.interval[1]:.3g}' if result.interval else '—'
         joint = f' · μ = {result.fixed_mu:.4g}' if result.fixed_mu is not None else ''
-        self.status.setText(f'{tr(result.method)} · λ = {rec}{joint} · {tr("Zakres kandydatów")} {band}'
+        self.status.set_notice(f'{tr(result.method)} · λ = {rec}{joint} · {tr("Zakres kandydatów")} {band}'
             f' · {tr("Próby")} {lams[0]:.3g}–{lams[-1]:.3g} ({len(valid)}/{len(c)}) · {tr("Bieżące λ")} {current:.4g}\n'
-            + ' '.join(map(tr,result.warnings)))
+            + ' '.join(map(tr,result.warnings)), 'warning' if result.warnings else None)
         preferred = result.recommendation or current
         self.preview(min(valid,key=lambda i:abs(np.log(lams[i]/preferred))) if valid else 0)
 
@@ -359,7 +359,7 @@ class RegularizationWindow(QtWidgets.QDialog, ILTPlotTools):
         if self.controls.accept(self.token,recommendations):
             self.accept()
         else:
-            self.status.setText(tr('Dane lub ustawienia się zmieniły. Otwórz nowy skan λ.'))
+            self.status.set_notice(tr('Dane lub ustawienia się zmieniły. Otwórz nowy skan λ.'), 'warning')
             self.apply_button.setEnabled(False)
 
     def restore(self):

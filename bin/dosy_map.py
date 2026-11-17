@@ -9,6 +9,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from d_statistics import finite, quality
 from dosy_alignment_panel import AlignmentPanel, ILT_MODES, MODE_NAMES, ORIGINAL
+from notices import NoticeLabel
 from plot_export import NAVY, light_plot
 from spectrum_view import SpectrumBox
 from storage import source_save_name
@@ -315,8 +316,9 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         self.coordinate = QtWidgets.QLabel()
         layout.addWidget(self.coordinate)
         self.clear_guides()
-        self.note = QtWidgets.QLabel()
-        self.note.setWordWrap(True)
+        self.note = NoticeLabel()
+        self.stale_notice = NoticeLabel()
+        layout.addWidget(self.stale_notice)
         layout.addWidget(self.note)
         self.alignment.changed.connect(self.refresh_alignment)
         self.set_tool(0)
@@ -401,6 +403,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         new_experiment = self.experiment_id != experiment_id
         self.experiment_id, self.dataset, self.results = experiment_id, dataset, results
         self.stale = False
+        self.stale_notice.set_notice('')
         self.statusBar().clearMessage()
         if new_experiment:
             self.excluded.clear()
@@ -442,7 +445,7 @@ class DosyMapWindow(QtWidgets.QMainWindow):
     def invalidate(self):
         self.stale = True
         self.save_button.setEnabled(False)
-        self.statusBar().showMessage(tr('Mapa pokazuje ostatnie ukończone przeliczenie.'))
+        self.stale_notice.set_notice(tr('Mapa pokazuje ostatnie ukończone przeliczenie.'), 'warning')
 
     def roi_toggled(self, item):
         sid = item.data(QtCore.Qt.ItemDataRole.UserRole)
@@ -520,7 +523,12 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             note = self.map_legend or self.alignment.error
             if not note and not self.alignment.ready:
                 note = tr('Obliczanie rekonstrukcji ILT…')
-            self.note.setText(note or tr('Brak dodatnich sygnałów do wyświetlenia. Sprawdź dopasowania D, fazę i wybór ROI.'))
+            if self.alignment.error:
+                self.note.set_notice(tr(self.alignment.error), 'error')
+            elif note:
+                self.note.set_notice(note)
+            else:
+                self.note.set_notice(tr('Brak dodatnich sygnałów do wyświetlenia. Sprawdź dopasowania D, fazę i wybór ROI.'), 'warning')
             return
         maximum = max(band.diffusion for band in bands) / self.D_SCALE
         fwhm = self.width.value() * maximum / 100
@@ -553,17 +561,19 @@ class DosyMapWindow(QtWidgets.QMainWindow):
             (max(ppm[0], x_left-x_margin), min(ppm[-1], x_right+x_margin)),
             (max(0., min([maximum-span]+native)-d_margin), max([maximum]+native)+d_margin),
         )
-        self.note.setText(
+        self.note.set_notice(
             tr(f'Widmo 1D: warstwa {layer} (referencja). Mapa: kształt widma w ROI przy jego D. '
             'Kolor pokazuje dodatnie intensywności. Szerokość w D jest ustawieniem graficznym.')
-            + (tr(' Wspólne punkty nakładających się ROI są pominięte.') if overlaps else ''))
+            + (tr(' Wspólne punkty nakładających się ROI są pominięte.') if overlaps else ''),
+            'warning' if overlaps else None)
         if mode != ORIGINAL and not mono_reference:
             detail = self.map_legend if ilt_mode else tr('Poza zaakceptowanymi grupami lub profilami zachowano oryginalne D.')
             if self.alignment.error:
                 detail = tr('Błąd wyrównania') + ' · ' + tr(self.alignment.error)
             elif not self.alignment.ready:
                 detail = tr('Obliczanie wyrównania. Tymczasowo wyświetlana jest mapa oryginalna.')
-            self.note.setText(tr(MODE_NAMES[self.alignment.mode.currentIndex()]) + ' · ' + detail)
+            self.note.set_notice(tr(MODE_NAMES[self.alignment.mode.currentIndex()]) + ' · ' + detail,
+                                 'error' if self.alignment.error else None)
         self.update_intensity()
 
     def render_ilt_overlays(self, selected, represented, profiles, overlap, policy):
@@ -634,8 +644,8 @@ class DosyMapWindow(QtWidgets.QMainWindow):
         saturation = threshold + (self.peak_intensity - threshold) / gain
         for image in self.images:
             image.setLevels((threshold, saturation))
-        if self.map_legend:
-            self.note.setText(self.reconstruction_title() + self.ilt_legend())
+        if self.map_legend and not self.alignment.error:
+            self.note.set_notice(self.reconstruction_title() + self.ilt_legend())
 
     def reconstruction_title(self):
         mode = self.alignment.mode.currentIndex()

@@ -392,6 +392,47 @@ class InterfaceTests(unittest.TestCase):
         self.assertTrue(all(item.isVisible() for item in w.base_items))
         self.assertEqual(w.revision, revision)
 
+    def test_baseline_overlap_shows_persistent_error_with_both_intervals(self):
+        w = self.w
+        w.add_roi([3.60, 3.68])
+        self.assertEqual(w.roi_table.item(0, ILT_COLUMN-1).text(), '—')
+        settle(w)
+        w.processing.add_region([3.62, 3.66])
+        w.processing.controls['baseline_enabled'].setChecked(True)
+        with self.assertRaisesRegex(AssertionError, 'Obszar bazy przecina ROI'):
+            settle(w)
+        self.assertTrue(w.analysis_notice.isVisible())
+        self.assertEqual(w.analysis_notice.property('noticeLevel'), 'error')
+        self.assertFalse(w.analysis_notice.icon.pixmap().isNull())
+        message = w.analysis_notice.text()
+        self.assertIn('3.62000–3.66000 ppm', message)
+        self.assertIn('3.600000–3.680000 ppm', message)
+        w.statusBar().showMessage('Test')
+        self.assertEqual(w.analysis_notice.text(), message)
+        w.processing.clear_baseline_button.click()
+        settle(w)
+        self.assertIsNone(w.analysis_notice.property('noticeLevel'))
+        self.assertFalse(w.analysis_notice.isVisible())
+
+    def test_baseline_extrapolation_banner_names_only_integrals_outside_fit(self):
+        w = self.w
+        raw = synthetic(nlayers=4)
+        w.loaded((raw, process_fids(raw), [], [], 1.))
+        w.processing.add_region([3.8, 3.92])
+        w.processing.add_region([5.03, 5.14])
+        w.processing.controls['baseline_enabled'].setChecked(True)
+        w.add_roi([4.56, 4.75])
+        settle(w)
+        self.assertFalse(w.analysis_notice.isVisible())
+        w.add_roi([5.18, 5.25])
+        settle(w)
+        self.assertEqual(w.analysis_notice.property('noticeLevel'), 'warning')
+        self.assertIn('przy całkach S2.', w.analysis_notice.text())
+        self.assertNotIn('S1', w.analysis_notice.text())
+        w.delete_roi()
+        settle(w)
+        self.assertFalse(w.analysis_notice.isVisible())
+
     def test_dialogs_start_in_workspace_folders_and_filter_extensions(self):
         w=self.w
         stem=self.source.stem

@@ -8,6 +8,7 @@ import numpy as np
 from PySide6 import QtCore,QtWidgets
 from core import baseline_mask, load_profile, save_profile, solvent_center_ppm, solvent_wing_ranges
 from jeol import validate_b
+from notices import NoticeLabel
 from storage import PROCESSING, PROFILE_FILTER, choose_save_file, dialog_directory, source_save_name
 
 
@@ -106,8 +107,7 @@ class ProcessingPanel(QtWidgets.QDockWidget):
         solvent_tail.toggled.connect(self.emit_change)
         self.controls['baseline_solvent_tail'] = solvent_tail
         solvent_layout.addWidget(solvent_tail)
-        self.solvent_hint = QtWidgets.QLabel()
-        self.solvent_hint.setWordWrap(True)
+        self.solvent_hint = NoticeLabel()
         solvent_layout.addWidget(self.solvent_hint)
         self.solvent_wings_button = QtWidgets.QPushButton(tr('Pokaż skrzydła presaturacji'))
         self.solvent_wings_button.clicked.connect(self.solvent_wings_requested)
@@ -150,7 +150,7 @@ class ProcessingPanel(QtWidgets.QDockWidget):
             baseline_mask(ppm, self.regions, tail_center=center)
         except ValueError as exc:
             control.setEnabled(control.isChecked())
-            self.solvent_hint.setText(tr(str(exc)))
+            self.solvent_hint.set_notice(tr(str(exc)), 'warning' if self.solvent_wings_button.isEnabled() else None)
             return
         control.setEnabled(True)
         text = ('Maska gotowa. Włącz ogon i zatwierdź odejmowanie bazy.'
@@ -158,7 +158,7 @@ class ProcessingPanel(QtWidgets.QDockWidget):
                 'Ogon wybrany. Zatwierdź odejmowanie bazy, aby przeliczyć całki.'
                 if not self.controls['baseline_enabled'].isChecked() else
                 'Ogon wybrany. Sprawdź żółty podgląd na kilku warstwach.')
-        self.solvent_hint.setText(tr(text))
+        self.solvent_hint.set_notice(tr(text))
 
     def set_options(self,options,nlayers):
         self._setting=True
@@ -251,14 +251,14 @@ class BDialog(QtWidgets.QDialog):
         load=QtWidgets.QPushButton('Import CSV');load.clicked.connect(self.import_csv);row.addWidget(load)
         apply=QtWidgets.QPushButton(tr('Zastosuj jako ręczną listę'));apply.clicked.connect(self.apply);row.addWidget(apply)
         cancel=QtWidgets.QPushButton(tr('Anuluj'));cancel.clicked.connect(self.reject);row.addWidget(cancel)
-        self.error=QtWidgets.QLabel('');self.error.setWordWrap(True);layout.addWidget(self.error)
+        self.error=NoticeLabel();layout.addWidget(self.error)
 
     def apply(self):
         try:
             if not self.reason.text().strip():raise ValueError(tr('Podaj źródło listy. Nie kalibruj jej oczekiwaną wartością D.'))
             self.values=validate_b([float(self.table.item(i,2).text()) for i in range(self.table.rowCount())],len(self.raw.fid))
             self.accept()
-        except Exception as exc:self.error.setText(tr(str(exc)))
+        except Exception as exc:self.error.set_notice(tr(str(exc)), 'error')
 
     def import_csv(self):
         path,_=QtWidgets.QFileDialog.getOpenFileName(self,tr('Lista b'),'','CSV (*.csv *.txt)')
@@ -273,4 +273,5 @@ class BDialog(QtWidgets.QDialog):
             values=validate_b([float(row[index]) for row in rows if row],len(self.raw.fid))
             for i,v in enumerate(values):self.table.item(i,2).setText(f'{v:.12g}')
             self.reason.setText('Import CSV: '+str(Path(path).resolve()))
-        except Exception as exc:self.error.setText(tr('Nieprawidłowy CSV: ')+str(exc))
+            self.error.set_notice('')
+        except Exception as exc:self.error.set_notice(tr('Nieprawidłowy CSV: ')+str(exc), 'error')

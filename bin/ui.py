@@ -26,6 +26,7 @@ from phase_window import PhaseWindow
 from spectrum_settings import SpectrumAppearance, SpectrumSettingsDialog
 from experiment_info import ExperimentInfo
 from i18n import retranslate, set_language, tr
+from notices import NoticeLabel, QC_LEVEL, style_qc_item
 from version import VERSION
 
 STYLE='''QMainWindow,QWidget {background:#101827;color:#dbe4ef;font-size:12px;}
@@ -34,7 +35,14 @@ QPushButton:hover {background:#344966;} QPushButton:checked {background:#155e75;
 QPushButton:disabled {color:#66758b;} QComboBox,QDoubleSpinBox,QSpinBox,QLineEdit {padding:4px;background:#26364e;}
 QTableWidget,QListWidget {gridline-color:#334155;} QHeaderView::section {background:#26364e;padding:4px;}
 QTabBar::tab {padding:6px;background:#26364e;} QTabBar::tab:selected {background:#40516d;}
-QDockWidget::title {background:#26364e;padding:7px;}'''
+QSplitter::handle, QMainWindow::separator {background:#101827;}
+QSplitter::handle:horizontal {width:7px;}
+QSplitter::handle:vertical {height:7px;}
+QMainWindow::separator {width:7px;height:7px;}
+QSplitter::handle:horizontal, QMainWindow::separator:vertical {border-left:1px solid #53647c;}
+QSplitter::handle:vertical, QMainWindow::separator:horizontal {border-top:1px solid #53647c;}
+QSplitter::handle:hover, QMainWindow::separator:hover {border-color:#8cb9d6;}
+QDockWidget::title {background:#26364e;padding:7px;border-bottom:1px solid #53647c;}'''
 COLORS=['#67e8f9','#fb923c','#4ade80','#f472b6','#facc15','#60a5fa','#c084fc','#f87171']
 GROUP_COLUMN = 1
 LOWER_PPM_COLUMN = 2
@@ -118,6 +126,10 @@ class Window(QtWidgets.QMainWindow):
         self.button(tr('Statystyka D'), self.show_statistics, top, tr('Porównaj współczynniki dyfuzji w obrębie grup związków.'))
         self.export_button = self.button(tr('Eksport Statystyki D'), self.choose_export, top, tr('Zapisz pakiet wyników, statystyki, tabele i wykresy.'))
         self.export_button.setEnabled(False)
+        self.analysis_notice = NoticeLabel()
+        self.input_notice = NoticeLabel()
+        layout.addWidget(self.analysis_notice)
+        layout.addWidget(self.input_notice)
         row=QtWidgets.QHBoxLayout();layout.addLayout(row)
         row.addWidget(QtWidgets.QLabel(tr('Warstwa:')));self.layer=QtWidgets.QComboBox();row.addWidget(self.layer,1)
         self.layer.setToolTip(tr('Wybierz warstwę gradientową wyświetlaną na widmie i w kolumnie Całka.'))
@@ -204,6 +216,8 @@ class Window(QtWidgets.QMainWindow):
         self.roi_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         self.roi_table.itemChanged.connect(self.roi_edited);self.roi_table.currentCellChanged.connect(self.roi_selected);ll.addWidget(self.roi_table)
         self.fit_info=QtWidgets.QLabel(tr('Zaznacz sygnał. Grupa jest potrzebna do statystyki zbiorczej.'));self.fit_info.setWordWrap(True);ll.addWidget(self.fit_info)
+        self.fit_notice = NoticeLabel()
+        ll.addWidget(self.fit_notice)
         self.tabs=QtWidgets.QTabWidget();bottom.addWidget(self.tabs)
         decay_widget=QtWidgets.QWidget();dl=QtWidgets.QVBoxLayout(decay_widget)
         row=QtWidgets.QHBoxLayout();dl.addLayout(row)
@@ -294,6 +308,7 @@ class Window(QtWidgets.QMainWindow):
 
     def start_job(self,fn,callback):
         self.valid=False;self.export_button.setEnabled(False);self.open_button.setEnabled(False)
+        self.input_notice.set_notice('')
         self.invalidate_map()
         self.statusBar().showMessage(tr('Obliczanie w tle. Widok odświeży się po zakończeniu.'))
         self.job_callback=callback;self.worker=Job(fn,self)
@@ -303,7 +318,15 @@ class Window(QtWidgets.QMainWindow):
     @QtCore.Slot(object)
     def job_success(self,value):self.job_callback(value)
     @QtCore.Slot(str)
-    def job_error(self,error):self.statusBar().showMessage(tr('Nie zastosowano zmian. ')+tr(error))
+    def job_error(self,error):
+        message = tr('Nie zastosowano zmian. ')+tr(error)
+        self.analysis_notice.set_notice(message, 'error')
+        self.statusBar().showMessage(message)
+
+    def warn_input(self, message, timeout=8000):
+        message = tr(message)
+        self.input_notice.set_notice(message, 'warning', timeout)
+        self.statusBar().showMessage(message, timeout)
     @QtCore.Slot()
     def job_finished(self):
         old=self.worker;self.worker=None;old.deleteLater();self.open_button.setEnabled(True)
@@ -384,9 +407,20 @@ class Window(QtWidgets.QMainWindow):
         if self.statistics_window is not None:self.statistics_window.update_live(self.snapshot())
         if self.map_window is not None and self.map_window.isVisible():
             self.map_window.update_data(self.experiment_id,self.dataset,self.results)
-        self.statusBar().showMessage('; '.join(map(tr,self.dataset.diagnostics['warnings'])) or tr('Gotowe. Zmiana wyboru widma lub ROI nie zmienia danych pomiarowych.'))
+        warnings = list(self.dataset.diagnostics['warnings'])
+        baseline = self.dataset.diagnostics['baseline'] or {}
+        outside = baseline.get('extrapolated_roi_indices', ())
+        if outside:
+            ids = ', '.join(self.entries[i]['id'] for i in outside)
+            warnings.append(tr('Część całek wychodzi poza zakres dopasowania bazy.') + ' '
+                            + tr('Włącz „Pokaż dopasowaną bazę” i sprawdź żółtą linię przy całkach') + f' {ids}.')
         if meta.get('digital_filter') and not delay and abs(self.dataset.options['phase1_deg'])<1:
-            self.statusBar().showMessage(tr('Brak zastosowanej korekcji opóźnienia filtra. Sprawdź fazę; falowanie może pochodzić z filtra cyfrowego.'))
+            warnings.append('Brak zastosowanej korekcji opóźnienia filtra. Sprawdź fazę; falowanie może pochodzić z filtra cyfrowego.')
+        if self.dataset.b is None:
+            warnings.append(meta['b_source']['description'])
+        message = ' '.join(map(tr, warnings))
+        self.analysis_notice.set_notice(message, 'warning' if message else None)
+        self.statusBar().showMessage(message or tr('Gotowe. Zmiana wyboru widma lub ROI nie zmienia danych pomiarowych.'))
 
     def selected_layers(self):
         if self.raw is None:return []
@@ -395,7 +429,7 @@ class Window(QtWidgets.QMainWindow):
                 values=[int(x.strip())-1 for x in self.overlay_layers.text().split(',')]
                 if not values or any(i<0 or i>=len(self.raw.fid) for i in values):raise ValueError()
                 return list(dict.fromkeys(values))
-        except ValueError:self.statusBar().showMessage(tr('Podaj numery istniejących warstw rozdzielone przecinkami.'))
+        except ValueError:self.warn_input('Podaj numery istniejących warstw rozdzielone przecinkami.')
         return [max(0,self.layer.currentIndex())]
 
     def render_spectrum(self,*args):
@@ -579,7 +613,7 @@ class Window(QtWidgets.QMainWindow):
         delta = new_shift - options['ppm_shift']
         new_pivot = options['pivot_ppm'] + delta
         if not (shift.minimum() <= new_shift <= shift.maximum() and pivot.minimum() <= new_pivot <= pivot.maximum()):
-            self.statusBar().showMessage(tr('Wybrana wartość przekracza zakres przesunięcia ppm lub pivotu.'), 8000)
+            self.warn_input('Wybrana wartość przekracza zakres przesunięcia ppm lub pivotu.')
             return
         self.set_mode('zoom')
         if not delta:
@@ -613,7 +647,7 @@ class Window(QtWidgets.QMainWindow):
                 try:
                     validate_baseline_roi_overlap([(a,b)], [entry['bounds'] for entry in self.entries])
                 except ValueError as exc:
-                    self.statusBar().showMessage(tr(str(exc)), 8000)
+                    self.warn_input(str(exc))
                     return
             self.processing.add_region([a,b])
         else:self.add_roi([a,b])
@@ -622,7 +656,7 @@ class Window(QtWidgets.QMainWindow):
         text,ok=QtWidgets.QInputDialog.getText(self,tr('Dodaj całkę ręcznie'),tr('Wpisz dwie granice całkowania w ppm, rozdzielone średnikiem.'))
         if ok:
             try:self.add_roi([float(v.strip().replace(',', '.')) for v in text.split(';')])
-            except ValueError as e:self.statusBar().showMessage(str(e),5000)
+            except ValueError as e:self.warn_input(str(e))
 
     def new_roi(self,bounds,name=None,group=''):
         if len(bounds)!=2 or not np.isfinite(bounds).all() or min(bounds)>=max(bounds):raise ValueError(tr('Nieprawidłowe granice ROI.'))
@@ -659,7 +693,7 @@ class Window(QtWidgets.QMainWindow):
         for lo,hi in ranges:
             points = np.searchsorted(ppm,hi,side='right')-np.searchsorted(ppm,lo)
             if points<2:
-                self.statusBar().showMessage(tr('Każda część całki musi obejmować co najmniej dwa punkty widma.'),5000)
+                self.warn_input('Każda część całki musi obejmować co najmniej dwa punkty widma.')
                 return
         children = [self.new_roi(bounds,f"{entry['name']} ({part})",entry['group'])
                     for part,bounds in enumerate(ranges,1)]
@@ -681,7 +715,7 @@ class Window(QtWidgets.QMainWindow):
             with QtCore.QSignalBlocker(region):
                 region.setRegion(e['bounds'])
             self.position_integral_labels()
-            self.statusBar().showMessage(tr('Granice całki muszą obejmować co najmniej dwa punkty i mieścić się w widmie.'),5000)
+            self.warn_input('Granice całki muszą obejmować co najmniej dwa punkty i mieścić się w widmie.')
             return
         if e['bounds']==[lo,hi]:
             return
@@ -698,9 +732,15 @@ class Window(QtWidgets.QMainWindow):
         selected = set(self.selected_roi_ids())
         self._updating=True;self.roi_table.setRowCount(len(self.entries));fits={e['id']:e for e in self.results}
         for i,e in enumerate(self.entries):
-            fit=fits.get(e['id'],{}).get('fit') or {}
-            integral=self.integral_value(e,fits.get(e['id']))
-            _, qc, detail = quality(fit, fits.get(e['id'],{}).get('error',''))
+            cached = fits.get(e['id'])
+            if cached is not None and list(cached['bounds']) != list(e['bounds']):
+                cached = None
+            fit = (cached or {}).get('fit') or {}
+            integral = self.integral_value(e, cached)
+            if cached is None:
+                qc, detail = '—', 'Brak aktualnego wyniku dla tego ROI.'
+            else:
+                _, qc, detail = quality(fit, cached.get('error', ''))
             values=[e['id'],e['group'],*[f'{x:.6f}' for x in e['bounds']],
                     self.format_integral(integral),
                     f"{fit['D_m2_s']/1e-10:.5f}" if fit.get('ok') else '—',
@@ -713,7 +753,8 @@ class Window(QtWidgets.QMainWindow):
                 if not editable:item.setFlags(item.flags()&~QtCore.Qt.ItemFlag.ItemIsEditable)
                 if j==0 and e['name']!=e['id']:item.setToolTip(e['name'])
                 if j==len(values)-1:
-                    diagnostics = fits.get(e['id'],{}).get('result',{}).get('profile_diagnostics',{})
+                    style_qc_item(item, qc)
+                    diagnostics = (cached or {}).get('result',{}).get('profile_diagnostics',{})
                     item.setToolTip('\n'.join([tr(detail),*self.qc_metrics(diagnostics)]))
                 if j==GROUP_COLUMN:
                     item.setToolTip(tr('Dwuklik otwiera edycję. Wpisz nową grupę lub wybierz istniejącą z listy.'))
@@ -793,7 +834,7 @@ class Window(QtWidgets.QMainWindow):
             elif item.column() in (LOWER_PPM_COLUMN,UPPER_PPM_COLUMN):
                 e['bounds'][item.column()-LOWER_PPM_COLUMN]=float(item.text());e['bounds']=sorted(e['bounds'])
             self.render_spectrum();self.request_calculation()
-        except Exception as exc:self.statusBar().showMessage(str(exc),5000);self.render_roi_table()
+        except Exception as exc:self.warn_input(str(exc));self.render_roi_table()
     def roi_selected(self,row,col,oldrow,oldcol):
         if not self._updating and 0<=row<len(self.entries):self.active_id=self.entries[row]['id'];self.render_diagnostics()
 
@@ -824,6 +865,7 @@ class Window(QtWidgets.QMainWindow):
                 scatter.sigClicked.connect(self.decay_point_clicked);self.decay.addItem(scatter)
             if fit.get('ok'):self.decay.plot(fit['b_grid']/1e9,fit['curve']/factor,pen=pg.mkPen(color,width=1.5),name=entry['name'])
         active=self.active_result
+        self.fit_notice.set_notice('')
         if active:
             e=self.active;fit=active.get('fit') or {};result=active.get('result') or {};y=result.get('corrected_integral')
             self.weighted.setChecked(e.get('weighted',False));self.point_table.setRowCount(len(d.raw.fid))
@@ -845,13 +887,11 @@ class Window(QtWidgets.QMainWindow):
             if fit.get('ok'):
                 previous=active.get('previous_D');change=tr(f' · poprzednio {previous/1e-10:.4f}') if previous is not None and previous!=fit['D_m2_s'] else ''
                 info+=f"D={fit['D_m2_s']/1e-10:.5f} ×10⁻¹⁰ m²/s{change}\nSE={number(fit.get('D_standard_error_m2_s'))} m²/s · CI95={fit.get('D_CI95_m2_s')} · R²={fit.get('R2')}\n"
-                info+=' '.join(map(tr,fit.get('warnings',[])))
-            else:
-                info+=tr(fit.get('message','Brak poprawnego fitu.'))
-                if d.b is None:
-                    info+='\n'+tr(d.metadata['b_source']['description'])
-            if fit.get('measurement_warnings'):
-                info+='\n' + tr('Jakość pomiaru ROI') + ' · ' + ' '.join(map(tr,fit['measurement_warnings']))
+            _, qc, detail = quality(fit, active.get('error',''))
+            if qc in QC_LEVEL:
+                self.fit_notice.set_notice(tr(detail), QC_LEVEL[qc])
+            elif qc == 'INFO':
+                info += tr(detail)
             diagnostic = result.get('profile_diagnostics',{})
             if diagnostic.get('status') == 'insufficient':
                 info+='\n' + tr('Za mało informacji do oceny zmian profilu między warstwami.')
@@ -889,7 +929,7 @@ class Window(QtWidgets.QMainWindow):
             if item.column()==0:e['fit_mask'][i]=item.checkState()==QtCore.Qt.CheckState.Checked
             elif item.column()==7:e['sigma'][i]=float(item.text()) if item.text().strip() else None
             self.request_calculation()
-        except ValueError:self.statusBar().showMessage(tr('σ(I) musi być liczbą dodatnią albo pustym polem.'),5000)
+        except ValueError:self.warn_input('σ(I) musi być liczbą dodatnią albo pustym polem.')
     def weighting_changed(self,checked):
         if self._updating or self.active is None:return
         self.active['weighted']=checked;self.request_calculation()
@@ -950,17 +990,17 @@ class Window(QtWidgets.QMainWindow):
 
     def show_global_ilt(self):
         if not self.valid or self.dataset is None or self.dataset.b is None:
-            self.statusBar().showMessage(tr('Wczytaj widmo z wartościami b i przelicz całki.'), 7000)
+            self.warn_input('Wczytaj widmo z wartościami b i przelicz całki.')
             return
         ids = self.selected_roi_ids()
         if len(ids) < 2:
-            self.statusBar().showMessage(tr('Zaznacz co najmniej dwa wiersze przez Ctrl lub Shift.'), 7000)
+            self.warn_input('Zaznacz co najmniej dwa wiersze przez Ctrl lub Shift.')
             return
         by_id = {entry['id']: entry for entry in self.results}
         entries = [by_id.get(sid) for sid in ids]
         if any(entry is None or not entry['fit'].get('ok') or
                len(np.unique(self.dataset.b[entry['fit']['fit_mask']])) < MIN_DISTINCT_B for entry in entries):
-            self.statusBar().showMessage(tr('Wybierz ROI z poprawnym fitem i co najmniej 6 różnymi aktywnymi wartościami b.'), 9000)
+            self.warn_input('Wybierz ROI z poprawnym fitem i co najmniej 6 różnymi aktywnymi wartościami b.')
             return
         if self.global_ilt_window is not None:
             self.global_ilt_window.close()
@@ -1050,7 +1090,7 @@ class Window(QtWidgets.QMainWindow):
 
     def export_integrals(self):
         if not self.entries:
-            self.statusBar().showMessage(tr('Dodaj co najmniej jedną całkę do eksportu.'), 5000)
+            self.warn_input('Dodaj co najmniej jedną całkę do eksportu.')
             return
         title = tr('Eksport całek')
         try:
@@ -1063,7 +1103,7 @@ class Window(QtWidgets.QMainWindow):
 
     def import_integrals(self):
         if not self.valid or self.worker is not None:
-            self.statusBar().showMessage(tr('Wczytaj widmo i poczekaj na aktualne obliczenia.'), 5000)
+            self.warn_input('Wczytaj widmo i poczekaj na aktualne obliczenia.')
             return
         title = tr('Import całek')
         try:

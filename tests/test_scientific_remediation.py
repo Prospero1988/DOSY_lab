@@ -152,7 +152,10 @@ class ScientificRemediationTests(unittest.TestCase):
                     expected /= np.linalg.norm(existing['raw_integral'])
                     self.assertAlmostEqual(diagnostic['baseline_relative_rms'],expected)
                 if flags and row['fit']['ok']:
-                    self.assertEqual(quality(row['fit'])[1],'UWAGA')
+                    # Measurement diagnostics are kept for interpretation and
+                    # downstream filtering. The headline describes the fit.
+                    fit_status = quality(original_fit)[1]
+                    self.assertEqual(quality(row['fit'])[1], 'UWAGA' if fit_status == 'UWAGA' else 'INFO')
                 if 'phase_slope' in effects:
                     self.assertEqual(row['fit']['interpretation'],'apparent')
 

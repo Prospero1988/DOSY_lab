@@ -6,6 +6,7 @@ from PySide6 import QtCore, QtWidgets
 
 from d_statistics import number
 from i18n import tr
+from notices import NoticeLabel
 from ilt import D_UNIT, GRID_SIZES, ILTParameters, sensitivity_trials, solve_ilt
 from ilt_help import ILT_HELP, ILT_WINDOW_FLAGS, add_ilt_info
 from ilt_tools import ILTPenaltyEdit, ILTPlotTools, SolveJob
@@ -67,8 +68,7 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.plot_list = (self.attenuation, self.distribution, self.residual)
         for index, plot in enumerate(self.plot_list):
             splitter.setStretchFactor(index, 1)
-        self.status = QtWidgets.QLabel()
-        self.status.setWordWrap(True)
+        self.status = NoticeLabel()
         root.addWidget(self.status)
 
         self.render_comparison()
@@ -175,7 +175,7 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.stability_summary.hide()
         for button in self.export_buttons:
             button.setEnabled(False)
-        self.show_error('Oczekiwanie na rozwiązanie ILT…')
+        self.status.set_notice(tr('Oczekiwanie na rozwiązanie ILT…'))
         self.timer.start()
 
     def parameters(self):
@@ -232,7 +232,7 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.solved_parameters = parameters
         self.render_comparison()
         self.render_distribution()
-        self.status.setText(' '.join(map(tr, self.result.warnings)))
+        self.status.set_notice(' '.join(map(tr, self.result.warnings)), 'warning')
         self.show_sensitivity(trials)
         self.solution_changed.emit(self.result)
         for button in self.export_buttons:
@@ -260,7 +260,7 @@ class ILTWindow(QtWidgets.QDialog, ILTPlotTools):
 
     def show_error(self, error):
         suffix = ' ' + tr('Wykresy pokazują poprzednie rozwiązanie.') if self.result is not None else ''
-        self.status.setText(tr(error) + suffix)
+        self.status.set_notice(tr(error) + suffix, 'error')
 
     def render_comparison(self):
         a, r = self.attenuation, self.residual

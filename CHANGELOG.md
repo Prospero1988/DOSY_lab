@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.4 · 2026-11-17
+
+- Highlight blocking errors in red and warnings in amber. Show both ppm intervals when a baseline mask intersects an integral.
+- Show a baseline extrapolation warning only when an integral extends beyond the fitted range and baseline subtraction is applied. Name the affected integrals in the warning.
+- Use **INFO** for measurement diagnostics and reserve **WARNING** for issues with the decay fit. Mark unavailable current results with a dash in the main QC table.
+- Mark draggable panel dividers with 1 px lines that brighten on hover.
+
 ## 2.1.3 · 2026-11-17
 
 - Add a Processing preference to show or hide the blue baseline regions independently of the fitted baseline preview.

@@ -122,7 +122,8 @@ def baseline_fit(ppm,real,regions,degree,reference=0,per_layer=True,*,tail_cente
     else:
         one=np.linalg.lstsq(design,real[reference,mask],rcond=None)[0]
         coeff=np.repeat(one[None,:],len(real),axis=0)
-    diagnostics=dict(condition=condition,points=int(mask.sum()),coefficients=coeff.tolist())
+    diagnostics=dict(condition=condition,points=int(mask.sum()),coefficients=coeff.tolist(),
+                     fit_range_ppm=(float(ppm[mask].min()), float(ppm[mask].max())))
     if tail_center is not None:
         diagnostics.update(solvent_tail_center_ppm=tail_center, solvent_core_halfwidth_ppm=SOLVENT_CORE_PPM)
     return coeff@full.T,diagnostics
@@ -140,11 +141,13 @@ def validate_baseline_roi_overlap(regions, roi_bounds):
     for a,b in regions:
         for c,d in roi_bounds:
             if max(min(a,b),min(c,d))<min(max(a,b),max(c,d)):
-                raise ValueError('Obszar bazy przecina ROI. Zmień maskę bazy przed zatwierdzeniem.')
+                raise ValueError('Obszar bazy przecina ROI. Zmień maskę bazy przed zatwierdzeniem. '
+                                 f'Zakres maski bazy {min(a,b):.5f}–{max(a,b):.5f} ppm · ROI {min(c,d):.6f}–{max(c,d):.6f} ppm.')
 
 
 def process_fids(raw,options=None,roi_bounds=()):
     o=validate_options(options or default_options(raw),len(raw.fid))
+    roi_bounds = tuple(roi_bounds)
     sw=raw.metadata['x_sweep_Hz'];freq=raw.metadata['x_frequency_Hz']/1e6
     n=raw.fid.shape[1];time=np.arange(n)/sw
     window=np.exp(-np.pi*o['lb_Hz']*time-(np.pi*o['gaussian_FWHM_Hz']*time)**2/(4*np.log(2)))
@@ -166,8 +169,11 @@ def process_fids(raw,options=None,roi_bounds=()):
         tail_center=solvent_center_ppm(raw.metadata,o['ppm_shift']) if o['baseline_solvent_tail'] else None
         base,diag['baseline']=baseline_fit(ppm,z.real,o['baseline_regions'],o['baseline_degree'],
                                           o['reference_layer'],o['baseline_per_layer'],tail_center=tail_center)
-        if min(min(x) for x in o['baseline_regions'])>ppm.min() or max(max(x) for x in o['baseline_regions'])<ppm.max():
-            diag['warnings'].append('Baza jest ekstrapolowana poza skrajne wybrane obszary; sprawdź podgląd.')
+        if o['baseline_enabled']:
+            first, last = diag['baseline']['fit_range_ppm']
+            diag['baseline']['extrapolated_roi_indices'] = [
+                i for i, bounds in enumerate(roi_bounds) if min(bounds) < first or max(bounds) > last
+            ]
     elif o['baseline_enabled']:raise ValueError('Najpierw zaznacz obszary linii bazowej.')
     corrected=z-base if o['baseline_enabled'] else z.copy()
     if not np.isfinite(corrected).all():raise ValueError('Processing wygenerował NaN/Inf.')

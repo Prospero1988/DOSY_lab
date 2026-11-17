@@ -1,6 +1,6 @@
-# DOSY Lab 2.1.3
+# DOSY Lab 2.1.4
 
-DOSY Lab is a Windows desktop application for classical 1D diffusion NMR acquired on JEOL instruments. It opens raw JDF gradient series, processes the complex FIDs with a shared phase, and estimates the diffusion coefficient **D** from the decay of selected integrals. Version 2.1.3 moves baseline controls into **Processing** and adds a separate toggle for the shaded baseline regions.
+DOSY Lab is a Windows desktop application for classical 1D diffusion NMR acquired on JEOL instruments. It opens raw JDF gradient series, processes the complex FIDs with a shared phase, and estimates the diffusion coefficient **D** from the decay of selected integrals. Version 2.1.4 highlights actionable alerts, distinguishes fit warnings from measurement diagnostics in QC, and marks draggable panel dividers with thin lines.
 
 ![DOSY Lab main window with the reference spectrum, integration regions and decay plot](docs/images/widmo-integracja.png)
 
@@ -27,7 +27,7 @@ In **Processing**, the amber **Solvent tail (presaturation)** panel helps you se
 
 ## Installation on Windows
 
-Use Windows with Python 3.11 or newer. The launcher needs internet access on first installation to download its Python dependencies. Extract the DOSY Lab 2.1.3 source archive, or clone the repository. To run this release exactly, check out the `v2.1.3` tag.
+Use Windows with Python 3.11 or newer. The launcher needs internet access on first installation to download its Python dependencies. Extract the DOSY Lab 2.1.4 source archive, or clone the repository. To run this release exactly, check out the `v2.1.4` tag.
 
 ~~~powershell
 git clone https://github.com/Prospero1988/DOSY_lab.git
@@ -83,7 +83,7 @@ ILT map modes offer three policies. **Exploratory** is the default and shows pro
 
 ### Quality and regularization
 
-Inspect **QC**, residuals and the **Spectra in active ROI** tab. **OK** is a usable fit with no current flags. **INFO** indicates a diagnostic observation or limited information. **WARNING** identifies a credible model or measurement concern. **INVALID** marks an unusable fit. Shape and phase trends use a noise-aware screen, and baseline warnings compare the fitted D with and without the baseline correction. The tooltip explains the criteria and their effect on D.
+Inspect **QC**, residuals and the **Spectra in active ROI** tab. **OK** is a usable fit with no current flags. **INFO** flags measurement diagnostics such as changes in the complex ROI profile, phase or baseline sensitivity. **WARNING** highlights issues in the fit of the selected integral. **INVALID** marks an unusable fit. The QC tooltip gives the measurement diagnostics and their effect on D. Blocking processing errors appear in red above the spectrum.
 
 The λ scan uses an L-curve heuristic or, with complete independently estimated standard errors for the integrals, the discrepancy principle. Global ILT and grouped AILT select λ conditionally at fixed μ. The scan may return a range without a single suggestion. Persistent maxima can still result from limited diffusion resolution.
 
@@ -104,7 +104,7 @@ The [user guide](docs/INSTRUKCJA.md) walks through opening data, processing, pha
 - [Automatic regularization and stability](docs/ILT_REGULARIZATION_2.1.md)
 - [Scientific QC and validation](docs/QC_AND_MAPS_2.1.md)
 - [Scientific audit archive and reproduction](audit/README.md)
-- [2.1.3 release notes](docs/RELEASE-2.1.3.md) and [changelog](CHANGELOG.md)
+- [2.1.4 release notes](docs/RELEASE-2.1.4.md) and [changelog](CHANGELOG.md)
 
 ## Input and scope
 

@@ -327,6 +327,20 @@ class ProcessingTests(unittest.TestCase):
         o['baseline_enabled']=True
         with self.assertRaisesRegex(ValueError,'przecina'):process_fids(r,o,[[3.8,3.9]])
 
+    def test_baseline_extrapolation_reports_only_affected_integrals(self):
+        raw = synthetic(nlayers=4)
+        opts = default_options(raw)
+        opts.update(baseline_enabled=True, baseline_regions=[[3.8, 3.92], [5.03, 5.14]])
+        within = (4.0, 4.1)
+        left = (3.7, 3.77)
+        right = (5.25, 5.18)
+        def baseline(bounds, **options):
+            return process_fids(raw, dict(opts, **options), bounds).diagnostics['baseline']
+        self.assertEqual(baseline(())['extrapolated_roi_indices'], [])
+        self.assertEqual(baseline((within,))['extrapolated_roi_indices'], [])
+        self.assertEqual(baseline(iter((left, within, right)))['extrapolated_roi_indices'], [0, 2])
+        self.assertNotIn('extrapolated_roi_indices', baseline((left, right), baseline_enabled=False))
+
     def test_linear_baseline_is_independent_in_each_layer_and_preserves_decay(self):
         raw=synthetic(nlayers=4)
         x=process_fids(raw).ppm

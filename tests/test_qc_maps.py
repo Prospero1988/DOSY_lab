@@ -13,6 +13,21 @@ from roi_quality import qualify_roi
 
 
 class QCMapTests(unittest.TestCase):
+    def test_fit_qc_distinguishes_measurement_context_from_model_warning(self):
+        b = np.linspace(0, 8e9, 16)
+        y = np.exp(-b*2e-10) + .001*np.sin(np.arange(len(b)))
+        fit = fit_decay(b, y)
+        self.assertEqual(quality(fit)[1], 'OK')
+        findings = [{'kind': kind, 'severity': 'warning', 'message': kind}
+                    for kind in ('shape', 'baseline', 'phase')]
+        detailed = dict(fit, measurement_findings=findings)
+        eligible, status, detail = quality(detailed)
+        self.assertTrue(eligible)
+        self.assertEqual(status, 'INFO')
+        self.assertTrue(all(row['message'] in detail for row in findings))
+        self.assertEqual(quality(dict(detailed, warnings=['Niska jakość monoeksponenty; obejrzyj reszty.']))[1], 'UWAGA')
+        self.assertEqual(quality(dict(detailed, ok=False))[1], 'NIEWAŻNY')
+
     def test_low_information_layers_are_diagnostic_only(self):
         b = np.linspace(0,14,24)*1e9
         x = np.linspace(-1,1,81)

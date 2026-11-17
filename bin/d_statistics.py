@@ -42,8 +42,7 @@ def quality(fit, error=''):
             warnings.append(warning)
     findings = fit.get('measurement_findings')
     if findings is None:
-        warnings.extend(fit.get('measurement_warnings') or [])
-        findings = []
+        findings = [dict(message=message) for message in (fit.get('measurement_warnings') or [])]
     if se is None or se <= 0:
         warnings.append('Brak dodatniego, skończonego SE(D); niedostępne wagi 1/SE².')
     if r2 is None:
@@ -52,12 +51,11 @@ def quality(fit, error=''):
         warnings.append('R² poza zakresem 0–1.')
     if d == 0:
         warnings.append('D na granicy 0.')
-    status = ('UWAGA' if warnings or any(f['severity']=='warning' for f in findings)
-              else 'INFO' if findings or model_info else 'OK')
+    status = 'UWAGA' if warnings else 'INFO' if findings or model_info else 'OK'
     model = ['Dopasowanie · UWAGA: ' + ' '.join(warnings)] if warnings else []
     if model_info:
         model.append('Dopasowanie · INFO: ' + ' '.join(model_info))
-    measurement = [f"{'UWAGA' if f['severity']=='warning' else 'INFO'} · {f['message']}" for f in findings]
+    measurement = ['Jakość pomiaru ROI · ' + ' '.join(f['message'] for f in findings)] if findings else []
     detail = '\n'.join(model+measurement)
     return True, status, detail or 'Poprawny wynik; QC nie jest walidacją eksperymentu.'
 

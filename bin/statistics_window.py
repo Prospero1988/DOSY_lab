@@ -12,6 +12,7 @@ import numpy as np
 from PySide6 import QtCore, QtWidgets
 import pyqtgraph as pg
 from fullscreen_plot import enable_fullscreen
+from notices import NoticeLabel, QC_LEVEL, style_qc_item
 from plot_export import save_light_plot
 from storage import source_save_name
 
@@ -92,6 +93,8 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         detail = QtWidgets.QWidget(); detail_layout = QtWidgets.QVBoxLayout(detail)
         self.roi_info = QtWidgets.QLabel(tr('Wybierz wiersz lub punkt D, aby zobaczyć zapisany zanik.'))
         self.roi_info.setTextFormat(QtCore.Qt.TextFormat.PlainText); self.roi_info.setWordWrap(True); detail_layout.addWidget(self.roi_info)
+        self.roi_notice = NoticeLabel()
+        detail_layout.addWidget(self.roi_notice)
         self.point_info = QtWidgets.QLabel(tr('Kliknij lub najedź na punkt eksperymentalny.')); self.point_info.setWordWrap(True)
         self.point_info.setTextFormat(QtCore.Qt.TextFormat.PlainText); detail_layout.addWidget(self.point_info)
         plot_tools = QtWidgets.QHBoxLayout()
@@ -213,6 +216,8 @@ class StatisticsWindow(QtWidgets.QMainWindow):
                     f"{record['R2']:.5f}" if record['R2'] is not None else '—', tr(record['qc'])]
             for col, value in enumerate(vals, 1):
                 item = QtWidgets.QTableWidgetItem(value); item.setToolTip(tr(record['qc_detail']))
+                if col == len(vals):
+                    style_qc_item(item, record['qc'])
                 if col == 1 and record['name'] != sid:
                     item.setToolTip(f"{record['name']}\n{tr(record['qc_detail'])}")
                 self.table.setItem(row, col, item)
@@ -330,6 +335,7 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         self.decay_plot.clear(); self.residual_plot.clear(); self.point_rows = []
         self.residual_plot.addItem(pg.InfiniteLine(0, angle=0, pen=pg.mkPen('#64748b')))
         self.point_info.setText(tr('Kliknij lub najedź na punkt: g, b, całka, przewidywanie, reszta i S/N, jeśli dostępne.'))
+        self.roi_notice.set_notice('')
         record = self.records_by_id.get(self.active_roi)
         if record is None:
             self.roi_info.setText(tr('Brak sygnałów. Wybierz ROI w głównym programie.')); return
@@ -340,13 +346,16 @@ class StatisticsWindow(QtWidgets.QMainWindow):
         r2 = f"{record['R2']:.5f}" if record['R2'] is not None else '—'
         info = (f"{record['id']} · {record['name']} · {self.ppm(record['ppm'])} ppm · grupa: {record.get('group') or tr('nieprzypisana')}\n"
                 f"D {number(record['D'])} m²/s · SE(D) {number(record['SE'])} m²/s · R² {r2} · {model}\n{bg}")
-        if record['qc'] != 'OK': info += '\n'+tr(record['qc_detail'])
+        status = record['qc']
+        if status == 'INFO': info += '\n'+tr(record['qc_detail'])
         if self.point_rows:
             used=sum(p['fit_included'] is True for p in self.point_rows)
             excluded=sum(p['fit_included'] is False for p in self.point_rows)
             unknown=sum(p['fit_included'] is None for p in self.point_rows)
             info+=tr(f'\nPunkty: {used} w dopasowaniu · {excluded} poza fitem · {unknown} o nieustalonym statusie.')
-        if warning: info += '\n'+tr(warning)
+        notices = [record['qc_detail']] if status in QC_LEVEL else []
+        if warning: notices.append(warning)
+        self.roi_notice.set_notice('\n'.join(map(tr, notices)), QC_LEVEL.get(status, 'warning'))
         self.roi_info.setText(tr(info))
         self.decay_plot.setTitle(html.escape(record['id'])+tr(' · rzeczywiste I(b) i zapisany model · × poza fitem · □ status nieznany'))
         self.measurement_scatters = []

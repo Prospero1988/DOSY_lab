@@ -7,6 +7,7 @@ from PySide6 import QtCore, QtWidgets
 
 from global_ilt import GlobalParameters, solve_global_ilt
 from i18n import tr
+from notices import NoticeLabel
 from ilt import D_UNIT, GRID_SIZES, ILTParameters, solve_ilt
 from ilt_help import GLOBAL_ILT_HELP, ILT_WINDOW_FLAGS, add_ilt_info
 from ilt_tools import ILTPenaltyEdit, ILTPlotTools, SolveJob
@@ -109,8 +110,7 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.summary = QtWidgets.QLabel()
         self.summary.setWordWrap(True)
         root.addWidget(self.summary)
-        self.status = QtWidgets.QLabel()
-        self.status.setWordWrap(True)
+        self.status = NoticeLabel()
         root.addWidget(self.status)
         root.addWidget(QtWidgets.QLabel(tr('Wspólne maksimum D jest wskazówką. Nie identyfikuje cząsteczki ani stężenia.')))
         self.reset_parameters()
@@ -262,10 +262,10 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.set_status(tr('Obliczanie Global ILT…'), stale=True)
         self.timer.start()
 
-    def set_status(self, text, *, stale=False):
+    def set_status(self, text, *, stale=False, level=None):
         if stale and self.result is not None:
             text += ' ' + tr('Wykresy pokazują poprzednie rozwiązanie.')
-        self.status.setText(text)
+        self.status.set_notice(text, level)
 
     def parameters(self):
         regularization, sparsity = [self.read_number(edit) for _,edit in self.penalties]
@@ -297,7 +297,7 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
         try:
             params = self.parameters()
         except ValueError as exc:
-            self.set_status(tr(str(exc)), stale=True)
+            self.set_status(tr(str(exc)), stale=True, level='error')
             return
         b, y, mask = self.b, self.y, self.mask
         sigma = self.sigma if self.weighted.isChecked() else None
@@ -333,7 +333,7 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
                 self.start_solve()
             return
         if error:
-            self.set_status(tr(error), stale=True)
+            self.set_status(tr(error), stale=True, level='error')
             return
         self.result, self.independent = payload
         self.solved_parameters = parameters
@@ -346,7 +346,8 @@ class GlobalILTWindow(QtWidgets.QDialog, ILTPlotTools):
         self.summary.setText(f"{tr('Maksima Global ILT')}  {d}\nλ = {parameters.grid.regularization:.5g} · μ = {parameters.sparsity:.5g} · "
             f"{tr('Funkcja celu')} = {r.objective:.5g} · {tr('Reszta stacjonarności')} = {r.stationarity:.3g} · {tr('Iteracje')} = {r.iterations}")
         status = 'Solver zakończony' if r.converged else 'Osiągnięto limit iteracji. Wynik przybliżony.'
-        self.set_status(' '.join(tr(line) for line in (status, *r.warnings)))
+        self.set_status(' '.join(tr(line) for line in (status, *r.warnings)),
+                        level='warning' if r.warnings or not r.converged else None)
         if r.converged:
             self.solution_changed.emit(r)
         for button in self.export_buttons:

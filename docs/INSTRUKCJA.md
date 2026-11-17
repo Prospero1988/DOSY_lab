@@ -1,4 +1,4 @@
-# DOSY Lab 2.1.3 user guide
+# DOSY Lab 2.1.4 user guide
 
 [Back to the README](../README.md)
 
@@ -45,6 +45,7 @@ Changing the visible layer preserves the ppm bounds of all ROIs. The decay fit u
 | **Full screen** | Open a large spectrum view. Press **Esc** to return. |
 | **Save PNG** | Save the current spectrum view with a white background, black labels and a navy trace. |
 | **View** | Adjust line color, line width and grid visibility. |
+| Thin lines between panels | Drag to resize the spectrum, table, plots or Processing panel. The line brightens under the pointer. |
 
 Press **I**, **M**, **D**, **R**, **Z**, **P** or **F** directly in the main window. While editing text, these keys type letters as usual.
 
@@ -92,7 +93,7 @@ Open **Processing**, choose **Select baseline**, and draw several peak-free inte
 
 The default polynomial order is **1**. **Separate polynomial for each layer** is enabled by default and fits an independent line or polynomial to each layer on the same ppm mask. Before applying the correction you may preview the reference-layer fit instead. **Apply baseline subtraction** always subtracts each layer’s own fitted baseline before integration. This also applies when reopening projects with baseline subtraction enabled.
 
-Keep the baseline intervals clear of all ROIs. The fit extrapolates outside the outermost mask regions. Review the preview there before applying it. In **Processing**, use **Remove region** to remove one selected interval, **Clear baseline** to remove the entire mask and disable subtraction, or **Undo correction** to disable subtraction while keeping the mask.
+Keep the baseline intervals clear of all ROIs. When baseline subtraction is applied and an integral extends past the outermost fit regions, the banner names the affected integrals. Use **Show fitted baseline** to check the yellow line near those signals. In **Processing**, use **Remove region** to remove one selected interval, **Clear baseline** to remove the entire mask and disable subtraction, or **Undo correction** to disable subtraction while keeping the mask.
 
 ### Presaturation and residual solvent
 
@@ -151,7 +152,9 @@ The values above illustrate the file format. b values from nominal gradient ampl
 
 ## 7. Fitting and quality control
 
-Each ROI is fitted to $I(b)=I_0\exp(-bD)$ using its signed integrals. A fit requires at least three distinct active b values. D and its standard error $\mathrm{SE}(D)$ are reported in $\mathrm{m^2/s}$. The main table scales both by $`10^{-10}\ \mathrm{m^2/s}`$. Inspect **QC**, $R^2$ and the residuals before interpreting a fit. Hover over **QC** for separate model and measurement diagnostics. **INFO** includes detected changes with no demonstrated effect on D or insufficient information. **WARNING** flags a credible risk to D. **INVALID** means the fit is unusable. An affected D may describe the whole ROI under the model. The checks preserve the fitted integrals and point selections.
+Each ROI is fitted to $I(b)=I_0\exp(-bD)$ using its signed integrals. A fit requires at least three distinct active b values. D and its standard error $\mathrm{SE}(D)$ are reported in $\mathrm{m^2/s}$. The main table scales both by $`10^{-10}\ \mathrm{m^2/s}`$. Inspect **QC**, $R^2$ and the residuals before interpreting a fit. **INFO** covers measurement observations, including differences between parts of a crowded ROI, sensitivity to processing and limited diagnostic information. Hover over **QC** to read the details and compare alternative D estimates. **WARNING** highlights a problem with the fitted integral, such as a poor monoexponential fit or unresolved fit uncertainty. **INVALID** means the fit is unusable. A usable D can still be apparent and describe the whole ROI under the model.
+
+Blocking processing errors appear in a red banner above the spectrum. A baseline mask that intersects an ROI is reported with the ppm bounds of both intervals. Use the intervals in the message to locate the conflict in **Processing** and repeat the fit. A dash in the main QC column indicates that a current result is unavailable for that ROI.
 
 - **Decays** shows measured points and fitted curves. **Show I / first integral** normalizes the display. Fitting uses the original integrals.
 - **Residuals** shows measurement minus prediction for the selected ROI in a separate full-height tab.
